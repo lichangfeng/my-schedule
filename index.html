@@ -1735,7 +1735,7 @@ function openImportDialog(){
 const CLOUD_KEY="myScheduleCloud";
 const LASTCHANGE_KEY="myScheduleLastChange";
 let cloudCfg={owner:"lichangfeng",repo:"my-schedule",branch:"main",path:"schedule-data.json",token:"",autoPull:false,autoPush:false,lastSync:""};
-let cloudReady=false, cloudTimer=null, cloudApplying=false;
+let cloudReady=false, cloudTimer=null, cloudApplying=false, cloudPulling=false;
 function loadCloudCfg(){
   try{
     var raw=localStorage.getItem(CLOUD_KEY);
@@ -1780,6 +1780,8 @@ function cloudFetchText(){
 }
 function cloudPull(silent,force){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
+  if(cloudPulling) return Promise.reject(new Error("正在同步中"));
+  cloudPulling=true;
   return cloudFetchText().then(function(raw){
     if(!raw||!raw.trim()) throw new Error("云端的数据文件是空的。请到有数据的那台设备点“上传本机”覆盖它。");
     var data;
@@ -1795,7 +1797,7 @@ function cloudPull(silent,force){
     cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
     if(!silent) showToast("☁️ 已从云端下载同步");
     return data;
-  }).catch(function(e){ if(!silent) alert("云同步失败："+e.message); throw e; });
+  }).catch(function(e){ if(!silent) alert("云同步失败："+e.message); throw e; }).then(function(x){ cloudPulling=false; return x; },function(e){ cloudPulling=false; throw e; });
 }
 function cloudPush(silent){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
@@ -1895,6 +1897,16 @@ function cloudTest(){
     $("#clNote").textContent="⚠️ "+m;
   });
 }
+function cloudAutoStart(){
+  function autoPullNow(){
+    if(document.hidden) return;
+    if(!(cloudReady&&cloudCfg.autoPull&&cloudConfigured())) return;
+    cloudPull(true).catch(function(){});
+  }
+  setInterval(autoPullNow,30000);
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) autoPullNow(); });
+  window.addEventListener("focus",autoPullNow);
+}
 function cloudTouch(){ if(!cloudReady||cloudApplying||!cloudCfg.autoPush||!cloudConfigured()) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(function(){ cloudPush(true).catch(function(){}); },800); }
 function openCloudDialog(){
   var ov=$("#overlay"); ov.classList.remove("hidden");
@@ -1905,7 +1917,7 @@ function openCloudDialog(){
     "<div class=\"field\"><label>分支</label><input type=\"text\" id=\"clBranch\"></div>"+
     "<div class=\"field\"><label>数据文件名</label><input type=\"text\" id=\"clPath\"></div>"+
     "<div class=\"field\"><label>访问令牌 Token</label><input type=\"password\" id=\"clToken\" placeholder=\"github_pat_... 或 ghp_...\"></div>"+
-    "<div class=\"field\"><label class=\"rad\" style=\"margin:0 0 6px\"><input type=\"checkbox\" id=\"clAutoPull\">打开网页时自动从云端下载</label>"+
+    "<div class=\"field\"><label class=\"rad\" style=\"margin:0 0 6px\"><input type=\"checkbox\" id=\"clAutoPull\">自动同步（每 30 秒检查云端）</label>"+
     "<label class=\"rad\" style=\"margin:0\"><input type=\"checkbox\" id=\"clAutoPush\">修改后自动上传到云端</label></div>"+
     "<div class=\"dnote\" id=\"clNote\"></div>"+
     "<div class=\"dfoot\"><button class=\"btn\" id=\"clSave\">保存设置</button><button class=\"btn\" id=\"clTest\">🔍 测试连接</button><span class=\"grow\"></span>"+
@@ -1985,6 +1997,7 @@ loadMobileOverride();
 renderAll();
 bindUI();
 cloudReady=true;
+cloudAutoStart();
 if(cloudCfg.autoPull&&cloudConfigured()){ setTimeout(function(){ cloudPull(true).catch(function(){}); },700); }
 setInterval(updateNowLine,30000);
 window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.__mrt=setTimeout(function(){ renderAll(); },200); });
