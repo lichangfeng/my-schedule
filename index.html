@@ -1718,6 +1718,8 @@ function cloudPull(silent,force){
 function cloudPush(silent){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
   var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:b64Encode(JSON.stringify(collectData(true))),branch:cloudCfg.branch||"main"};
+  var apiBase="https://api.github.com/repos/"+encodeURIComponent(cloudCfg.owner)+"/"+encodeURIComponent(cloudCfg.repo);
+  function done(){ cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg(); if(!silent) showToast("☁️ 已上传到云端"); }
   function withTimeout(fn){
     var ctl=null; try{ ctl=new AbortController(); }catch(e){ ctl=null; }
     var timer=setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} },30000);
@@ -1729,20 +1731,45 @@ function cloudPush(silent){
       throw e;
     });
   }
-  function getMeta(){
-    return withTimeout(function(sig){ var o={headers:cloudHeaders()}; if(sig)o.signal=sig; return fetch(cloudUrl(),o); }).then(function(r){
+  function ghJson(url,opts){
+    opts=opts||{};
+    opts.headers=Object.assign({"Accept":"application/vnd.github+json"},cloudHeaders(),opts.headers||{});
+    return withTimeout(function(sig){ opts.signal=sig; return fetch(url,opts); }).then(function(r){
       if(r.ok) return r.json();
-      if(r.status===404) return null;
       if(r.status===401) throw new Error("Token 无效或已过期（401）");
       if(r.status===403) throw new Error("Token 权限不足（403）：需要 public_repo 或 Contents 读写权限");
       return cloudErr(r);
     });
   }
+  function getMeta(){
+    return withTimeout(function(sig){ var o={headers:cloudHeaders(),cache:"no-store"}; if(sig)o.signal=sig; return fetch(cloudUrl()+"&_="+Date.now(),o); }).then(function(r){
+      if(r.ok) return r.json();
+      if(r.status===404) return null;
+      if(r.status===401) throw new Error("Token 无效或已过期（401）");
+      if(r.status===403) throw new Error("Token 权限不足（403）");
+      return cloudErr(r);
+    });
+  }
   function putFile(){
     return withTimeout(function(sig){
-      var o={method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload)};
+      var o={method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload),cache:"no-store"};
       if(sig)o.signal=sig;
       return fetch(cloudUrl(),o);
+    });
+  }
+  function pushViaGitData(){
+    var refUrl=apiBase+"/git/ref/heads/"+encodeURIComponent(cloudCfg.branch||"main");
+    return ghJson(refUrl).then(function(ref){
+      var commitSha=ref.object.sha;
+      return ghJson(apiBase+"/git/commits/"+commitSha).then(function(c){ return {commitSha:commitSha,treeSha:c.tree.sha}; });
+    }).then(function(info){
+      return ghJson(apiBase+"/git/blobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:payload.content,encoding:"base64"})}).then(function(blob){
+        return ghJson(apiBase+"/git/trees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({base_tree:info.treeSha,tree:[{path:cloudCfg.path,mode:"100644",type:"blob",sha:blob.sha}]})}).then(function(tree){
+          return ghJson(apiBase+"/git/commits",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:payload.message,tree:tree.sha,parents:[info.commitSha]})}).then(function(commit){
+            return ghJson(apiBase+"/git/refs/heads/"+encodeURIComponent(cloudCfg.branch||"main"),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({sha:commit.sha,force:false})});
+          });
+        });
+      });
     });
   }
   return getMeta().then(function(j){
@@ -1755,10 +1782,13 @@ function cloudPush(silent){
       });
     });
   }).then(function(r){
-    if(!r.ok) return cloudErr(r);
-    cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
-    if(!silent) showToast("☁️ 已上传到云端");
-  }).catch(function(e){ if(!silent) alert("上传失败："+e.message); throw e; });
+    if(r.ok){ done(); return; }
+    if(r.status===422){ return pushViaGitData().then(done); }
+    return cloudErr(r);
+  }).catch(function(e){
+    if(!silent) alert("上传失败："+e.message);
+    throw e;
+  });
 }
 function cloudTest(){
   if(!cloudConfigured()){ $("#clNote").textContent="⚠️ 请先填写用户名、仓库名和 Token"; return; }
