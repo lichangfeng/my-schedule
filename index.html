@@ -224,7 +224,24 @@ body.hide-mode .ev:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
  .float-panel .btn{padding:14px 14px;font-size:15px}
  .floating{right:12px;bottom:14px}
  .hidebar,.pastebar{left:8px;right:8px;transform:none;bottom:8px}
-}</style>
+}body.mobile-fit .app{padding:10px 6px 92px}
+body.mobile-fit .board{min-width:0}
+body.mobile-fit .board-scroll{overflow-x:hidden}
+body.mobile-fit .day-header-row{grid-template-columns:26px repeat(7,1fr)}
+body.mobile-fit .day-body-row{grid-template-columns:26px repeat(7,1fr)}
+body.mobile-fit .tl{right:2px;font-size:9px;font-weight:600}
+body.mobile-fit .dh{padding:6px 0 7px;border-right:1px solid #f4f6fa}
+body.mobile-fit .dh .wd{font-size:11px;margin-bottom:1px}
+body.mobile-fit .dh .dt{font-size:11px;min-width:20px;height:20px;padding:0 3px;border-radius:10px}
+body.mobile-fit .ev{left:1px;right:1px;padding:3px 3px 3px 6px;border-radius:6px}
+body.mobile-fit .ev:before{width:3px}
+body.mobile-fit .ev .t{font-size:10px;line-height:1.2}
+body.mobile-fit .ev .m{font-size:8.5px;margin-top:1px}
+body.mobile-fit .float-toggle{width:64px;height:64px;font-size:27px;box-shadow:0 8px 22px rgba(30,41,59,.3)}
+body.mobile-fit .float-panel .btn{padding:14px;font-size:15px}
+body.mobile-fit .floating{right:12px;bottom:14px}
+body.mobile-fit .hidebar,body.mobile-fit .pastebar{left:8px;right:8px;transform:none;bottom:8px}
+body.mobile-fit .maintitle{font-size:23px}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -272,6 +289,7 @@ body.hide-mode .ev:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
       <button class="btn" id="dataOutBtn">⬇ 导出数据（换设备）</button>
       <button class="btn" id="dataInBtn">⬆ 导入数据（从手机/电脑）</button>
       <button class="btn" id="cloudBtn">☁️ 云同步（GitHub）</button>
+      <button class="btn" id="viewModeBtn">📱 手机视图</button>
       <button class="btn" id="printBtn">🖨 打印 / 导出 PDF</button>
       <button class="btn" id="helpBtn">❓ 使用说明</button>
     </div>
@@ -351,6 +369,7 @@ const evTop=function(m){return (m-DAY_START)*PX/60;};
 
 const state={weekStart:startOfWeek(new Date()),arrs:[]};
 let isMobileView=false, mobileDay=null;
+let mobileOverride=null;
 let cols=[], editingEv=null, dialogMode="create";
 
 function snapV(v){return {from:v.from,to:v.to,day:v.day,start:v.start,end:v.end,title:v.title,color:v.color,note:v.note||"",deleted:!!v.deleted};}
@@ -431,9 +450,7 @@ function isCurrentWeek(){ return weekKey(new Date())===weekKey(state.weekStart);
 }
 function renderHeader(){
   var now=new Date(), html="<div class=\"gutter-head\"></div>";
-  var list=isMobileView?[mobileDay]:[0,1,2,3,4,5,6];
-  for(var x=0;x<list.length;x++){
-    var i=list[x];
+  for(var i=0;i<7;i++){
     var d=addDays(state.weekStart,i);
     var cls="dh";
     if(i>=5) cls+=" we";
@@ -454,9 +471,7 @@ function renderBody(){
   $("#dayBody").innerHTML=htmlG;
   $("#dayBody").style.height=(cells*PX)+"px";
   cols=[];
-  var dlist=isMobileView?[mobileDay]:[0,1,2,3,4,5,6];
-  for(var x=0;x<dlist.length;x++){
-    var i=dlist[x];
+  for(var i=0;i<7;i++){
     var d=addDays(state.weekStart,i);
     var col=document.createElement("div");
     var cls="daycol"+(i>=5?" we":"")+(sameDay(d,now)?" today":"");
@@ -493,7 +508,7 @@ function renderEvents(){
                  "<span class=\"acts\"><button class=\"cp\" title=\"复制\">⧉</button><button class=\"rm\" title=\"删除\">✕</button></span>";
     var tEl=el.querySelector(".t"), mEl=el.querySelector(".m");
     tEl.textContent=ev.title||"（未命名安排）";
-    mEl.textContent=timeText(ev.start)+" – "+timeText(ev.end);
+    mEl.textContent=isMobileView?timeText(ev.start):(timeText(ev.start)+" – "+timeText(ev.end));
     var cardFam=(vset.cardFont&&vset.cardFont!=="inherit")?(VFONTS[vset.cardFont]||""):"";
     tEl.style.fontFamily=cardFam;
     tEl.style.fontSize=vset.tSize+"px";
@@ -522,6 +537,13 @@ function renderLegend(){
            c.name+"</span>";
   }).join("");
 }
+function loadMobileOverride(){ try{ var v=localStorage.getItem("myScheduleMobileView"); mobileOverride=(v==="1"||v==="0")?v:null; }catch(e){ mobileOverride=null; } }
+function toggleViewMode(){
+  mobileOverride=isMobileView?"0":"1";
+  try{ localStorage.setItem("myScheduleMobileView",mobileOverride); }catch(e){}
+  renderAll();
+  showToast(mobileOverride==="1"?"📱 已切换为「整周铺满」（不用左右滑）":"🖥 已切换为「整周大格」（可左右滑动）");
+}
 function renderDaySwitch(){
   var box=$("#daySwitch");
   if(!box) return;
@@ -542,10 +564,14 @@ function renderDaySwitch(){
   }
 }
 function renderAll(){
-  isMobileView=window.matchMedia("(max-width:700px)").matches||/Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent);
+  var autoMobile=window.matchMedia("(max-width:700px)").matches
+    ||/Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent)
+    ||((navigator.maxTouchPoints>0||"ontouchstart" in window)&&Math.min(screen.width,screen.height)<=900);
+  isMobileView=(mobileOverride==="1")?true:((mobileOverride==="0")?false:autoMobile);
+  var vmb=$("#viewModeBtn"); if(vmb) vmb.textContent=isMobileView?"🖥 整周大格（点我切换）":"📱 整周铺满（点我切换）";
   if(isMobileView&&(mobileDay===null||mobileDay===undefined)) mobileDay=(isCurrentWeek()?((new Date().getDay()+6)%7):0);
   renderWeekTitle(); renderHeader(); renderBody(); renderEvents(); renderLegend();
-  renderDaySwitch();
+  document.body.classList.toggle("mobile-fit",isMobileView);
   updateHideBar();
   bindCols();
 }
@@ -1909,6 +1935,7 @@ function bindUI(){
   $("#dataOutBtn").addEventListener("click",exportDataFile);
   $("#dataInBtn").addEventListener("click",openImportDialog);
   $("#cloudBtn").addEventListener("click",openCloudDialog);
+  $("#viewModeBtn").addEventListener("click",toggleViewMode);
   $("#hideUndo").addEventListener("click",undoHide);
   $("#hideRestore").addEventListener("click",restoreWeekHidden);
   $("#hideDone").addEventListener("click",function(){ setHideMode(false); });
@@ -1945,6 +1972,7 @@ loadView();
 applyView();
 loadHidden();
 loadCloudCfg();
+loadMobileOverride();
 renderAll();
 bindUI();
 cloudReady=true;
