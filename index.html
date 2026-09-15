@@ -206,6 +206,22 @@ body.hide-mode .ev:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
  .times{grid-template-columns:1fr;gap:6px}
  .times .sep{display:none}
  .hidebar,.pastebar{left:8px;right:8px;transform:none;bottom:8px}
+}.day-switch{display:none;gap:6px;overflow-x:auto;padding:2px;margin-bottom:8px}
+.day-switch button{flex:1 0 auto;min-width:46px;padding:8px 6px;border:1px solid #d7dce6;border-radius:10px;background:#fff;font-size:12.5px;cursor:pointer;color:#3b4252;font-family:inherit}
+.day-switch button.active{background:linear-gradient(135deg,#4f6ef2,#7c5cf5);color:#fff;border-color:transparent}
+.day-switch button .d{display:block;font-size:11px;opacity:.85;margin-top:2px}
+@media (max-width:700px){
+ .app{padding:10px 8px 90px}
+ .board{min-width:0}
+ .board-scroll{overflow-x:hidden}
+ .day-header-row{grid-template-columns:52px 1fr}
+ .day-body-row{grid-template-columns:52px 1fr}
+ .tl{right:8px;font-size:12.5px}
+ .dh{padding:10px 4px}
+ .dh .dt{font-size:15px}
+ .maintitle{font-size:23px}
+ .float-toggle{width:54px;height:54px}
+ .hidebar,.pastebar{left:8px;right:8px;transform:none;bottom:8px}
 }</style>
 </head><body>
 <div id="bgShade"></div>
@@ -227,6 +243,7 @@ body.hide-mode .ev:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
     <button class="close" id="hintClose" title="关闭">✕</button>
   </div>
 
+  <div class="day-switch no-print" id="daySwitch"></div>
   <div class="board-wrap">
     <div class="board-bgoverlay" id="boardBgOverlay"></div>
     <div class="board-scroll">
@@ -331,6 +348,7 @@ const colColor=function(id){var c=COLORS.filter(function(x){return x.id===id;})[
 const evTop=function(m){return (m-DAY_START)*PX/60;};
 
 const state={weekStart:startOfWeek(new Date()),arrs:[]};
+let isMobileView=false, mobileDay=null;
 let cols=[], editingEv=null, dialogMode="create";
 
 function snapV(v){return {from:v.from,to:v.to,day:v.day,start:v.start,end:v.end,title:v.title,color:v.color,note:v.note||"",deleted:!!v.deleted};}
@@ -411,7 +429,9 @@ function isCurrentWeek(){ return weekKey(new Date())===weekKey(state.weekStart);
 }
 function renderHeader(){
   var now=new Date(), html="<div class=\"gutter-head\"></div>";
-  for(var i=0;i<7;i++){
+  var list=isMobileView?[mobileDay]:[0,1,2,3,4,5,6];
+  for(var x=0;x<list.length;x++){
+    var i=list[x];
     var d=addDays(state.weekStart,i);
     var cls="dh";
     if(i>=5) cls+=" we";
@@ -432,7 +452,9 @@ function renderBody(){
   $("#dayBody").innerHTML=htmlG;
   $("#dayBody").style.height=(cells*PX)+"px";
   cols=[];
-  for(var i=0;i<7;i++){
+  var dlist=isMobileView?[mobileDay]:[0,1,2,3,4,5,6];
+  for(var x=0;x<dlist.length;x++){
+    var i=dlist[x];
     var d=addDays(state.weekStart,i);
     var col=document.createElement("div");
     var cls="daycol"+(i>=5?" we":"")+(sameDay(d,now)?" today":"");
@@ -445,7 +467,7 @@ function renderBody(){
       ln.innerHTML="<i></i><span>"+timeText(nowMin)+"</span>";
       col.appendChild(ln);
     }
-    cols.push(col);
+    cols[i]=col;
   }
 }
 function renderEvents(){
@@ -498,8 +520,30 @@ function renderLegend(){
            c.name+"</span>";
   }).join("");
 }
+function renderDaySwitch(){
+  var box=$("#daySwitch");
+  if(!box) return;
+  if(!isMobileView){ box.style.display="none"; box.innerHTML=""; return; }
+  box.style.display="flex";
+  var html="";
+  for(var i=0;i<7;i++){
+    var d=addDays(state.weekStart,i);
+    html+="<button class=\""+(i===mobileDay?"active":"")+"\" data-day=\""+i+"\">"+WD[i]+"<span class=\"d\">"+(d.getMonth()+1)+"/"+d.getDate()+"</span></button>";
+  }
+  box.innerHTML=html;
+  var btns=box.querySelectorAll("button");
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener("click",function(){
+      mobileDay=parseInt(this.getAttribute("data-day"),10);
+      renderAll();
+    });
+  }
+}
 function renderAll(){
+  isMobileView=window.matchMedia("(max-width:700px)").matches;
+  if(isMobileView&&(mobileDay===null||mobileDay===undefined)) mobileDay=(isCurrentWeek()?((new Date().getDay()+6)%7):0);
   renderWeekTitle(); renderHeader(); renderBody(); renderEvents(); renderLegend();
+  renderDaySwitch();
   updateHideBar();
   bindCols();
 }
@@ -558,6 +602,7 @@ function bindEvent(el,ev){
 }
 function bindCols(){
   for(var i=0;i<cols.length;i++){
+    if(!cols[i]) continue;
     (function(col,day){
       col.addEventListener("click",function(e){
         if(e.target.closest(".ev")) return;
@@ -1903,6 +1948,7 @@ bindUI();
 cloudReady=true;
 if(cloudCfg.autoPull&&cloudConfigured()){ setTimeout(function(){ cloudPull(true).catch(function(){}); },700); }
 setInterval(updateNowLine,30000);
+window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.__mrt=setTimeout(function(){ renderAll(); },200); });
 })();</script>
 </body>
 </html>
