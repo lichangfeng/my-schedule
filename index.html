@@ -1566,8 +1566,15 @@ function bindTitle(){
   el.addEventListener("blur",function(){ if(titleEditing) commitTitle(); });
 }
 /* ---------- 数据导出 / 导入（跨设备） ---------- */
-function collectData(){
-  return {v:1,exportedAt:new Date().toISOString(),modifiedAt:Number(localStorage.getItem(LASTCHANGE_KEY)||0),title:($("#mainTitle").textContent||""),arrs:state.arrs,view:vset,hidden:hidden,bg:{t:bgCur,p:pgCur}};
+function collectData(forCloud){
+  function safeBg(o){
+    if(!o) return {type:"none",value:"",shade:0.35};
+    if(forCloud&&(o.type==="data"||o.type==="url")&&String(o.value||"").length>250000){
+      return {type:"none",value:"",shade:(typeof o.shade==="number"?o.shade:0.35)};
+    }
+    return {type:o.type,value:o.value,shade:(typeof o.shade==="number"?o.shade:0.35)};
+  }
+  return {v:1,exportedAt:new Date().toISOString(),modifiedAt:Number(localStorage.getItem(LASTCHANGE_KEY)||0),title:($("#mainTitle").textContent||""),arrs:state.arrs,view:vset,hidden:hidden,bg:{t:safeBg(bgCur),p:safeBg(pgCur)}};
 }
 function exportDataFile(){
   try{
@@ -1580,8 +1587,22 @@ function exportDataFile(){
     showToast("✅ 已导出数据文件，可发到手机后导入");
   }catch(e){ alert("导出失败："+e.message); }
 }
+function normalizeImport(d){
+  function conv(list){
+    return list.map(function(x){
+      return {id:uid(),versions:[{from:null,to:null,day:x.day,start:x.start,end:x.end,title:x.title||"（未命名安排）",color:x.color||"blue",note:x.note||"",deleted:false}]};
+    });
+  }
+  if(Array.isArray(d)) return {arrs:conv(d)};
+  if(d&&Array.isArray(d.arrs)) return d;
+  if(d&&d.data&&Array.isArray(d.data.arrs)) return d.data;
+  if(d&&d.state&&Array.isArray(d.state.arrs)) return {arrs:d.state.arrs,view:d.state.view,hidden:d.state.hidden,bg:d.state.bg,title:d.state.title,modifiedAt:d.modifiedAt};
+  if(d&&Array.isArray(d.events)) return {arrs:conv(d.events),view:d.view,hidden:d.hidden,bg:d.bg,title:d.title,modifiedAt:d.modifiedAt};
+  return null;
+}
 function applyImportedData(d,silent){
-  if(!d||!Array.isArray(d.arrs)){ alert("数据格式不正确，无法导入。"); return false; }
+  d=normalizeImport(d);
+  if(!d||!Array.isArray(d.arrs)){ alert("数据格式不正确：这个文件里没有日程数据。\n\n请选择本程序导出的「日程表数据_日期.json」，或仓库里的 schedule-data.json（不要选 manifest.json、index.html、图片或 zip）。"); return false; }
   if(d.arrs.length===0&&!confirm("导入的数据里没有日程，仍要导入吗？")) return false;
   cloudApplying=true;
   state.arrs=d.arrs;
@@ -1648,7 +1669,7 @@ function cloudUrl(){ return "https://api.github.com/repos/"+encodeURIComponent(c
 function cloudHeaders(){ var h={"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}; if(cloudCfg.token) h["Authorization"]="Bearer "+cloudCfg.token; return h; }
 function cloudErr(r){ return r.text().then(function(t){ var m="GitHub 返回 "+r.status; try{ var j=JSON.parse(t); if(j&&j.message) m+="："+j.message; }catch(e){ m+="："+String(t).slice(0,140); } throw new Error(m); }); }
 function cloudFetchText(){
-  var ctl=null, opts={headers:Object.assign({"Accept":"application/vnd.github.raw"},cloudHeaders())};
+  var ctl=null, opts={headers:Object.assign(cloudHeaders(),{"Accept":"application/vnd.github.raw"})};
   try{ ctl=new AbortController(); opts.signal=ctl.signal; }catch(e){ ctl=null; }
   var timer=setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} },25000);
   return fetch(cloudUrl(),opts).then(function(r){
@@ -1657,7 +1678,16 @@ function cloudFetchText(){
     if(r.status===401) throw new Error("Token 无效或已过期（401）");
     if(r.status===403) throw new Error("Token 权限不足（403）");
     if(!r.ok) return cloudErr(r);
-    return r.text();
+    return r.text().then(function(txt){
+      try{
+        var j=JSON.parse(txt);
+        if(j&&j.arrs===undefined&&j.content&&j.encoding==="base64"){ return b64Decode(j.content); }
+        if(j&&j.arrs===undefined&&j.download_url){ throw new Error("GitHub 返回了元数据而不是原始数据，请重新加载页面后再试"); }
+      }catch(e){
+        if(e&&e.message&&e.message.indexOf("GitHub 返回了元数据")>=0) throw e;
+      }
+      return txt;
+    });
   }).catch(function(e){
     clearTimeout(timer);
     var m=e&&e.message?e.message:String(e);
@@ -1687,33 +1717,48 @@ function cloudPull(silent,force){
 }
 function cloudPush(silent){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
-  var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:b64Encode(JSON.stringify(collectData())),branch:cloudCfg.branch||"main"};
+  var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:b64Encode(JSON.stringify(collectData(true))),branch:cloudCfg.branch||"main"};
   function withTimeout(fn){
     var ctl=null; try{ ctl=new AbortController(); }catch(e){ ctl=null; }
-    var timer=setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} },25000);
+    var timer=setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} },30000);
     return fn(ctl?ctl.signal:null).then(function(x){ clearTimeout(timer); return x; },function(e){
       clearTimeout(timer);
       var m=e&&e.message?e.message:String(e);
-      if(e&&(e.name==="AbortError"||m.indexOf("aborted")>=0)) throw new Error("上传超时（25 秒）");
+      if(e&&(e.name==="AbortError"||m.indexOf("aborted")>=0)) throw new Error("上传超时（30 秒）");
       if(m.indexOf("Failed to fetch")>=0||m.indexOf("NetworkError")>=0) throw new Error("连不上 api.github.com（网络问题）");
       throw e;
     });
   }
-  return withTimeout(function(sig){ var o={headers:cloudHeaders()}; if(sig) o.signal=sig; return fetch(cloudUrl(),o); })
-    .then(function(r){
+  function getMeta(){
+    return withTimeout(function(sig){ var o={headers:cloudHeaders()}; if(sig)o.signal=sig; return fetch(cloudUrl(),o); }).then(function(r){
       if(r.ok) return r.json();
       if(r.status===404) return null;
       if(r.status===401) throw new Error("Token 无效或已过期（401）");
-      if(r.status===403) throw new Error("Token 权限不足（403）：请给 public_repo 或 Contents 读写权限");
+      if(r.status===403) throw new Error("Token 权限不足（403）：需要 public_repo 或 Contents 读写权限");
       return cloudErr(r);
-    }).then(function(j){
-      if(j&&j.sha) payload.sha=j.sha;
-      return withTimeout(function(sig){ var o={method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload)}; if(sig) o.signal=sig; return fetch(cloudUrl(),o); });
-    }).then(function(r){
-      if(!r.ok) return cloudErr(r);
-      cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
-      if(!silent) showToast("☁️ 已上传到云端");
-    }).catch(function(e){ if(!silent) alert("上传失败："+e.message); throw e; });
+    });
+  }
+  function putFile(){
+    return withTimeout(function(sig){
+      var o={method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload)};
+      if(sig)o.signal=sig;
+      return fetch(cloudUrl(),o);
+    });
+  }
+  return getMeta().then(function(j){
+    if(j&&j.sha) payload.sha=j.sha; else delete payload.sha;
+    return putFile().then(function(r){
+      if(r.status!==422) return r;
+      return getMeta().then(function(j2){
+        if(j2&&j2.sha) payload.sha=j2.sha; else delete payload.sha;
+        return putFile();
+      });
+    });
+  }).then(function(r){
+    if(!r.ok) return cloudErr(r);
+    cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
+    if(!silent) showToast("☁️ 已上传到云端");
+  }).catch(function(e){ if(!silent) alert("上传失败："+e.message); throw e; });
 }
 function cloudTest(){
   if(!cloudConfigured()){ $("#clNote").textContent="⚠️ 请先填写用户名、仓库名和 Token"; return; }
