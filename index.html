@@ -1660,17 +1660,49 @@ function cloudPull(silent){
 function cloudPush(silent){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
   var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:b64Encode(JSON.stringify(collectData())),branch:cloudCfg.branch||"main"};
-  return fetch(cloudUrl(),{headers:cloudHeaders()}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(j){
+  return fetch(cloudUrl(),{headers:cloudHeaders()}).then(function(r){
+    if(r.ok) return r.json();
+    if(r.status===404) return null;
+    if(r.status===401) throw new Error("Token 无效或已过期（401）");
+    if(r.status===403) throw new Error("Token 权限不足（403）：请给 public_repo 或 Contents 读写权限");
+    return cloudErr(r);
+  }).catch(function(e){
+    if(e&&e.message&&(e.message.indexOf("Token")>=0||e.message.indexOf("GitHub 返回")>=0)) throw e;
+    throw new Error("连不上 api.github.com（网络问题）");
+  }).then(function(j){
     if(j&&j.sha) payload.sha=j.sha;
     return fetch(cloudUrl(),{method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload)});
   }).then(function(r){ if(!r.ok) return cloudErr(r); cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg(); if(!silent) showToast("☁️ 已上传到云端"); })
     .catch(function(e){ if(!silent) alert("上传失败："+e.message); throw e; });
 }
+function cloudTest(){
+  if(!cloudConfigured()){ $("#clNote").textContent="⚠️ 请先填写用户名、仓库名和 Token"; return; }
+  $("#clNote").textContent="测试中…";
+  fetch("https://api.github.com/user",{headers:cloudHeaders()}).then(function(r){
+    if(r.status===401) throw new Error("Token 无效或已过期（401），请重新生成");
+    if(!r.ok) return cloudErr(r);
+    return r.json();
+  }).then(function(u){
+    return fetch("https://api.github.com/repos/"+encodeURIComponent(cloudCfg.owner)+"/"+encodeURIComponent(cloudCfg.repo),{headers:cloudHeaders()}).then(function(r){
+      if(r.status===404) throw new Error("找不到仓库 "+cloudCfg.owner+"/"+cloudCfg.repo+"（仓库名是否正确？）");
+      if(!r.ok) return cloudErr(r);
+      return r.json().then(function(repo){ return {u:u,repo:repo}; });
+    });
+  }).then(function(res){
+    var perms=res.repo.permissions||{};
+    var canWrite=!!(perms.push||perms.admin||perms.maintain);
+    $("#clNote").textContent="✔ Token 属于 "+res.u.login+"；仓库可读"+(canWrite?"、可写入":"、但没有写入权限（需要 public_repo 或 Contents: Read and write）");
+  }).catch(function(e){
+    var m=e&&e.message?e.message:String(e);
+    if(m.indexOf("Failed to fetch")>=0||m.indexOf("NetworkError")>=0) m="连不上 api.github.com（网络被挡或需要用 Edge/Chrome 打开网页版）";
+    $("#clNote").textContent="⚠️ "+m;
+  });
+}
 function cloudTouch(){ if(!cloudReady||cloudApplying||!cloudCfg.autoPush||!cloudConfigured()) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(function(){ cloudPush(true).catch(function(){}); },1500); }
 function openCloudDialog(){
   var ov=$("#overlay"); ov.classList.remove("hidden");
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>云同步（GitHub）</h3>"+
-    "<p class=\"dsub\">数据保存在你自己的 GitHub 仓库里；手机和电脑各填一次 Token 即可同步。Token 只存在本机浏览器，不会写进网页。</p>"+
+    "<p class=\"dsub\">数据保存在你自己的 GitHub 仓库里；手机和电脑各填一次 Token 即可同步。<br>⚠️ 请在<b>网页版</b>（lichangfeng.github.io/my-schedule）里设置，不要在电脑本机 html 文件里设置，否则浏览器会挡住同步。Token 只存在本机浏览器。</p>"+
     "<div class=\"field\"><label>GitHub 用户名</label><input type=\"text\" id=\"clOwner\"></div>"+
     "<div class=\"field\"><label>仓库名</label><input type=\"text\" id=\"clRepo\"></div>"+
     "<div class=\"field\"><label>分支</label><input type=\"text\" id=\"clBranch\"></div>"+
@@ -1679,7 +1711,7 @@ function openCloudDialog(){
     "<div class=\"field\"><label class=\"rad\" style=\"margin:0 0 6px\"><input type=\"checkbox\" id=\"clAutoPull\">打开网页时自动从云端下载</label>"+
     "<label class=\"rad\" style=\"margin:0\"><input type=\"checkbox\" id=\"clAutoPush\">修改后自动上传到云端</label></div>"+
     "<div class=\"dnote\" id=\"clNote\"></div>"+
-    "<div class=\"dfoot\"><button class=\"btn\" id=\"clSave\">保存设置</button><span class=\"grow\"></span>"+
+    "<div class=\"dfoot\"><button class=\"btn\" id=\"clSave\">保存设置</button><button class=\"btn\" id=\"clTest\">🔍 测试连接</button><span class=\"grow\"></span>"+
     "<button class=\"btn\" id=\"clPull\">⬇ 下载云端</button><button class=\"btn primary\" id=\"clPush\">⬆ 上传本机</button><button class=\"btn\" id=\"clClose\">关闭</button></div></div>";
   ov.innerHTML=html;
   $("#clOwner").value=cloudCfg.owner||""; $("#clRepo").value=cloudCfg.repo||"";
@@ -1689,6 +1721,7 @@ function openCloudDialog(){
   function readForm(){ cloudCfg.owner=$("#clOwner").value.trim(); cloudCfg.repo=$("#clRepo").value.trim(); cloudCfg.branch=$("#clBranch").value.trim()||"main"; cloudCfg.path=$("#clPath").value.trim()||"schedule-data.json"; cloudCfg.token=$("#clToken").value.trim(); cloudCfg.autoPull=$("#clAutoPull").checked; cloudCfg.autoPush=$("#clAutoPush").checked; }
   function closeCloud(){ ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){document.removeEventListener("keydown",curEsc); curEsc=null;} }
   $("#clSave").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("✔ 已保存设置到本机，可点“上传本机”或“下载云端”",true); });
+  $("#clTest").addEventListener("click",function(){ readForm(); saveCloudCfg(); cloudTest(); });
   $("#clPull").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("正在下载…"); cloudPull(false).then(function(){ closeCloud(); }).catch(function(){}); });
   $("#clPush").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("正在上传…"); cloudPush(false).then(function(){ closeCloud(); }).catch(function(){}); });
   $("#clClose").addEventListener("click",closeCloud);
