@@ -1581,8 +1581,8 @@ function exportDataFile(){
   }catch(e){ alert("导出失败："+e.message); }
 }
 function applyImportedData(d,silent){
-  if(!d||!Array.isArray(d.arrs)){ alert("数据格式不正确，无法导入。"); return; }
-  if(d.arrs.length===0&&!confirm("导入的数据里没有日程，仍要导入吗？")) return;
+  if(!d||!Array.isArray(d.arrs)){ alert("数据格式不正确，无法导入。"); return false; }
+  if(d.arrs.length===0&&!confirm("导入的数据里没有日程，仍要导入吗？")) return false;
   cloudApplying=true;
   state.arrs=d.arrs;
   sanitizeData();
@@ -1594,6 +1594,7 @@ function applyImportedData(d,silent){
   applyView(); applyBg(); applyPageBg(); renderAll();
   cloudApplying=false;
   if(!silent) showToast("✅ 数据已导入，日程已更新");
+  return true;
 }
 function openImportDialog(){
   var ov=$("#overlay");
@@ -1650,8 +1651,18 @@ function cloudPull(silent){
     if(!r.ok) return cloudErr(r);
     return r.json();
   }).then(function(j){
-    var data=JSON.parse(b64Decode(j.content||""));
-    applyImportedData(data,true);
+    if(j&&j.download_url&&(!j.content||j.encoding!=="base64")){
+      return fetch(j.download_url,{cache:"no-store"}).then(function(r){
+        if(!r.ok) throw new Error("下载云端数据失败："+r.status);
+        return r.text();
+      });
+    }
+    return b64Decode(j.content||"");
+  }).then(function(raw){
+    if(!raw||!raw.trim()) throw new Error("云端的数据文件是空的。请到有数据的那台设备点“上传本机”覆盖它。");
+    var data;
+    try{ data=JSON.parse(raw); }catch(e){ throw new Error("云端数据格式不正确（可能被手动改过）。请到有数据的那台设备点“上传本机”覆盖。"); }
+    if(!applyImportedData(data,true)) throw new Error("云端数据内容无效，已跳过（本地数据没有改动）");
     cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
     if(!silent) showToast("☁️ 已从云端下载同步");
     return data;
