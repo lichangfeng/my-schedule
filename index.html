@@ -1647,7 +1647,7 @@ function b64Decode(b64){ var bin=atob(String(b64).replace(/\s/g,"")),bytes=new U
 function cloudUrl(){ return "https://api.github.com/repos/"+encodeURIComponent(cloudCfg.owner)+"/"+encodeURIComponent(cloudCfg.repo)+"/contents/"+encodeURIComponent(cloudCfg.path)+(cloudCfg.branch?("?ref="+encodeURIComponent(cloudCfg.branch)):""); }
 function cloudHeaders(){ var h={"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}; if(cloudCfg.token) h["Authorization"]="Bearer "+cloudCfg.token; return h; }
 function cloudErr(r){ return r.text().then(function(t){ var m="GitHub 返回 "+r.status; try{ var j=JSON.parse(t); if(j&&j.message) m+="："+j.message; }catch(e){ m+="："+String(t).slice(0,140); } throw new Error(m); }); }
-function cloudPull(silent){
+function cloudPull(silent,force){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
   return fetch(cloudUrl(),{headers:cloudHeaders()}).then(function(r){
     if(r.status===404) throw new Error("云端还没有数据，请先在本机点“上传本机数据”。");
@@ -1667,7 +1667,7 @@ function cloudPull(silent){
     try{ data=JSON.parse(raw); }catch(e){ throw new Error("云端数据格式不正确（可能被手动改过）。请到有数据的那台设备点“上传本机”覆盖。"); }
     var remoteT=Number(data.modifiedAt||0);
     var localT=Number(localStorage.getItem(LASTCHANGE_KEY)||0);
-    if(remoteT>0&&localT>remoteT+1000){
+    if(!force&&remoteT>0&&localT>remoteT+120000){
       if(cloudCfg.autoPush) cloudPush(true).catch(function(){});
       if(!silent) showToast("本机数据比云端新，已保留本机数据");
       return data;
@@ -1743,7 +1743,12 @@ function openCloudDialog(){
   function closeCloud(){ ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){document.removeEventListener("keydown",curEsc); curEsc=null;} }
   $("#clSave").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("✔ 已保存设置到本机，可点“上传本机”或“下载云端”",true); });
   $("#clTest").addEventListener("click",function(){ readForm(); saveCloudCfg(); cloudTest(); });
-  $("#clPull").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("正在下载…"); cloudPull(false).then(function(){ closeCloud(); }).catch(function(){}); });
+  $("#clPull").addEventListener("click",function(){
+    readForm(); saveCloudCfg();
+    if(!confirm("将从云端下载并覆盖本机当前数据，确定吗？")) return;
+    note("正在下载…");
+    cloudPull(false,true).then(function(){ closeCloud(); }).catch(function(){});
+  });
   $("#clPush").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("正在上传…"); cloudPush(false).then(function(){ closeCloud(); }).catch(function(){}); });
   $("#clClose").addEventListener("click",closeCloud);
   var esc=function(e){ if(e.key==="Escape") closeCloud(); };
