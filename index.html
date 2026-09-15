@@ -248,7 +248,8 @@ body.mobile-fit .dh .wd{font-size:10px}
 body.mobile-fit .dh .dt{font-size:10px;min-width:18px;height:18px}
 body.mobile-fit .tl{font-size:8.5px}
 body.mobile-fit .day-header-row{grid-template-columns:24px repeat(7,1fr)}
-body.mobile-fit .day-body-row{grid-template-columns:24px repeat(7,1fr)}</style>
+body.mobile-fit .day-body-row{grid-template-columns:24px repeat(7,1fr)}body.mobile-fit .ev .m{font-size:8px;line-height:1.15;margin-top:1px;white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip}
+body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -515,7 +516,7 @@ function renderEvents(){
                  "<span class=\"acts\"><button class=\"cp\" title=\"复制\">⧉</button><button class=\"rm\" title=\"删除\">✕</button></span>";
     var tEl=el.querySelector(".t"), mEl=el.querySelector(".m");
     tEl.textContent=ev.title||"（未命名安排）";
-    mEl.textContent=isMobileView?timeText(ev.start):(timeText(ev.start)+" – "+timeText(ev.end));
+    mEl.textContent=timeText(ev.start)+(isMobileView?"–":" – ")+timeText(ev.end);
     var cardFam=(vset.cardFont&&vset.cardFont!=="inherit")?(VFONTS[vset.cardFont]||""):"";
     tEl.style.fontFamily=cardFam;
     var fScale=isMobileView?0.7:1;
