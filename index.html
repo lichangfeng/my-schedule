@@ -1647,29 +1647,36 @@ function b64Decode(b64){ var bin=atob(String(b64).replace(/\s/g,"")),bytes=new U
 function cloudUrl(){ return "https://api.github.com/repos/"+encodeURIComponent(cloudCfg.owner)+"/"+encodeURIComponent(cloudCfg.repo)+"/contents/"+encodeURIComponent(cloudCfg.path)+(cloudCfg.branch?("?ref="+encodeURIComponent(cloudCfg.branch)):""); }
 function cloudHeaders(){ var h={"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}; if(cloudCfg.token) h["Authorization"]="Bearer "+cloudCfg.token; return h; }
 function cloudErr(r){ return r.text().then(function(t){ var m="GitHub 返回 "+r.status; try{ var j=JSON.parse(t); if(j&&j.message) m+="："+j.message; }catch(e){ m+="："+String(t).slice(0,140); } throw new Error(m); }); }
+function cloudFetchText(){
+  var ctl=null, opts={headers:Object.assign({"Accept":"application/vnd.github.raw"},cloudHeaders())};
+  try{ ctl=new AbortController(); opts.signal=ctl.signal; }catch(e){ ctl=null; }
+  var timer=setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} },25000);
+  return fetch(cloudUrl(),opts).then(function(r){
+    clearTimeout(timer);
+    if(r.status===404) throw new Error("云端还没有数据，请先在有数据的那台设备点“上传本机”。");
+    if(r.status===401) throw new Error("Token 无效或已过期（401）");
+    if(r.status===403) throw new Error("Token 权限不足（403）");
+    if(!r.ok) return cloudErr(r);
+    return r.text();
+  }).catch(function(e){
+    clearTimeout(timer);
+    var m=e&&e.message?e.message:String(e);
+    if(e&&(e.name==="AbortError"||m.indexOf("aborted")>=0)) throw new Error("下载超时（25 秒），请改用 Edge/Chrome 打开网页版再试");
+    if(m.indexOf("Failed to fetch")>=0||m.indexOf("NetworkError")>=0) throw new Error("连不上 api.github.com（网络问题）");
+    throw e;
+  });
+}
 function cloudPull(silent,force){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
-  return fetch(cloudUrl(),{headers:cloudHeaders()}).then(function(r){
-    if(r.status===404) throw new Error("云端还没有数据，请先在本机点“上传本机数据”。");
-    if(!r.ok) return cloudErr(r);
-    return r.json();
-  }).then(function(j){
-    if(j&&j.download_url&&(!j.content||j.encoding!=="base64")){
-      return fetch(j.download_url,{cache:"no-store"}).then(function(r){
-        if(!r.ok) throw new Error("下载云端数据失败："+r.status);
-        return r.text();
-      });
-    }
-    return b64Decode(j.content||"");
-  }).then(function(raw){
+  return cloudFetchText().then(function(raw){
     if(!raw||!raw.trim()) throw new Error("云端的数据文件是空的。请到有数据的那台设备点“上传本机”覆盖它。");
     var data;
-    try{ data=JSON.parse(raw); }catch(e){ throw new Error("云端数据格式不正确（可能被手动改过）。请到有数据的那台设备点“上传本机”覆盖。"); }
+    try{ data=JSON.parse(raw); }catch(e){ throw new Error("云端数据格式不正确（可能被手动改过）。请用有数据的那台点“上传本机”覆盖。"); }
     var remoteT=Number(data.modifiedAt||0);
     var localT=Number(localStorage.getItem(LASTCHANGE_KEY)||0);
     if(!force&&remoteT>0&&localT>remoteT+120000){
       if(cloudCfg.autoPush) cloudPush(true).catch(function(){});
-      if(!silent) showToast("本机数据比云端新，已保留本机数据");
+      if(!silent) showToast("本机数据比云端新，已保留本机数据（可在云同步里点“下载云端”强制覆盖）");
       return data;
     }
     if(!applyImportedData(data,true)) throw new Error("云端数据内容无效，已跳过（本地数据没有改动）");
@@ -1681,20 +1688,32 @@ function cloudPull(silent,force){
 function cloudPush(silent){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
   var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:b64Encode(JSON.stringify(collectData())),branch:cloudCfg.branch||"main"};
-  return fetch(cloudUrl(),{headers:cloudHeaders()}).then(function(r){
-    if(r.ok) return r.json();
-    if(r.status===404) return null;
-    if(r.status===401) throw new Error("Token 无效或已过期（401）");
-    if(r.status===403) throw new Error("Token 权限不足（403）：请给 public_repo 或 Contents 读写权限");
-    return cloudErr(r);
-  }).catch(function(e){
-    if(e&&e.message&&(e.message.indexOf("Token")>=0||e.message.indexOf("GitHub 返回")>=0)) throw e;
-    throw new Error("连不上 api.github.com（网络问题）");
-  }).then(function(j){
-    if(j&&j.sha) payload.sha=j.sha;
-    return fetch(cloudUrl(),{method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload)});
-  }).then(function(r){ if(!r.ok) return cloudErr(r); cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg(); if(!silent) showToast("☁️ 已上传到云端"); })
-    .catch(function(e){ if(!silent) alert("上传失败："+e.message); throw e; });
+  function withTimeout(fn){
+    var ctl=null; try{ ctl=new AbortController(); }catch(e){ ctl=null; }
+    var timer=setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} },25000);
+    return fn(ctl?ctl.signal:null).then(function(x){ clearTimeout(timer); return x; },function(e){
+      clearTimeout(timer);
+      var m=e&&e.message?e.message:String(e);
+      if(e&&(e.name==="AbortError"||m.indexOf("aborted")>=0)) throw new Error("上传超时（25 秒）");
+      if(m.indexOf("Failed to fetch")>=0||m.indexOf("NetworkError")>=0) throw new Error("连不上 api.github.com（网络问题）");
+      throw e;
+    });
+  }
+  return withTimeout(function(sig){ var o={headers:cloudHeaders()}; if(sig) o.signal=sig; return fetch(cloudUrl(),o); })
+    .then(function(r){
+      if(r.ok) return r.json();
+      if(r.status===404) return null;
+      if(r.status===401) throw new Error("Token 无效或已过期（401）");
+      if(r.status===403) throw new Error("Token 权限不足（403）：请给 public_repo 或 Contents 读写权限");
+      return cloudErr(r);
+    }).then(function(j){
+      if(j&&j.sha) payload.sha=j.sha;
+      return withTimeout(function(sig){ var o={method:"PUT",headers:Object.assign({"Content-Type":"application/json"},cloudHeaders()),body:JSON.stringify(payload)}; if(sig) o.signal=sig; return fetch(cloudUrl(),o); });
+    }).then(function(r){
+      if(!r.ok) return cloudErr(r);
+      cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
+      if(!silent) showToast("☁️ 已上传到云端");
+    }).catch(function(e){ if(!silent) alert("上传失败："+e.message); throw e; });
 }
 function cloudTest(){
   if(!cloudConfigured()){ $("#clNote").textContent="⚠️ 请先填写用户名、仓库名和 Token"; return; }
@@ -1747,9 +1766,9 @@ function openCloudDialog(){
     readForm(); saveCloudCfg();
     if(!confirm("将从云端下载并覆盖本机当前数据，确定吗？")) return;
     note("正在下载…");
-    cloudPull(false,true).then(function(){ closeCloud(); }).catch(function(){});
+    cloudPull(false,true).then(function(){ closeCloud(); }).catch(function(e){ note("⚠️ "+(e&&e.message?e.message:"下载失败")); });
   });
-  $("#clPush").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("正在上传…"); cloudPush(false).then(function(){ closeCloud(); }).catch(function(){}); });
+  $("#clPush").addEventListener("click",function(){ readForm(); saveCloudCfg(); note("正在上传…"); cloudPush(false).then(function(){ closeCloud(); }).catch(function(e){ note("⚠️ "+(e&&e.message?e.message:"上传失败")); }); });
   $("#clClose").addEventListener("click",closeCloud);
   var esc=function(e){ if(e.key==="Escape") closeCloud(); };
   curEsc=esc; document.addEventListener("keydown",esc);
