@@ -380,7 +380,7 @@ function sampleArrs(){
 }
 function save(){
   try{ localStorage.setItem(STORE_V3,JSON.stringify({v:3,arrs:state.arrs})); }catch(e){}
-  cloudTouch();
+  localChanged();
 }
 function activeFor(arr,key){
   var best=null;
@@ -580,7 +580,7 @@ let clip=null, pasteOn=false;
 const HIDE_KEY="myScheduleHidden";
 let hidden={}, hideMode=false, lastHidden=null;
 function loadHidden(){ try{ var raw=localStorage.getItem(HIDE_KEY); hidden=raw?(JSON.parse(raw)||{}):{}; }catch(e){ hidden={}; } }
-function saveHidden(){ try{ localStorage.setItem(HIDE_KEY,JSON.stringify(hidden)); }catch(e){} cloudTouch(); }
+function saveHidden(){ try{ localStorage.setItem(HIDE_KEY,JSON.stringify(hidden)); }catch(e){} localChanged(); }
 function hideCountForWeek(key){ var n=0; for(var k in hidden){ if(k.indexOf(key+"|")===0) n++; } return n; }
 function updateHideBar(){
   var bar=$("#hideBar"); if(!bar) return;
@@ -966,7 +966,7 @@ function applyPageBg(){
   }
 }
 function saveBg(){
-  try{ localStorage.setItem(BG_STORE,JSON.stringify({t:bgCur,p:pgCur})); cloudTouch(); }
+  try{ localStorage.setItem(BG_STORE,JSON.stringify({t:bgCur,p:pgCur})); localChanged(); }
   catch(e){ alert("图片较大，无法保存到浏览器存储（建议 5MB 以内的图片）。当前仍可使用，但刷新后会恢复默认背景。"); }
 }
 function openBgDialog(){
@@ -1149,7 +1149,7 @@ function applyView(){
 }
 function saveView(){
   try{ localStorage.setItem(VIEW_KEY,JSON.stringify(vset)); }catch(e){}
-  cloudTouch();
+  localChanged();
 }
 function dateTextOf(d,fmt){
   var m=d.getMonth()+1, dd=d.getDate();
@@ -1549,7 +1549,7 @@ function commitTitle(){
   el.textContent=txt;
   endTitleEdit();
   try{ localStorage.setItem(TITLE_KEY,txt); }catch(e){}
-  cloudTouch();
+  localChanged();
 }
 function bindTitle(){
   var el=$("#mainTitle"), btn=$("#mtEdit");
@@ -1567,7 +1567,7 @@ function bindTitle(){
 }
 /* ---------- 数据导出 / 导入（跨设备） ---------- */
 function collectData(){
-  return {v:1,exportedAt:new Date().toISOString(),title:($("#mainTitle").textContent||""),arrs:state.arrs,view:vset,hidden:hidden,bg:{t:bgCur,p:pgCur}};
+  return {v:1,exportedAt:new Date().toISOString(),modifiedAt:Number(localStorage.getItem(LASTCHANGE_KEY)||0),title:($("#mainTitle").textContent||""),arrs:state.arrs,view:vset,hidden:hidden,bg:{t:bgCur,p:pgCur}};
 }
 function exportDataFile(){
   try{
@@ -1585,6 +1585,7 @@ function applyImportedData(d,silent){
   if(d.arrs.length===0&&!confirm("导入的数据里没有日程，仍要导入吗？")) return false;
   cloudApplying=true;
   state.arrs=d.arrs;
+  try{ localStorage.setItem(LASTCHANGE_KEY,String(d.modifiedAt||Date.now())); }catch(e){}
   sanitizeData();
   if(d.view) vset=Object.assign({},vset,d.view);
   if(d.bg){ bgCur=normBg(d.bg.t); pgCur=normBg(d.bg.p); }
@@ -1629,6 +1630,7 @@ function openImportDialog(){
 }
 /* ---------- 云同步（GitHub） ---------- */
 const CLOUD_KEY="myScheduleCloud";
+const LASTCHANGE_KEY="myScheduleLastChange";
 let cloudCfg={owner:"lichangfeng",repo:"my-schedule",branch:"main",path:"schedule-data.json",token:"",autoPull:false,autoPush:false,lastSync:""};
 let cloudReady=false, cloudTimer=null, cloudApplying=false;
 function loadCloudCfg(){
@@ -1638,6 +1640,7 @@ function loadCloudCfg(){
   }catch(e){}
 }
 function saveCloudCfg(){ try{ localStorage.setItem(CLOUD_KEY,JSON.stringify(cloudCfg)); }catch(e){} }
+function localChanged(){ if(!cloudApplying){ try{ localStorage.setItem(LASTCHANGE_KEY,String(Date.now())); }catch(e){} } cloudTouch(); }
 function cloudConfigured(){ return !!(cloudCfg.owner&&cloudCfg.repo&&cloudCfg.token); }
 function b64Encode(str){ var bytes=new TextEncoder().encode(str),bin="",chunk=0x8000; for(var i=0;i<bytes.length;i+=chunk){ bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk)); } return btoa(bin); }
 function b64Decode(b64){ var bin=atob(String(b64).replace(/\s/g,"")),bytes=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
@@ -1662,6 +1665,13 @@ function cloudPull(silent){
     if(!raw||!raw.trim()) throw new Error("云端的数据文件是空的。请到有数据的那台设备点“上传本机”覆盖它。");
     var data;
     try{ data=JSON.parse(raw); }catch(e){ throw new Error("云端数据格式不正确（可能被手动改过）。请到有数据的那台设备点“上传本机”覆盖。"); }
+    var remoteT=Number(data.modifiedAt||0);
+    var localT=Number(localStorage.getItem(LASTCHANGE_KEY)||0);
+    if(remoteT>0&&localT>remoteT+1000){
+      if(cloudCfg.autoPush) cloudPush(true).catch(function(){});
+      if(!silent) showToast("本机数据比云端新，已保留本机数据");
+      return data;
+    }
     if(!applyImportedData(data,true)) throw new Error("云端数据内容无效，已跳过（本地数据没有改动）");
     cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
     if(!silent) showToast("☁️ 已从云端下载同步");
@@ -1709,7 +1719,7 @@ function cloudTest(){
     $("#clNote").textContent="⚠️ "+m;
   });
 }
-function cloudTouch(){ if(!cloudReady||cloudApplying||!cloudCfg.autoPush||!cloudConfigured()) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(function(){ cloudPush(true).catch(function(){}); },1500); }
+function cloudTouch(){ if(!cloudReady||cloudApplying||!cloudCfg.autoPush||!cloudConfigured()) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(function(){ cloudPush(true).catch(function(){}); },800); }
 function openCloudDialog(){
   var ov=$("#overlay"); ov.classList.remove("hidden");
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>云同步（GitHub）</h3>"+
