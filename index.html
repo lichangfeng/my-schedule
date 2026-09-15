@@ -241,7 +241,14 @@ body.mobile-fit .float-toggle{width:64px;height:64px;font-size:27px;box-shadow:0
 body.mobile-fit .float-panel .btn{padding:14px;font-size:15px}
 body.mobile-fit .floating{right:12px;bottom:14px}
 body.mobile-fit .hidebar,body.mobile-fit .pastebar{left:8px;right:8px;transform:none;bottom:8px}
-body.mobile-fit .maintitle{font-size:23px}</style>
+body.mobile-fit .maintitle{font-size:23px}body.mobile-fit .ev{padding:3px 2px 3px 5px}
+body.mobile-fit .ev .t{word-break:break-all;overflow:hidden}
+body.mobile-fit .ev .m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mobile-fit .dh .wd{font-size:10px}
+body.mobile-fit .dh .dt{font-size:10px;min-width:18px;height:18px}
+body.mobile-fit .tl{font-size:8.5px}
+body.mobile-fit .day-header-row{grid-template-columns:24px repeat(7,1fr)}
+body.mobile-fit .day-body-row{grid-template-columns:24px repeat(7,1fr)}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -511,7 +518,8 @@ function renderEvents(){
     mEl.textContent=isMobileView?timeText(ev.start):(timeText(ev.start)+" – "+timeText(ev.end));
     var cardFam=(vset.cardFont&&vset.cardFont!=="inherit")?(VFONTS[vset.cardFont]||""):"";
     tEl.style.fontFamily=cardFam;
-    tEl.style.fontSize=vset.tSize+"px";
+    var fScale=isMobileView?0.7:1;
+    tEl.style.fontSize=Math.max(8,Math.round(vset.tSize*fScale))+"px";
     tEl.style.fontWeight=vset.tBold?"700":"400";
     tEl.style.color=vset.tColor||"#ffffff";
     tEl.style.textAlign=vset.tAlign||"left";
@@ -519,7 +527,7 @@ function renderEvents(){
     tEl.style.textDecoration=vset.tUnder?"underline":"none";
     tEl.style.textShadow=vset.tShadow?"0 1px 2px rgba(0,0,0,.3)":"none";
     mEl.style.fontFamily=cardFam;
-    mEl.style.fontSize=vset.mSize+"px";
+    mEl.style.fontSize=Math.max(7,Math.round(vset.mSize*fScale))+"px";
     mEl.style.fontWeight=vset.mBold?"700":"500";
     mEl.style.color=vset.mColor||"#ffffff";
     mEl.style.textAlign=vset.mAlign||"left";
