@@ -2,7 +2,7 @@
   "name": "舞蹈課表與路線規劃",
   "short_name": "舞蹈路線",
   "description": "舞蹈課程、工作日程與百度地圖路線統籌",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
