@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="referrer" content="no-referrer">
+<title>舞蹈課表與路線規劃</title>
+<style>
+:root{
+  color-scheme:light;
+  --background:#ffffff; --foreground:#111827; --card:#ffffff; --card-foreground:#111827;
+  --muted:#f3f4f6; --muted-foreground:#6b7280; --primary:#2563eb; --primary-foreground:#ffffff;
+  --secondary:#f8fafc; --secondary-foreground:#111827; --accent:#eff6ff; --accent-foreground:#1d4ed8;
+  --border:#d1d5db; --input:#d1d5db; --ring:#60a5fa; --green:#15803d; --orange:#c2410c; --red:#dc2626;
+  --viz-series-1:#2563eb; --viz-series-2:#0f766e; --viz-series-3:#7c3aed; --viz-series-4:#be123c; --viz-series-5:#0369a1; --viz-series-6:#a16207;
+  --radius:12px;
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0;background:var(--background);color:var(--foreground)}
+body{padding:1rem;font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+button,input,select{font:inherit}
+.card{background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:var(--radius)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.5rem .75rem;border:1px solid var(--border);border-radius:9px;background:var(--secondary);color:var(--secondary-foreground);text-decoration:none;cursor:pointer}
+.btn-primary{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.form-label{display:block;margin-bottom:.25rem;font-size:.88rem;color:var(--muted-foreground)}
+.form-select,.form-control{width:100%;padding:.5rem .6rem;border:1px solid var(--input);border-radius:9px;background:var(--background);color:var(--foreground)}
+.form-check{display:flex;align-items:center;gap:.45rem}
+.form-check-input{width:1.1rem;height:1.1rem}
+.form-check-label{font-size:.92rem}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:.5rem .4rem;border-bottom:1px solid var(--border);text-align:left}.table-responsive{overflow-x:auto}
+.text-small{font-size:.82rem}.text-muted{color:var(--muted-foreground)}.text-end{text-align:right}.tabular-nums{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+@media(max-width:620px){body{padding:.65rem}}
+</style>
+</head>
+<body>
+<div id="dance-planner-root">
+  <style>
+#dance-planner-root { max-width: 1024px; }
+    #dance-planner-root .dp-hero { display:grid; gap:.5rem; margin-bottom:1rem; }
+    #dance-planner-root .dp-kicker { color:var(--muted-foreground); }
+    #dance-planner-root .dp-controls { display:flex; flex-wrap:wrap; gap:.4rem; margin:.75rem 0 1rem; }
+    #dance-planner-root .dp-day { flex:0 0 auto; }
+    #dance-planner-root .dp-slot { display:grid; grid-template-columns:88px minmax(0,1fr); gap:.75rem; padding:.85rem 0; border-top:1px solid var(--border); }
+    #dance-planner-root .dp-slot-time { font-weight:500; white-space:nowrap; }
+    #dance-planner-root .dp-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.65rem; }
+    #dance-planner-root .dp-course { position:relative; width:100%; text-align:left; padding:.75rem .8rem .75rem 1rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--card); color:var(--card-foreground); }
+    #dance-planner-root .dp-course::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--venue-color); border-radius:var(--radius) 0 0 var(--radius); }
+    #dance-planner-root .dp-course[aria-pressed="true"] { box-shadow:0 0 0 2px var(--ring); }
+    #dance-planner-root .dp-course-title { display:flex; justify-content:space-between; gap:.5rem; align-items:baseline; }
+    #dance-planner-root .dp-classes { display:grid; gap:.2rem; margin-top:.45rem; }
+    #dance-planner-root .dp-class { display:flex; justify-content:space-between; gap:.6rem; }
+    #dance-planner-root .dp-next { margin-top:1rem; }
+    #dance-planner-root .dp-venues { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.75rem; margin:1rem 0; }
+    #dance-planner-root .dp-matrix { margin-top:1rem; }
+    #dance-planner-root .v-huk-hx { --venue-color:var(--viz-series-1); }
+    #dance-planner-root .v-huk-sm { --venue-color:var(--viz-series-2); }
+    #dance-planner-root .v-bad { --venue-color:var(--viz-series-3); }
+    #dance-planner-root .v-odog { --venue-color:var(--viz-series-4); }
+    #dance-planner-root .dp-route { padding:1rem; margin:0 0 1rem; }
+    #dance-planner-root .dp-route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.65rem; }
+    #dance-planner-root .dp-route-stop { display:grid; grid-template-columns:minmax(150px,1fr) auto auto auto; align-items:center; gap:.5rem; margin-top:.5rem; }
+    #dance-planner-root .dp-route-time-field { display:flex; align-items:center; gap:.3rem; color:var(--muted-foreground); white-space:nowrap; }
+    #dance-planner-root .dp-route-time-field input { width:4.5rem; }
+    #dance-planner-root .dp-route-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-top:.75rem; }
+    #dance-planner-root .dp-route-result { margin-top:.9rem; }
+    #dance-planner-root .dp-route-map { margin-top:.85rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--muted); overflow:hidden; }
+    #dance-planner-root .dp-map-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; padding:.55rem; border-bottom:1px solid var(--border); }
+    #dance-planner-root .dp-map-toolbar select { min-width:190px; }
+    #dance-planner-root .dp-map-open { margin-left:auto; }
+    #dance-planner-root .dp-map-baidu { display:block; width:100%; height:460px; background:var(--muted); }
+    #dance-planner-root .dp-map-steps { padding:.65rem; border-top:1px solid var(--border); }
+    #dance-planner-root .dp-map-all { display:grid; gap:.85rem; padding:.65rem; border-top:1px solid var(--border); }
+    #dance-planner-root .dp-map-all-leg { display:grid; gap:.4rem; padding-bottom:.85rem; border-bottom:1px solid var(--border); }
+    #dance-planner-root .dp-map-all-leg:last-child { padding-bottom:0; border-bottom:0; }
+    #dance-planner-root .dp-map-all-leg img { display:block; width:100%; height:auto; }
+    #dance-planner-root .dp-step-list { margin:.4rem 0 0; padding-left:1.25rem; }
+    #dance-planner-root .dp-map-fallback { border-top:1px solid var(--border); }
+    #dance-planner-root .dp-map-fallback summary { padding:.55rem .65rem; }
+    #dance-planner-root .dp-route-map svg { display:block; width:100%; height:auto; }
+    #dance-planner-root .dp-route-map-note { padding:.4rem .6rem; border-top:1px solid var(--border); }
+    #dance-planner-root .dp-route-status { font-weight:500; }
+    #dance-planner-root .dp-route-status.is-ok { color:var(--green); }
+    #dance-planner-root .dp-route-status.is-warn { color:var(--orange); }
+    #dance-planner-root .dp-route-status.is-bad { color:var(--red); }
+    #dance-planner-root .dp-route-timeline { list-style:none; padding:0; margin:.65rem 0 0; display:grid; gap:.4rem; }
+    #dance-planner-root .dp-route-leg { display:flex; justify-content:space-between; gap:.75rem; padding-left:.75rem; border-left:2px solid var(--venue-color,var(--border)); }
+    #dance-planner-root .dp-work { padding:1rem; margin:0 0 1rem; }
+    #dance-planner-root .dp-work-head { display:flex; flex-wrap:wrap; align-items:end; gap:.6rem; margin-bottom:.75rem; }
+    #dance-planner-root .dp-work-head h3 { margin:0 auto 0 0; }
+    #dance-planner-root .dp-work-section { margin-top:.75rem; }
+    #dance-planner-root .dp-work-section-title { margin:0 0 .45rem; font-weight:500; }
+    #dance-planner-root .v-must { --venue-color:var(--orange); border-color:var(--orange); }
+
+    #dance-planner-root .v-work { --venue-color:var(--viz-series-5); }
+    #dance-planner-root .dp-daily { padding:1rem; margin:0 0 1rem; }
+    #dance-planner-root .dp-daily-head { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:.7rem; }
+    #dance-planner-root .dp-daily-head h3 { margin:0 auto 0 0; }
+    #dance-planner-root .dp-daily-list { display:grid; gap:.55rem; }
+    #dance-planner-root .dp-daily-item { padding:.65rem .75rem; border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:var(--radius); background:var(--card); }
+    #dance-planner-root .dp-daily-title { display:flex; justify-content:space-between; gap:.6rem; align-items:baseline; }
+    #dance-planner-root .dp-daily-status.is-ok { color:var(--green); }
+    #dance-planner-root .dp-daily-status.is-bad { color:var(--red); }
+    @media (max-width:620px) {
+      #dance-planner-root { max-width:100%; }
+      #dance-planner-root .dp-controls { position:sticky; top:0; z-index:3; display:grid; grid-template-columns:repeat(4,1fr); gap:.4rem; padding:.45rem 0; background:var(--background); }
+      #dance-planner-root .dp-controls .btn { width:100%; min-height:44px; padding:.35rem .2rem; }
+      #dance-planner-root .dp-slot { grid-template-columns:1fr; gap:.35rem; }
+      #dance-planner-root .dp-slot-time { color:var(--muted-foreground); }
+      #dance-planner-root .dp-cards, #dance-planner-root .dp-venues, #dance-planner-root .dp-route-grid { grid-template-columns:1fr; }
+      #dance-planner-root .dp-course { padding:.8rem .85rem .8rem 1rem; }
+      #dance-planner-root select, #dance-planner-root input, #dance-planner-root button { min-height:44px; }
+      #dance-planner-root .dp-route { padding:.85rem; }
+      #dance-planner-root .dp-route-stop { grid-template-columns:1fr 1fr; gap:.55rem; padding:.65rem 0; border-top:1px solid var(--border); }
+      #dance-planner-root .dp-route-stop > select { grid-column:1 / -1; }
+      #dance-planner-root .dp-route-time-field { justify-content:space-between; min-height:44px; }
+      #dance-planner-root .dp-route-time-field input { width:6rem; }
+      #dance-planner-root .dp-route-stop > button { grid-column:1 / -1; }
+      #dance-planner-root .dp-route-actions { display:grid; grid-template-columns:1fr 1fr; }
+      #dance-planner-root .dp-route-actions .btn, #dance-planner-root .dp-route-actions .form-check { width:100%; min-height:44px; margin:0; }
+      #dance-planner-root .dp-route-leg { display:grid; gap:.18rem; }
+      #dance-planner-root .dp-route-map { overflow:hidden; }
+      #dance-planner-root .dp-map-toolbar { align-items:stretch; }
+      #dance-planner-root .dp-map-toolbar label, #dance-planner-root .dp-map-toolbar select, #dance-planner-root .dp-map-open { width:100%; }
+      #dance-planner-root .dp-map-open { margin-left:0; }
+      #dance-planner-root .dp-map-fallback { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      #dance-planner-root .dp-map-fallback svg { min-width:560px; }
+      #dance-planner-root .dp-matrix .table { min-width:520px; }
+    }
+  </style>
+
+  <div class="dp-hero">
+    <div class="dp-kicker">起點：廣廈新村 C 片 · 電動車最高時速 20 km/h · 通勤時間已含約 4 分鐘停車找教室</div>
+    <div class="dp-controls" role="group" aria-label="選擇星期"></div>
+  </div>
+
+  <section class="card dp-route">
+    <h3 style="margin-top:0">總路線規劃</h3>
+    <div class="dp-route-grid">
+      <div>
+        <label class="form-label" for="dp-route-start">起點</label>
+        <select id="dp-route-start" class="form-select"></select>
+      </div>
+      <div>
+        <label class="form-label" for="dp-route-start-time">出發時間</label>
+        <input id="dp-route-start-time" class="form-control" type="time" value="18:00">
+      </div>
+      <div>
+        <label class="form-label" for="dp-route-deadline">最遲到達／返回時間</label>
+        <input id="dp-route-deadline" class="form-control" type="time" value="21:30">
+      </div>
+    </div>
+    <div id="dp-route-stops"></div>
+    <div class="dp-route-actions">
+      <button id="dp-route-add" type="button" class="btn">新增停靠點</button>
+      <button id="dp-route-clear" type="button" class="btn">清空軌跡</button>
+      <label class="form-check"><input id="dp-route-return" class="form-check-input" type="checkbox" checked><span class="form-check-label">最後返回起點</span></label>
+    </div>
+    <div id="dp-route-result" class="dp-route-result" aria-live="polite"></div>
+  </section>
+
+  <section class="card dp-work">
+    <div class="dp-work-head">
+      <h3>工作與教課日程</h3>
+      <div><label class="form-label" for="dp-work-date">查看日期</label><input id="dp-work-date" class="form-control" type="date" value="2026-09-26"></div>
+      <label class="btn">匯入最新 JSON<input id="dp-work-import" type="file" accept=".json,application/json" hidden></label>
+    </div>
+    <div class="dp-work-section"><div class="dp-work-section-title">必去工作（褐色／隊訓）</div><div id="dp-mandatory-list" class="dp-cards"></div></div>
+    <div class="dp-work-section"><div class="dp-work-section-title">其他工作與安排</div><div id="dp-work-list" class="dp-cards"></div></div>
+  </section>
+
+  <section class="card dp-daily" aria-live="polite">
+    <div class="dp-daily-head">
+      <h3>本次當天行程</h3>
+      <button id="dp-daily-image" type="button" class="btn btn-primary">輸出圖片</button>
+      <button id="dp-daily-print" type="button" class="btn">列印</button>
+      <button id="dp-daily-export" type="button" class="btn">另存當天行程</button>
+    </div>
+    <div id="dp-daily-list" class="dp-daily-list"></div>
+  </section>
+
+  <div id="dp-schedule" aria-live="polite"></div>
+  <div id="dp-next" class="dp-next"></div>
+
+  <h3 style="margin-top:1.25rem">各機構交通時間</h3>
+  <div id="dp-venues" class="dp-venues"></div>
+
+  <div class="dp-matrix">
+    <h3>轉場時間</h3>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>起點</th><th>終點</th><th class="text-end">距離</th><th class="text-end">建議預留</th></tr></thead>
+        <tbody id="dp-matrix-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="text-small text-muted" style="margin-top:1rem">課表由海報 OCR 整理，少量圖形化文字可能誤認；標示「待核對」者請以原海報為準。O-DOG 海報為指定日期與國慶集訓，未混入每週課表。</p>
+</div>
+
+
+<script src="https://api.map.baidu.com/api?type=webgl&v=1.0&ak=E4805d16520de693a3fe707cdc962045"></script>
+<script>
+(function () {
+  const root = document.getElementById("dance-planner-root");
+  const weekly = [{"venue":"HUK 河西店","day":"周一","time":"10:00-11:30","classes":[{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周一","time":"15:00-16:30","classes":[{"teacher":"琳珑","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周一","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周一","time":"18:20-19:50","classes":[{"teacher":"冰冰","class":"ZV"},{"teacher":"小秦","class":"HIPHOP中级"}]},{"venue":"HUK 河西店","day":"周一","time":"19:50-21:20","classes":[{"teacher":"老師待核對","class":"WAACKING"},{"teacher":"阿卷","class":"ZV"}]},{"venue":"HUK 河西店","day":"周二","time":"10:00-11:30","classes":[{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周二","time":"15:00-16:30","classes":[{"teacher":"饺子","class":"股ZV"}]},{"venue":"HUK 河西店","day":"周二","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"股dOHdIH"}]},{"venue":"HUK 河西店","day":"周二","time":"18:20-19:50","classes":[{"teacher":"老師待核對","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周二","time":"19:50-21:20","classes":[{"teacher":"兔子","class":"KPOP"},{"teacher":"阿卷","class":"ZV"}]},{"venue":"HUK 河西店","day":"周三","time":"10:00-11:30","classes":[{"teacher":"瑶瑶","class":"香ZZV"}]},{"venue":"HUK 河西店","day":"周三","time":"14:00-15:30","classes":[{"teacher":"一诺","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周三","time":"15:00-16:30","classes":[{"teacher":"瑶瑶","class":"ZV"}]},{"venue":"HUK 河西店","day":"周三","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周三","time":"18:20-19:50","classes":[{"teacher":"冰冰","class":"ZV"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周三","time":"19:50-21:20","classes":[{"teacher":"可欣","class":"URBAN"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周四","time":"10:00-11:30","classes":[{"teacher":"A时段-10:00-11:30","class":"小雪"},{"teacher":"老師待核對","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周四","time":"14:00-15:30","classes":[{"teacher":"B时段-14:00-15:30","class":"待核對"}]},{"venue":"HUK 河西店","day":"周四","time":"15:00-16:30","classes":[{"teacher":"C时段-15:00-16:30","class":"待核對"}]},{"venue":"HUK 河西店","day":"周四","time":"16:30-18:00","classes":[{"teacher":"D时段-16:30-18:00","class":"待核對"}]},{"venue":"HUK 河西店","day":"周四","time":"18:20-19:50","classes":[{"teacher":"E时段-18:20-19:50","class":"惠子"},{"teacher":"老師待核對","class":"HIPHOP基础"},{"teacher":"八一","class":"LOCKING"}]},{"venue":"HUK 河西店","day":"周四","time":"19:50-21:20","classes":[{"teacher":"F时段-19:50-21:20","class":"ZEZE"},{"teacher":"老師待核對","class":"HIPHOP中级"},{"teacher":"兔子","class":"KPOP"},{"teacher":"汤汤","class":"ZzV"}]},{"venue":"HUK 河西店","day":"周五","time":"10:00-11:30","classes":[{"teacher":"小雪","class":"JAZZ中级"},{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周五","time":"15:00-16:30","classes":[{"teacher":"汤汤","class":"ZZV"}]},{"venue":"HUK 河西店","day":"周五","time":"16:30-18:00","classes":[{"teacher":"小泰","class":"HIPHOP中级"}]},{"venue":"HUK 河西店","day":"周五","time":"18:20-19:50","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周五","time":"19:50-21:20","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周六","time":"10:00-11:30","classes":[{"teacher":"隔虫","class":"JAZZ提高"}]},{"venue":"HUK 河西店","day":"周六","time":"14:00-15:30","classes":[{"teacher":"CC","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周六","time":"18:20-19:50","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周六","time":"19:50-21:20","classes":[{"teacher":"瑶瑶","class":"触育ZV"},{"teacher":"海涛","class":"POPPING"},{"teacher":"HMH","class":"待核對"}]},{"venue":"HUK 河西店","day":"周日","time":"10:00-11:30","classes":[{"teacher":"琳珑","class":"JAZZ中级"},{"teacher":"老師待核對","class":"JAZZ提高"}]},{"venue":"HUK 河西店","day":"周日","time":"16:30-18:00","classes":[{"teacher":"八一","class":"LOCKING"}]},{"venue":"HUK 河西店","day":"周日","time":"18:20-19:50","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"瑶瑶","class":"音ZZV"}]},{"venue":"HUK 河西店","day":"周日","time":"19:50-21:20","classes":[{"teacher":"五一","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"14:00-15:30","classes":[{"teacher":"小秦","class":"HIPHOP提高"},{"teacher":"lee","class":"URBAN"},{"teacher":"优益c","class":"JAZZ"},{"teacher":"柚子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"艺艺","class":"HIPHOP基础"},{"teacher":"椰子","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周一","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"小","class":"URBAN"},{"teacher":"凡凡","class":"WAACKING"},{"teacher":"甲甲","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"20:00-21:30","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"},{"teacher":"娇子","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"14:00-15:30","classes":[{"teacher":"牛牛","class":"HIPHOP基础"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"老師待核對","class":"WAACKING"}]},{"venue":"HUK 世茂店","day":"周二","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"老師待核對","class":"HIPHOP基础"},{"teacher":"莉莉","class":"待核對"}]},{"venue":"HUK 世茂店","day":"周二","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"依依","class":"URBAN"},{"teacher":"闫津","class":"水系编舞"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"20:00-21:30","classes":[{"teacher":"josh","class":"URBAN"},{"teacher":"海涛","class":"POPPING"},{"teacher":"娇子","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周三","time":"14:00-15:30","classes":[{"teacher":"甲甲","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"}]},{"venue":"HUK 世茂店","day":"周三","time":"16:00-17:30","classes":[{"teacher":"B时段","class":"小秦"},{"teacher":"老師待核對","class":"HIPHOP基础"},{"teacher":"国","class":"泰瑞阳"},{"teacher":"老師待核對","class":"AFRODANCE"},{"teacher":"郭虎","class":"HIPHOP提高"}]},{"venue":"HUK 世茂店","day":"周三","time":"18:20-19:50","classes":[{"teacher":"C时段-18:20","class":"甲"},{"teacher":"老師待核對","class":"HIPHOP提高"},{"teacher":"贺贺","class":"URBAN"},{"teacher":"闫洋","class":"水系编舞"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周三","time":"20:00-21:30","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"谭老师","class":"URBAN"},{"teacher":"郭虎","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周四","time":"14:00-15:30","classes":[{"teacher":"A时段-14:00","class":"小秦"},{"teacher":"老師待核對","class":"HIPHOP基础"},{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"CC","class":"水系编舞"},{"teacher":"老師待核對","class":"WAACKING"}]},{"venue":"HUK 世茂店","day":"周四","time":"16:00-17:30","classes":[{"teacher":"-16:00","class":"郭虎"},{"teacher":"老師待核對","class":"HIPHOP提高"},{"teacher":"一凡","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周四","time":"18:20-19:50","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"henry","class":"URBAN"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 世茂店","day":"周四","time":"20:00-21:30","classes":[{"teacher":"D时段-20:00-21:30","class":"金鸣"},{"teacher":"老師待核對","class":"HIPHOP提高"},{"teacher":"可欣","class":"URBAN"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周五","time":"14:00-15:30","classes":[{"teacher":"15:30","class":"阿九"},{"teacher":"老師待核對","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"},{"teacher":"鲜","class":"JAZZ"},{"teacher":"'mimmi","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周五","time":"16:00-17:30","classes":[{"teacher":"-17:30","class":"毛"},{"teacher":"老師待核對","class":"URBAN"},{"teacher":"小六","class":"HIPHOP基础"},{"teacher":"凡凡","class":"SOULDANCE"}]},{"venue":"HUK 世茂店","day":"周五","time":"18:20-19:50","classes":[{"teacher":"-19:50","class":"zeze"},{"teacher":"老師待核對","class":"HIPHOP提高"},{"teacher":"椰子","class":"URBAN"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周五","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"椰子","class":"URBAN"},{"teacher":"小秦","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周六","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"龙荔","class":"HEELS高跟鞋"},{"teacher":"斑斑","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周六","time":"16:00-17:30","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"柚子","class":"HIPHOP基础"},{"teacher":"贝爷","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周六","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"mimmi","class":"URBAN"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周六","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"cC","class":"水系编舞"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周日","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"龙荔","class":"HEELS高跟鞋"},{"teacher":"椰子","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周日","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"lee","class":"URBAN"},{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"贝爷","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周日","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"可欣","class":"URBAN"},{"teacher":"酸酸","class":"JAZZ"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周日","time":"20:00-21:30","classes":[{"teacher":"一凡","class":"HIPHOP基础"},{"teacher":"莉莉","class":"JAZZ"},{"teacher":"'mimmi","class":"URBAN"},{"teacher":"片片","class":"POPPING"}]},{"venue":"BAD EGGS","day":"周一","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周一","time":"15:00-16:30","classes":[{"teacher":"小","class":"HIPHOP"},{"teacher":"公休日","class":"基础强化"}]},{"venue":"BAD EGGS","day":"周一","time":"17:00-18:30","classes":[{"teacher":"小尤","class":"HIPHOP 基础强化"}]},{"venue":"BAD EGGS","day":"周一","time":"19:00-20:30","classes":[{"teacher":"涛涛","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周二","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周二","time":"15:00-16:30","classes":[{"teacher":"小","class":"橘子"},{"teacher":"老師待核對","class":"HIPHOP"},{"teacher":"老師待核對","class":"JAZZ 基础强化"}]},{"venue":"BAD EGGS","day":"周二","time":"17:00-18:30","classes":[{"teacher":"小尤","class":"橘子"},{"teacher":"老師待核對","class":"HIPHOP"},{"teacher":"老師待核對","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周二","time":"19:00-20:30","classes":[{"teacher":"涛涛","class":"彬彬"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周三","time":"15:00-16:30","classes":[{"teacher":"橘子","class":"HIPHOP"},{"teacher":"老師待核對","class":"JAZZ 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"17:00-18:30","classes":[{"teacher":"小尤","class":"橘子"},{"teacher":"老師待核對","class":"HIPHOP"},{"teacher":"老師待核對","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"19:00-20:30","classes":[{"teacher":"彬彬","class":"涛涛"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周四","time":"12:30-14:00","classes":[{"teacher":"小维","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周四","time":"15:00-16:30","classes":[{"teacher":"KEVIN","class":"叶子"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"CHOREO 基础强化"}]},{"venue":"BAD EGGS","day":"周四","time":"17:00-18:30","classes":[{"teacher":"KEVIN","class":"小文"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"CHOREO 基础入门"}]},{"venue":"BAD EGGS","day":"周四","time":"19:00-20:30","classes":[{"teacher":"小螨","class":"紧张"},{"teacher":"老師待核對","class":"HIPHOP"},{"teacher":"老師待核對","class":"JAZZ 基础入门 特训班"}]},{"venue":"BAD EGGS","day":"周五","time":"12:30-14:00","classes":[{"teacher":"小维","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周五","time":"15:00-16:30","classes":[{"teacher":"叶子","class":"KEVIN"},{"teacher":"老師待核對","class":"CHOREO"},{"teacher":"老師待核對","class":"JAZZ 基础强化"}]},{"venue":"BAD EGGS","day":"周五","time":"17:00-18:30","classes":[{"teacher":"KEVIN","class":"小文"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"CHOREO 基础入门"}]},{"venue":"BAD EGGS","day":"周五","time":"19:00-20:30","classes":[{"teacher":"小蟒","class":"紧张"},{"teacher":"老師待核對","class":"HIPHOP"},{"teacher":"老師待核對","class":"JAZZ 特训班 基础入门"}]},{"venue":"BAD EGGS","day":"周六","time":"15:00-16:30","classes":[{"teacher":"DANNIE","class":"彬彬"},{"teacher":"老師待核對","class":"CHOREO"},{"teacher":"老師待核對","class":"JAZZ 中段进阶 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周六","time":"17:00-18:30","classes":[{"teacher":"紧张","class":"康康"},{"teacher":"老師待核對","class":"CHOREO"},{"teacher":"老師待核對","class":"JAZZ 中段进阶 基础入门"}]},{"venue":"BAD EGGS","day":"周六","time":"19:00-20:30","classes":[{"teacher":"康康","class":"嘉怡"},{"teacher":"老師待核對","class":"CHOREO"},{"teacher":"老師待核對","class":"JAZZ 基础强化 基础入门"}]},{"venue":"BAD EGGS","day":"周日","time":"15:00-16:30","classes":[{"teacher":"彬彬","class":"DANNIE"},{"teacher":"老師待核對","class":"CHOREO"},{"teacher":"老師待核對","class":"JAZZ 中段进阶 基础强化"}]},{"venue":"BAD EGGS","day":"周日","time":"17:00-18:30","classes":[{"teacher":"紧张","class":"康康"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"CHOREO 中段进阶 基础入门"}]},{"venue":"BAD EGGS","day":"周日","time":"19:00-20:30","classes":[{"teacher":"康康","class":"嘉怡"},{"teacher":"老師待核對","class":"JAZZ"},{"teacher":"老師待核對","class":"CHOREO 基础入门"},{"teacher":"-BAD-","class":"待核對"}]}];
+  const home = {"HUK 河西店":{"km":5.2,"min":24},"HUK 世茂店":{"km":6.8,"min":30},"BAD EGGS":{"km":3.7,"min":18},"O-DOG":{"km":0.55,"min":7}};
+  const between = {"HUK 河西店":{"HUK 世茂店":{"km":11.2,"min":46},"BAD EGGS":{"km":8.6,"min":37},"O-DOG":{"km":5.0,"min":23}},"HUK 世茂店":{"HUK 河西店":{"km":11.2,"min":46},"BAD EGGS":{"km":4.4,"min":21},"O-DOG":{"km":6.7,"min":30}},"BAD EGGS":{"HUK 河西店":{"km":8.6,"min":37},"HUK 世茂店":{"km":4.4,"min":21},"O-DOG":{"km":3.7,"min":18}},"O-DOG":{"HUK 河西店":{"km":5.0,"min":23},"HUK 世茂店":{"km":6.7,"min":30},"BAD EGGS":{"km":3.7,"min":18}}};
+  const dayOrder = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  const dayLabel = {"周一":"週一","周二":"週二","周三":"週三","周四":"週四","周五":"週五","周六":"週六","周日":"週日"};
+  const venueClass = {"HUK 河西店":"v-huk-hx","HUK 世茂店":"v-huk-sm","BAD EGGS":"v-bad","O-DOG":"v-odog"};
+  const venueAddress = {
+    "HUK 河西店":"岳麓區麻園路陽光100國際新城東側約70米",
+    "HUK 世茂店":"芙蓉區世茂環球金融中心4樓",
+    "BAD EGGS":"天心區芙蓉中路三段266號弘林大廈4樓404",
+    "O-DOG":"天心區1123文化藝術創意園5號樓歐道文化中心"
+  };
+  let selectedDay = "周一";
+  let selected = null;
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function (ch) {
+      return {"&":"&amp;", "<":"&lt;", ">":"&gt;", '\"':"&quot;", "'":"&#39;"}[ch];
+    });
+  }
+  function minutes(time) {
+    const m = String(time).match(/(\d{1,2}):(\d{2})/g);
+    if (!m || m.length < 2) return null;
+    const start = m[0].split(":").map(Number);
+    const end = m[1].split(":").map(Number);
+    return {start:start[0]*60+start[1], end:end[0]*60+end[1]};
+  }
+  function routeInfo(from, to) {
+    if (from === to) return {km:0, min:0};
+    const km = legDistances[routeAssetKey(from, to)];
+    if (Number.isFinite(km)) return {km:km, min:Math.ceil(km / 16 * 60 + 4)};
+    const a = baiduCoords[from], b = baiduCoords[to];
+    if (a && b) {
+      const rad = Math.PI / 180;
+      const dlat = (b[1]-a[1])*rad, dlng = (b[0]-a[0])*rad;
+      const q = Math.sin(dlat/2)**2 + Math.cos(a[1]*rad)*Math.cos(b[1]*rad)*Math.sin(dlng/2)**2;
+      const roadKm = 6371 * 2 * Math.atan2(Math.sqrt(q), Math.sqrt(1-q)) * 1.28;
+      return {km:roadKm, min:Math.ceil(roadKm / 16 * 60 + 4)};
+    }
+    if (from === "家") return home[to] || {km:0, min:30};
+    if (to === "家") return home[from] || {km:0, min:30};
+    return between[from]?.[to] || {km:0, min:30};
+  }
+  function routeMinutes(from, to) { return routeInfo(from, to).min; }
+  function parseClock(value) {
+    const m = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  }
+  function formatClock(total) {
+    const n = ((Math.round(total) % 1440) + 1440) % 1440;
+    return String(Math.floor(n / 60)).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0");
+  }
+  const locations = ["家","HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG","AS","i5私教","meta","西美","洋湖實驗","長郡外國語實驗","隊訓"];
+  const mapPoints = {
+    "家": {x:12576596.0066, y:3248007.6997},
+    "HUK 河西店": {x:12573557.1595, y:3247342.7713},
+    "HUK 世茂店": {x:12578230.8404, y:3253751.3665},
+    "BAD EGGS": {x:12578318.2717, y:3250242.3713},
+    "O-DOG": {x:12575843.4485, y:3248250.7592}
+  };
+  const legDistances = {"home_hexia":5.2,"home_shimao":6.8,"home_badeggs":3.7,"home_odog":0.55,"hexia_shimao":11.2,"hexia_badeggs":8.6,"hexia_odog":5.0,"shimao_badeggs":4.4,"shimao_odog":6.7,"badeggs_odog":3.7,"hexia_home":5.0,"shimao_home":6.4,"badeggs_home":2.9,"odog_home":0.55,"shimao_hexia":10.8,"badeggs_hexia":7.9,"odog_hexia":6.0,"badeggs_shimao":3.6,"odog_shimao":6.6,"odog_badeggs":4.0};
+  const routeKeys = {"家":"home","HUK 河西店":"hexia","HUK 世茂店":"shimao","BAD EGGS":"badeggs","O-DOG":"odog"};
+  function routeAssetKey(from, to) { return (routeKeys[from] || from) + "_" + (routeKeys[to] || to); }
+  let workScheduleData = [{"id":"amtr3nl6z-1-32zh","versions":[{"from":null,"to":"2026-09-07","day":0,"start":840,"end":930,"title":"HUK东 Lee编舞","color":"purple","note":"","deleted":false},{"from":"2026-09-07","to":"2026-09-14","day":0,"start":960,"end":1020,"title":"i5 私教","color":"orange","note":"","deleted":false},{"from":"2026-09-14","to":"2026-09-21","day":0,"start":840,"end":940,"title":"HUK东 Lee编舞","color":"purple","note":"","deleted":true},{"from":"2026-09-21","to":"2026-09-28","day":0,"start":840,"end":930,"title":"HUK东 Lee编舞","color":"purple","note":"","deleted":true},{"from":"2026-09-28","to":null,"day":0,"start":840,"end":930,"title":"HUK东 Lee编舞","color":"purple","note":"","deleted":false}]},{"id":"amtr3nl6z-2-xo7h","versions":[{"from":null,"to":"2026-09-07","day":0,"start":1100,"end":1190,"title":"HUK东 小y编舞","color":"purple","note":"","deleted":false},{"from":"2026-09-07","to":"2026-09-14","day":0,"start":1140,"end":1230,"title":"OD 鹏羽","color":"rose","note":"","deleted":false},{"from":"2026-09-14","to":"2026-09-21","day":0,"start":1100,"end":1190,"title":"HUK东 小y编舞","color":"purple","note":"","deleted":true},{"from":"2026-09-21","to":"2026-09-28","day":0,"start":1100,"end":1190,"title":"HUK东 小y编舞","color":"purple","note":"","deleted":true},{"from":"2026-09-28","to":null,"day":0,"start":1100,"end":1190,"title":"HUK东 小y编舞","color":"purple","note":"","deleted":false}]},{"id":"amtr3nl6z-3-nydh","versions":[{"from":null,"to":"2026-09-14","day":1,"start":900,"end":990,"title":"OD 鹏羽","color":"rose","note":"","deleted":false},{"from":"2026-09-14","to":"2026-09-21","day":1,"start":900,"end":990,"title":"OD","color":"rose","note":"","deleted":true},{"from":"2026-09-21","to":null,"day":1,"start":900,"end":990,"title":"OD","color":"rose","note":"","deleted":true}]},{"id":"amtr3nl6z-4-4jyp","versions":[{"from":null,"to":null,"day":1,"start":1200,"end":1280,"title":"meta","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-5-lyin","versions":[{"from":null,"to":"2026-09-14","day":2,"start":900,"end":990,"title":"OD  ACE","color":"rose","note":"","deleted":false},{"from":"2026-09-14","to":"2026-09-21","day":2,"start":900,"end":990,"title":"OD","color":"rose","note":"","deleted":false},{"from":"2026-09-21","to":"2026-10-05","day":2,"start":900,"end":990,"title":"OD","color":"rose","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":2,"start":900,"end":990,"title":"OD  ACE","color":"rose","note":"","deleted":false}]},{"id":"amtr3nl70-6-qlpw","versions":[{"from":null,"to":null,"day":2,"start":1140,"end":1230,"title":"AS","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-7-o1y1","versions":[{"from":null,"to":null,"day":3,"start":840,"end":930,"title":"HUK东 CC","color":"purple","note":"","deleted":false}]},{"id":"amtr3nl70-8-z4s2","versions":[{"from":null,"to":"2026-09-07","day":3,"start":1140,"end":1230,"title":"i5私教","color":"orange","note":"","deleted":false},{"from":"2026-09-07","to":"2026-09-14","day":3,"start":1140,"end":1200,"title":"i5私教","color":"orange","note":"","deleted":false},{"from":"2026-09-14","to":"2026-10-05","day":3,"start":1140,"end":1200,"title":"i5私教","color":"orange","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":3,"start":1140,"end":1230,"title":"i5私教","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-9-vu32","versions":[{"from":null,"to":"2026-09-14","day":4,"start":900,"end":990,"title":"OD Peng","color":"rose","note":"","deleted":false},{"from":"2026-09-14","to":"2026-09-21","day":4,"start":900,"end":990,"title":"OD","color":"rose","note":"","deleted":false},{"from":"2026-09-21","to":"2026-10-05","day":4,"start":900,"end":990,"title":"OD","color":"rose","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":4,"start":900,"end":990,"title":"OD Peng","color":"rose","note":"","deleted":false}]},{"id":"amtr3nl70-10-0t3j","versions":[{"from":null,"to":"2026-09-14","day":4,"start":1140,"end":1230,"title":"西美","color":"orange","note":"","deleted":false},{"from":"2026-09-14","to":null,"day":4,"start":1150,"end":1240,"title":"西美","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-11-3muw","versions":[{"from":null,"to":null,"day":5,"start":840,"end":930,"title":"HUK东 斑斑","color":"purple","note":"","deleted":false}]},{"id":"amtr3nl70-12-0mhw","versions":[{"from":null,"to":null,"day":0,"start":600,"end":690,"title":"HUK西 小富编舞","color":"indigo","note":"","deleted":false}]},{"id":"amtr3nl70-13-fb5e","versions":[{"from":null,"to":null,"day":1,"start":600,"end":690,"title":"HUK西 小富编舞","color":"indigo","note":"","deleted":false}]},{"id":"amtr3nl70-14-uqsr","versions":[{"from":null,"to":null,"day":6,"start":630,"end":720,"title":"西美","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-15-eq4s","versions":[{"from":null,"to":null,"day":6,"start":870,"end":960,"title":"AS","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-16-98m0","versions":[{"from":null,"to":null,"day":6,"start":1050,"end":1110,"title":"i5私教","color":"blue","note":"","deleted":false}]},{"id":"amtr3nl70-17-t9rq","versions":[{"from":null,"to":null,"day":6,"start":1050,"end":1110,"title":"i5私教","color":"orange","note":"","deleted":false}]},{"id":"amtr3nl70-18-yf53","versions":[{"from":null,"to":"2026-09-07","day":1,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false},{"from":"2026-09-07","to":"2026-09-14","day":1,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false},{"from":"2026-09-14","to":"2026-10-05","day":1,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false}]},{"id":"amtr3nl70-19-a8yr","versions":[{"from":null,"to":null,"day":2,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false}]},{"id":"amtr3nl70-20-yeo0","versions":[{"from":null,"to":null,"day":3,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false}]},{"id":"amtr3nl70-21-vmep","versions":[{"from":null,"to":null,"day":4,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false}]},{"id":"amtr3nl70-22-ye9d","versions":[{"from":null,"to":null,"day":5,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false}]},{"id":"amtr3nl70-23-4oci","versions":[{"from":null,"to":"2026-09-07","day":6,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false},{"from":"2026-09-07","to":"2026-10-05","day":6,"start":1320,"end":1440,"title":"练习","color":"green","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":6,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false}]},{"id":"amtr3nl70-24-t5h7","versions":[{"from":null,"to":"2026-09-07","day":0,"start":1380,"end":1500,"title":"练习","color":"green","note":"","deleted":false},{"from":"2026-09-07","to":"2026-09-14","day":0,"start":1320,"end":1440,"title":"练习","color":"green","note":"","deleted":false},{"from":"2026-09-14","to":"2026-09-21","day":0,"start":1350,"end":1470,"title":"隊訓","color":"rose","note":"","deleted":false},{"from":"2026-09-21","to":null,"day":0,"start":1350,"end":1470,"title":"隊訓","color":"orange","note":"","deleted":false}]},{"id":"amtrdt78d-1-38n5","versions":[{"from":"2026-09-07","to":"2026-09-14","day":2,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-09-14","to":"2026-10-05","day":2,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":2,"start":600,"end":660,"title":"早功","color":"green","note":"","deleted":false}]},{"id":"amtrdtw2r-2-d2dd","versions":[{"from":"2026-09-07","to":"2026-09-14","day":3,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-09-14","to":"2026-10-05","day":3,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":3,"start":690,"end":750,"title":"早功","color":"green","note":"","deleted":false}]},{"id":"amtrdtwi0-3-87kf","versions":[{"from":"2026-09-07","to":"2026-09-14","day":4,"start":660,"end":720,"color":"green","note":"","deleted":false,"title":"早功"},{"from":"2026-09-14","to":"2026-10-05","day":4,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":4,"start":675,"end":735,"title":"早功","color":"green","note":"","deleted":false}]},{"id":"amtrdtwuc-4-vpr8","versions":[{"from":"2026-09-07","to":"2026-09-14","day":5,"start":660,"end":720,"color":"green","note":"","deleted":false,"title":"早功"},{"from":"2026-09-14","to":"2026-10-05","day":5,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":5,"start":690,"end":750,"title":"早功","color":"green","note":"","deleted":false}]},{"id":"amtrdv8th-5-zese","versions":[{"from":"2026-09-07","to":null,"day":4,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false}]},{"id":"amtrdv9k7-6-ir64","versions":[{"from":"2026-09-07","to":"2026-10-05","day":5,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":5,"start":660,"end":720,"title":"早功","color":"green","note":"","deleted":false}]},{"id":"amtwnisot-1-2zrp","versions":[{"from":"2026-09-14","to":null,"day":0,"start":1000,"end":1085,"title":"洋湖实验","color":"orange","note":"","deleted":true}]},{"id":"amty66gx6-1-ue99","versions":[{"from":"2026-09-14","to":"2026-09-21","day":1,"start":970,"end":1055,"title":"洋湖实验","color":"orange","note":"","deleted":true},{"from":"2026-09-21","to":"2026-09-28","day":1,"start":1000,"end":1085,"title":"洋湖实验","color":"orange","note":"","deleted":true},{"from":"2026-09-28","to":"2026-10-05","day":1,"start":1000,"end":1085,"title":"洋湖实验","color":"orange","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":1,"start":1000,"end":1085,"title":"洋湖实验","color":"orange","note":".","deleted":false}]},{"id":"amty6iyms-2-xjok","versions":[{"from":"2026-09-14","to":null,"day":4,"start":1065,"end":1150,"title":"洋湖实验","color":"orange","note":"","deleted":true}]},{"id":"amu33dja1-1-fdlq","versions":[{"from":"2026-09-14","to":null,"day":4,"start":1290,"end":1350,"title":"fd df d fd","color":"blue","note":"","deleted":true}]},{"id":"amu33jqb1-1-gfkl","versions":[{"from":"2026-09-14","to":null,"day":4,"start":1290,"end":1350,"title":"fdsf f d d","color":"blue","note":"","deleted":true}]},{"id":"amu9zovng-1-eviy","versions":[{"from":"2026-09-14","to":"2026-10-19","day":0,"start":975,"end":1060,"title":"洋湖实验","color":"orange","note":"","deleted":true}]},{"id":"amu9zp0zv-2-qmeg","versions":[{"from":"2026-09-14","to":"2026-10-19","day":1,"start":900,"end":985,"title":"洋湖实验","color":"orange","note":"","deleted":true},{"from":"2026-10-19","to":null,"day":1,"start":900,"end":985,"title":"洋湖实验","color":"orange","note":"","deleted":false}]},{"id":"amu9zpcf6-3-4enl","versions":[{"from":"2026-09-14","to":"2026-09-28","day":0,"start":1000,"end":1085,"title":"洋湖实验..","color":"orange","note":"","deleted":false}]},{"id":"amub89enk-1-619p","versions":[{"from":"2026-09-21","to":"2026-09-28","day":1,"start":1110,"end":1190,"title":"meta","color":"orange","note":"","deleted":false},{"from":"2026-09-28","to":null,"day":1,"start":1110,"end":1190,"title":"meta","color":"orange","note":"","deleted":true}]},{"id":"amuhcvoaj-1-nz9b","versions":[{"from":"2026-09-28","to":"2026-10-05","day":0,"start":960,"end":1050,"title":"長郡外國語實驗","color":"orange","note":"","deleted":false},{"from":"2026-10-05","to":null,"day":0,"start":960,"end":1050,"title":"長郡外國語實驗","color":"orange","note":".","deleted":false}]}];
+  let routeStops = [];
+  let routePickOrder = 0;
+  let leafletMap = null;
+
+  function initRoutePlanner() {
+    const start = root.querySelector("#dp-route-start");
+    start.innerHTML = locations.map(function (loc) { return `<option value="${esc(loc)}">${esc(loc)}</option>`; }).join("");
+    start.value = "家";
+    start.addEventListener("change", renderRoutePlan);
+    root.querySelector("#dp-route-start-time").addEventListener("input", renderRoutePlan);
+    root.querySelector("#dp-route-deadline").addEventListener("input", renderRoutePlan);
+    root.querySelector("#dp-route-return").addEventListener("change", renderRoutePlan);
+    root.querySelector("#dp-route-clear").addEventListener("click", function () {
+      routeStops = [];
+      renderRouteStops();
+      renderDailySchedule();
+      renderSchedule();
+    });
+    root.querySelector("#dp-route-add").addEventListener("click", function () {
+      const used = routeStops.map(function (stop) { return stop.location; });
+      const unused = locations.find(function (loc) { return !used.includes(loc); });
+      if (unused && routeStops.length < 8) {
+        routeStops.push({courseKey:null, location:unused, classMin:60, delayMin:0, label:"手動停靠點", timeText:"自訂時間", sortStart:null, dateText:root.querySelector("#dp-work-date").value, day:selectedDay, pickOrder:++routePickOrder});
+        renderRouteStops();
+        renderDailySchedule();
+      }
+    });
+    renderRouteStops();
+  }
+
+  function renderRouteStops() {
+    const host = root.querySelector("#dp-route-stops");
+    if (!routeStops.length) {
+      host.innerHTML = `<p class="text-small text-muted">點下方課程卡片，課程會依點擊順序加入為 B、C 等停靠點。</p>`;
+      renderRoutePlan();
+      return;
+    }
+    host.innerHTML = routeStops.map(function (stop, index) {
+      return `<div class="dp-route-stop">
+        <select class="form-select" data-route-stop="${index}" aria-label="停靠點 ${index + 1}">${locations.map(function (loc) {
+          return `<option value="${esc(loc)}" ${loc === stop.location ? "selected" : ""}>${esc(loc)}</option>`;
+        }).join("")}</select>
+        <label class="dp-route-time-field text-small">上課 <input class="form-control" type="number" min="0" max="300" step="5" value="${stop.classMin}" data-class-min="${index}" aria-label="第 ${index + 1} 站上課分鐘"> 分</label>
+        <label class="dp-route-time-field text-small">拖堂 <input class="form-control" type="number" min="0" max="120" step="5" value="${stop.delayMin}" data-delay-min="${index}" aria-label="第 ${index + 1} 站拖堂分鐘"> 分</label>
+        <button type="button" class="btn" data-route-remove="${index}">移除</button>
+      </div>`;
+    }).join("");
+    host.querySelectorAll("[data-route-stop]").forEach(function (select) {
+      select.addEventListener("change", function () {
+        const stop = routeStops[Number(select.dataset.routeStop)];
+        stop.location = select.value;
+        stop.courseKey = null;
+        renderRoutePlan();
+      });
+    });
+    host.querySelectorAll("[data-class-min]").forEach(function (input) {
+      input.addEventListener("input", function () {
+        routeStops[Number(input.dataset.classMin)].classMin = Math.max(0, Number(input.value) || 0);
+        renderRoutePlan();
+        renderDailySchedule();
+      });
+    });
+    host.querySelectorAll("[data-delay-min]").forEach(function (input) {
+      input.addEventListener("input", function () {
+        routeStops[Number(input.dataset.delayMin)].delayMin = Math.max(0, Number(input.value) || 0);
+        renderRoutePlan();
+        renderDailySchedule();
+      });
+    });
+    host.querySelectorAll("[data-route-remove]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        routeStops.splice(Number(button.dataset.routeRemove), 1);
+        renderRouteStops();
+      });
+    });
+    root.querySelector("#dp-route-add").disabled = routeStops.length >= 8 || locations.every(function (loc) {
+      return routeStops.some(function (stop) { return stop.location === loc; });
+    });
+    renderRoutePlan();
+  }
+
+  function renderRouteMap(sequence, legs) {
+    const unique = sequence.filter(function (loc, index, all) { return all.indexOf(loc) === index; });
+    const xs = unique.map(function (loc) { return mapPoints[loc].x; });
+    const ys = unique.map(function (loc) { return mapPoints[loc].y; });
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const width = 760, height = 320, pad = 62;
+    const spanX = maxX - minX || 1, spanY = maxY - minY || 1;
+    const scale = Math.min((width - pad * 2) / spanX, (height - pad * 2) / spanY);
+    const contentW = spanX * scale, contentH = spanY * scale;
+    const offsetX = (width - contentW) / 2, offsetY = (height - contentH) / 2;
+    const points = {};
+    unique.forEach(function (loc) {
+      points[loc] = {
+        x: offsetX + (mapPoints[loc].x - minX) * scale,
+        y: offsetY + (maxY - mapPoints[loc].y) * scale
+      };
+    });
+    const offsets = {
+      "家": {dx:0, dy:20}, "HUK 河西店": {dx:0, dy:-14}, "HUK 世茂店": {dx:0, dy:-14},
+      "BAD EGGS": {dx:0, dy:22}, "O-DOG": {dx:0, dy:22}
+    };
+    const paths = [];
+    const labels = [];
+    legs.forEach(function (leg, index) {
+      const a = points[leg.from], b = points[leg.to];
+      if (a && b && (a.x !== b.x || a.y !== b.y)) {
+        paths.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="var(--primary)" stroke-width="2.5" marker-end="url(#dp-arrow)"/>`);
+        labels.push(`<text x="${(a.x+b.x)/2}" y="${(a.y+b.y)/2-7}" text-anchor="middle" font-size="12" fill="var(--foreground)" paint-order="stroke" stroke="var(--muted)" stroke-width="4" stroke-linejoin="round">${leg.min}分</text>`);
+      }
+    });
+    const nodes = sequence.map(function (loc, index) {
+      const pt = points[loc];
+      return `<circle cx="${pt.x}" cy="${pt.y}" r="${index===0 ? 8 : 7}" fill="var(--venue-color,var(--primary))" stroke="var(--card)" stroke-width="3"><title>${esc(loc)}${index ? "，第 " + (index + 1) + " 站" : "，起點"}</title></circle>`;
+    }).join("");
+    const names = unique.map(function (loc) {
+      const pt = points[loc], off = offsets[loc] || {dx:0, dy:-14};
+      return `<text x="${pt.x+off.dx}" y="${pt.y+off.dy}" text-anchor="middle" font-size="12" font-weight="500" fill="var(--foreground)" paint-order="stroke" stroke="var(--muted)" stroke-width="4" stroke-linejoin="round">${esc(loc)}</text>`;
+    }).join("");
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="路線位置圖">
+      <defs>
+        <pattern id="dp-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border)" stroke-width="1" opacity=".45"/></pattern>
+        <marker id="dp-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--primary)"/></marker>
+      </defs>
+      <rect x="0" y="0" width="${width}" height="${height}" fill="url(#dp-grid)"/>
+      ${paths.join("")}${nodes}${labels.join("")}${names}
+    </svg>`;
+  }
+
+  const poiData = {
+    "家": {uid:"ff39931254a1478793114c26", xy:"12576350.54,3247774.66", name:"广厦新村"},
+    "HUK 河西店": {uid:"e9f88c71dadf2e246ca3cc04", xy:"12573407.28,3247306.37", name:"阳光100国际新城-东区"},
+    "HUK 世茂店": {uid:"41a80148cd4b4b4f97ec84cb", xy:"12578230.84,3253751.37", name:"世茂环球金融中心"},
+    "BAD EGGS": {uid:"d82d6697b70da7d8d518b7c2", xy:"12578348.54,3250183.84", name:"弘林国际"},
+    "O-DOG": {uid:"6c44c4165779ef8c17948e04", xy:"12575843.45,3248250.76", name:"1123文化艺术创意园"},
+    "AS": {name:"长沙市岳麓区学士路99号江山帝景哈佛四期A15栋"},
+    "i5私教": {name:"长沙市雨花区圭塘路乐尚城"},
+    "meta": {name:"长沙市岳麓区靳江路122号后湖小区美美悦MALL"},
+    "西美": {name:"长沙市天心区木莲西路西美"},
+    "洋湖實驗": {name:"长沙市岳麓区靳江河路洋湖路交叉口洋湖实验"},
+    "長郡外國語實驗": {name:"湖南省长沙市天心区新开铺路851号"},
+    "隊訓": {name:"长沙市天心区登仁桥巷11号1662主题购物中心F3"}
+  };
+  const baiduCoords = {
+    "家": [112.97625291499769,28.1532536299581],
+    "HUK 河西店": [112.94895655462778,28.14802710186248],
+    "HUK 世茂店": [112.99093868296161,28.199077338609207],
+    "BAD EGGS": [112.99172398163817,28.171148554392083],
+    "O-DOG": [112.96911794382595,28.154665480857133],
+    "AS": [112.91227002710404,28.13892640379974],
+    "i5私教": [113.031702978516,28.149027041668102],
+    "meta": [112.94529353425094,28.16003236495107],
+    "西美": [112.99351062146638,28.133099501906642],
+    "洋湖實驗": [112.93398099330643,28.131525458783344],
+    "長郡外國語實驗": [112.96895795561468,28.11086402715498],
+    "隊訓": [112.98204159570209,28.19011530353459]
+  };
+
+  function baiduMultiRouteUrl(sequence) {
+    const via = sequence.slice(1,-1), endPoint = sequence[sequence.length-1];
+    const path = sequence.map(function (loc) { return encodeURIComponent(poiData[loc].name); }).join("/");
+    const first = poiData[sequence[0]];
+    const sn = `0$$${first.uid}$$${first.xy}$$${encodeURIComponent(first.name)}$$0$$$$`;
+    let en = "2";
+    via.forEach(function (loc, index) {
+      const current = poiData[loc];
+      en += `$$${current.uid}$$${current.xy}$$${encodeURIComponent(current.name)}$$0$$$$$$1$$%20to:${index === via.length - 1 ? 0 : 2}`;
+    });
+    const last = poiData[endPoint];
+    en += `$$${last.uid}$$${last.xy}$$${encodeURIComponent(last.name)}$$0$$$$`;
+    const structured = sequence.every(function (loc) { return poiData[loc] && poiData[loc].uid && poiData[loc].xy; });
+    if (!structured) return `https://map.baidu.com/dir/${path}/@12577000,3249000,12z?querytype=nav`;
+    const ec = "158" + via.map(function () { return "+to:158"; }).join("");
+    return `https://map.baidu.com/dir/${path}/@12577000,3249000,12z?querytype=nav&c=158&sn=${sn}&en=${en}&sc=158&ec=${ec}&pn=0&rn=5&mrs=0&version=4&route_traffic=1&sy=0&da_src=shareurl`;
+  }
+
+  function renderDetailedRouteMap() {
+    return `<div class="dp-route-map">
+      <div class="dp-map-toolbar">
+        <strong>完整軌跡圖</strong>
+        <a id="dp-map-open" class="btn dp-map-open" href="#" target="_blank" rel="noreferrer">開啟百度即時地圖</a>
+      </div>
+      <div id="dp-map-baidu" class="dp-map-baidu" role="img" aria-label="百度完整行程軌跡圖"></div>
+      <div class="dp-route-map-note text-small text-muted">單張百度街道圖；可縮放、拖動，不顯示逐步轉向。</div>
+    </div>`;
+  }
+
+  function renderTrajectoryMap(sequence) {
+    const host = root.querySelector("#dp-map-baidu");
+    if (!host || !window.BMapGL) {
+      if (host) host.innerHTML = `<p class="text-small text-muted" style="padding:.8rem">百度地圖載入失敗，請開啟即時地圖查看。</p>`;
+      return;
+    }
+    if (leafletMap && typeof leafletMap.destroy === "function") leafletMap.destroy();
+    leafletMap = new BMapGL.Map(host);
+    leafletMap.centerAndZoom(new BMapGL.Point(112.9697,28.17), 13);
+    leafletMap.enableScrollWheelZoom(true);
+    leafletMap.enableDragging();
+    const points = sequence.map(function (loc) {
+      const c = baiduCoords[loc];
+      return c ? new BMapGL.Point(c[0],c[1]) : null;
+    }).filter(Boolean);
+    if (!points.length) return;
+    const line = new BMapGL.Polyline(points, {
+      strokeColor:"#2f80ed", strokeWeight:6, strokeOpacity:0.95, strokeStyle:"solid"
+    });
+    leafletMap.addOverlay(line);
+    const groups = {};
+    sequence.forEach(function (loc, index) {
+      if (!baiduCoords[loc]) return;
+      if (!groups[loc]) groups[loc]=[];
+      groups[loc].push(index+1);
+    });
+    Object.keys(groups).forEach(function (loc) {
+      const c = baiduCoords[loc];
+      const point = new BMapGL.Point(c[0],c[1]);
+      const marker = new BMapGL.Marker(point);
+      marker.setLabel(new BMapGL.Label(`${loc}｜第 ${groups[loc].join("、")} 站`, { offset:new BMapGL.Size(8,8) }));
+      leafletMap.addOverlay(marker);
+    });
+    if (points.length === 1) {
+      leafletMap.centerAndZoom(points[0], 15);
+    } else {
+      leafletMap.setViewport(points, { margins:[45,45,45,45] });
+    }
+    window.setTimeout(function () { if (leafletMap) leafletMap.resize(); }, 120);
+  }
+
+  function renderRoutePlan() {
+    const host = root.querySelector("#dp-route-result");
+    const start = root.querySelector("#dp-route-start").value || "家";
+    const shouldReturn = root.querySelector("#dp-route-return").checked;
+    const departure = parseClock(root.querySelector("#dp-route-start-time").value) ?? 18 * 60;
+    let deadline = parseClock(root.querySelector("#dp-route-deadline").value);
+    let cursor = departure;
+    let totalKm = 0, travelMin = 0, classMin = 0;
+    const legs = [];
+    const timeline = [];
+    let previous = start;
+
+    routeStops.forEach(function (stop) {
+      const info = routeInfo(previous, stop.location);
+      cursor += info.min;
+      totalKm += info.km;
+      travelMin += info.min;
+      const arrive = cursor;
+      const effectiveClass = Math.max(0, Number(stop.classMin) || 0) + Math.max(0, Number(stop.delayMin) || 0);
+      cursor += effectiveClass;
+      classMin += effectiveClass;
+      legs.push({from:previous, to:stop.location, km:info.km, min:info.min});
+      timeline.push({type:"stop", location:stop.location, arrive:arrive, depart:cursor, travel:info.min, classMin:stop.classMin, delayMin:stop.delayMin});
+      previous = stop.location;
+    });
+
+    if (shouldReturn) {
+      const info = routeInfo(previous, start);
+      cursor += info.min;
+      totalKm += info.km;
+      travelMin += info.min;
+      legs.push({from:previous, to:start, km:info.km, min:info.min});
+      timeline.push({type:"return", location:start, arrive:cursor, depart:cursor, travel:info.min});
+    }
+
+    const totalMin = cursor - departure;
+    if (deadline !== null && deadline < departure) deadline += 1440;
+    const diff = deadline === null ? null : deadline - cursor;
+    let status = "";
+    if (diff !== null) {
+      if (diff < 0) status = `<div class="dp-route-status is-bad">來不及，超時 ${Math.abs(diff)} 分</div>`;
+      else if (diff < 10) status = `<div class="dp-route-status is-warn">勉強來得及，只剩 ${diff} 分緩衝</div>`;
+      else status = `<div class="dp-route-status is-ok">來得及，提前 ${diff} 分</div>`;
+    }
+    const routeTitle = [start].concat(routeStops.map(function (stop) { return stop.location; })).concat(shouldReturn ? [start] : []).join(" → ");
+    const stopRows = timeline.map(function (item) {
+      if (item.type === "return") {
+        return `<li class="dp-route-leg ${venueClass[item.location] || ""}"><span>${esc(item.location)}（返回）</span><span class="text-small text-muted">${formatClock(item.arrive)} · 移動 ${item.travel} 分</span></li>`;
+      }
+      return `<li class="dp-route-leg ${venueClass[item.location] || ""}"><span>${esc(item.location)}</span><span class="text-small text-muted">${formatClock(item.arrive)} 到達 · 上課 ${item.classMin} 分${item.delayMin ? ` + 拖堂 ${item.delayMin} 分` : ""} · ${formatClock(item.depart)} 離開</span></li>`;
+    }).join("");
+    host.innerHTML = `<div><strong>${esc(routeTitle)}</strong></div>
+      <div class="text-small text-muted" style="margin-top:.25rem">移動 ${travelMin} 分 · 上課與拖堂 ${classMin} 分 · 總計 ${totalMin} 分 · 總距離約 ${totalKm.toFixed(1)} km · 預計完成 ${formatClock(cursor)}</div>
+      ${status}
+      <ol class="dp-route-timeline">${stopRows}</ol>
+      ${renderDetailedRouteMap(legs, legs.map(function (leg) { return leg.from; }).concat(legs.length ? [legs[legs.length - 1].to] : []))}`;
+
+    const rawSequence = [start].concat(routeStops.map(function (stop) { return stop.location; })).concat(shouldReturn && routeStops.length ? [start] : []);
+    const sequence = rawSequence.filter(function (loc, index, all) { return index === 0 || loc !== all[index - 1]; });
+    const mapOpen = host.querySelector("#dp-map-open");
+    if (mapOpen) {
+      if (sequence.length > 1) {
+        mapOpen.href = baiduMultiRouteUrl(sequence);
+        mapOpen.setAttribute("aria-disabled", "false");
+      } else {
+        mapOpen.href = "#";
+        mapOpen.setAttribute("aria-disabled", "true");
+      }
+      renderTrajectoryMap(sequence);
+    }
+  }
+
+  function toggleCourseInRoute(cell) {
+    const key = cell.courseKey || selectedKey(cell);
+    const exact = routeStops.findIndex(function (stop) { return stop.courseKey === key; });
+    if (exact >= 0) {
+      routeStops.splice(exact, 1);
+      renderRouteStops();
+      renderDailySchedule();
+      return;
+    }
+    const span = minutes(cell.time);
+    const duration = cell.classMin || (span ? Math.max(15, span.end - span.start) : 60);
+    const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
+    const metadata = {
+      courseKey:key, location:cell.venue, classMin:duration, delayMin:0,
+      label:cell.label || cell.title || cell.venue,
+      timeText:cell.time || "自訂時間",
+      sortStart:cell.sortStart ?? (span ? span.start : null),
+      dateText:dateText,
+      day:cell.day || selectedDay,
+      pickOrder:++routePickOrder, color:cell.color || "blue"
+    };
+    routeStops.push(metadata);
+    routeStops.sort(function (a,b) {
+      const timeDiff = (a.sortStart ?? 9999) - (b.sortStart ?? 9999);
+      return timeDiff || (a.pickOrder || 0) - (b.pickOrder || 0);
+    });
+    renderRouteStops();
+    renderDailySchedule();
+  }
+
+  function hmClock(value) {
+    const h = Math.floor(value / 60) % 24, m = value % 60;
+    return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+  }
+  function activeWorkVersion(series, dateText) {
+    let chosen = null;
+    (series.versions || []).forEach(function (version) {
+      const from = version.from, to = version.to;
+      if ((from === null || String(from) <= dateText) && (to === null || dateText < String(to))) chosen = version;
+    });
+    return chosen && !chosen.deleted ? chosen : null;
+  }
+  function workLocation(title) {
+    if (/HUK东/.test(title)) return "HUK 世茂店";
+    if (/HUK西/.test(title)) return "HUK 河西店";
+    if (/\bOD\b|^OD/.test(title)) return "O-DOG";
+    if (/AS/.test(title)) return "AS";
+    if (/i5/i.test(title)) return "i5私教";
+    if (/meta/i.test(title)) return "meta";
+    if (/西美/.test(title)) return "西美";
+    if (/洋湖/.test(title)) return "洋湖實驗";
+    if (/長郡|长郡/.test(title)) return "長郡外國語實驗";
+    if (/隊訓|队训/.test(title)) return "隊訓";
+    if (/早功|练习/.test(title)) return "家";
+    if (/反對反對法的發/.test(title)) return "反對反對法的發";
+    return "";
+  }
+  function workEventCard(event, mandatory) {
+    const routed = routeStops.some(function (stop) { return stop.courseKey === event.key; });
+    return `<button type="button" class="dp-course ${mandatory ? "v-must" : "v-work"}" data-work="${esc(event.key)}" aria-pressed="${routed}">
+      <div class="dp-course-title"><strong>${mandatory ? "必去｜" : ""}${esc(event.title)}${routed ? " · 已加入路線" : ""}</strong><span class="text-small text-muted">${esc(event.time)}</span></div>
+      <div class="text-small text-muted">${esc(event.location)}</div>
+    </button>`;
+  }
+  function bindWorkCards(host, events) {
+    host.querySelectorAll("[data-work]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const event = events.find(function (item) { return item.key === button.dataset.work; });
+        if (!event || !baiduCoords[event.location]) return;
+        toggleCourseInRoute({ courseKey:event.key, venue:event.location, day:selectedDay, time:event.time, classMin:event.classMin, label:event.title, sortStart:event.start, color:event.color });
+        renderWorkSchedule();
+        renderSchedule();
+        renderDailySchedule();
+      });
+    });
+  }
+  function renderWorkSchedule() {
+    const regularHost = root.querySelector("#dp-work-list");
+    const mandatoryHost = root.querySelector("#dp-mandatory-list");
+    if (!regularHost || !mandatoryHost) return;
+    const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
+    const events = [];
+    workScheduleData.forEach(function (series) {
+      if (series.id === "amu2zc1nn-1-xtkc") return;
+      if ((series.versions || []).some(function (version) { return String(version.title || "").includes("反對反對法的發"); })) return;
+      const version = activeWorkVersion(series, dateText);
+      if (!version || dayOrder[version.day] !== selectedDay) return;
+      const location = workLocation(version.title);
+      const tags = String(version.title || "") + " " + String(version.note || "");
+      const mandatory = version.color === "orange" || version.color === "brown" || /隊訓|队训/.test(tags);
+      events.push({
+        key:"work:" + series.id + ":" + String(dateText),
+        title:version.title, location:location || "待設定",
+        start:version.start, end:version.end,
+        time:hmClock(version.start) + "-" + hmClock(version.end),
+        classMin:Math.max(15, version.end - version.start), color:version.color, mandatory:mandatory
+      });
+    });
+    events.sort(function (a,b) { return a.start-b.start; });
+    const mandatoryEvents = events.filter(function (event) { return event.mandatory; });
+    const regularEvents = events.filter(function (event) { return !event.mandatory; });
+    if (!mandatoryEvents.length) mandatoryHost.innerHTML = `<p class="text-small text-muted">目前沒有檢測到褐色或隊訓安排。</p>`;
+    else mandatoryHost.innerHTML = mandatoryEvents.map(function (event) { return workEventCard(event, true); }).join("");
+    regularHost.innerHTML = regularEvents.length ? regularEvents.map(function (event) { return workEventCard(event, false); }).join("") : `<p class="text-small text-muted">這一天沒有其他工作日程。</p>`;
+    bindWorkCards(mandatoryHost, mandatoryEvents);
+    bindWorkCards(regularHost, regularEvents);
+  }
+  function syncWorkDateToDay() {
+    const input = root.querySelector("#dp-work-date"); if (!input) return;
+    const current = new Date((input.value || "2026-09-26") + "T00:00:00");
+    const target = dayOrder.indexOf(selectedDay);
+    if (target < 0 || isNaN(current.getTime())) return;
+    const currentIndex = (current.getDay() + 6) % 7;
+    const diff = (target - currentIndex + 7) % 7;
+    current.setDate(current.getDate() + diff);
+    input.value = [current.getFullYear(), String(current.getMonth()+1).padStart(2,"0"), String(current.getDate()).padStart(2,"0")].join("-");
+  }
+  function initWorkSchedule() {
+    const dateInput = root.querySelector("#dp-work-date");
+    const dayIndex = (new Date(dateInput.value + "T00:00:00").getDay() + 6) % 7;
+    selectedDay = dayOrder[dayIndex];
+    dateInput.addEventListener("change", function () {
+      const index = (new Date(dateInput.value + "T00:00:00").getDay() + 6) % 7;
+      selectedDay = dayOrder[index];
+      routeStops = [];
+      renderRouteStops();
+      renderDays(); renderSchedule(); renderWorkSchedule(); renderDailySchedule();
+    });
+    root.querySelector("#dp-daily-image").addEventListener("click", exportDailyImage);
+    root.querySelector("#dp-daily-print").addEventListener("click", function () { window.print(); });
+    root.querySelector("#dp-daily-export").addEventListener("click", exportDailySchedule);
+    root.querySelector("#dp-work-import").addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          const parsed = JSON.parse(reader.result);
+          const loaded = Array.isArray(parsed) ? parsed : (parsed.arrs || []);
+          workScheduleData = loaded.filter(function (series) {
+            return series.id !== "amu2zc1nn-1-xtkc" && !(series.versions || []).some(function (version) { return String(version.title || "").includes("反對反對法的發"); });
+          });
+          renderWorkSchedule();
+        } catch (error) { alert("工作日程 JSON 格式無法讀取"); }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function dailyItems() {
+    const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
+    return routeStops.filter(function (stop) { return !stop.dateText || stop.dateText === dateText; })
+      .slice().sort(function (a,b) { const timeDiff = (a.sortStart ?? 9999) - (b.sortStart ?? 9999); return timeDiff || (a.pickOrder || 0) - (b.pickOrder || 0); });
+  }
+  function renderDailySchedule() {
+    const host = root.querySelector("#dp-daily-list");
+    if (!host) return;
+    const items = dailyItems();
+    if (!items.length) {
+      host.innerHTML = `<p class="text-small text-muted">點擊上方工作日程或下方課程卡片，選取後會在這裡自動生成當天行程。</p>`;
+      return;
+    }
+    let previous = null;
+    host.innerHTML = items.map(function (item, index) {
+      const travel = previous ? routeInfo(previous.location, item.location) : null;
+      let status = "";
+      if (previous && previous.sortStart != null && item.sortStart != null) {
+        const previousEnd = previous.sortStart + previous.classMin + (previous.delayMin || 0);
+        const gap = item.sortStart - previousEnd;
+        const needed = travel.min;
+        status = gap >= needed
+          ? `<div class="dp-daily-status is-ok text-small">前一站到本站轉場 ${travel.min} 分，間隔 ${gap} 分，來得及</div>`
+          : `<div class="dp-daily-status is-bad text-small">前一站到本站需 ${travel.min} 分，但只有 ${gap} 分，來不及</div>`;
+      }
+      const fromText = previous ? `從 ${previous.location} 出發` : `從 ${root.querySelector("#dp-route-start").value} 出發`;
+      previous = item;
+      return `<div class="dp-daily-item" style="border-left-color:${colorHex(item.color)}">
+        <div class="dp-daily-title"><strong>${index + 1}. ${esc(item.label || item.location)}</strong><span class="text-small text-muted">${esc(item.timeText || "自訂時間")}</span></div>
+        <div class="text-small">${esc(item.location)} · 上課 ${item.classMin} 分${item.delayMin ? ` + 拖堂 ${item.delayMin} 分` : ""}</div>
+        ${travel ? `<div class="text-small text-muted">${esc(fromText)}，移動約 ${travel.min} 分（${travel.km.toFixed(1)} km）</div>` : ""}
+        ${status}
+      </div>`;
+    }).join("");
+  }
+  function colorHex(token) {
+    const colors = { blue:"#3b82f6", indigo:"#4f46e5", purple:"#8b5cf6", teal:"#0d9488", orange:"#b45309", green:"#16a34a", rose:"#e11d48", brown:"#b45309" };
+    return colors[token] || "#4f6ef2";
+  }
+  function roundedRect(ctx,x,y,w,h,r) {
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+  function wrapCanvasText(ctx,text,maxWidth) {
+    const lines=[]; let current="";
+    String(text || "").split("").forEach(function (ch) {
+      const test=current+ch;
+      if (ctx.measureText(test).width>maxWidth && current) { lines.push(current); current=ch; }
+      else current=test;
+    });
+    if (current) lines.push(current);
+    return lines;
+  }
+  function exportDailyImage() {
+    const items = dailyItems();
+    if (!items.length) { alert("請先選取行程，再輸出圖片。"); return; }
+    const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
+    const scale=2, width=1000, cardX=54, cardW=width-108, cardH=126, headerH=176, gap=18;
+    const height=headerH+items.length*(cardH+gap)+74;
+    const canvas=document.createElement("canvas"); canvas.width=width*scale; canvas.height=height*scale;
+    const ctx=canvas.getContext("2d"); ctx.scale(scale,scale);
+    ctx.fillStyle="#f3f5f9"; ctx.fillRect(0,0,width,height);
+    ctx.fillStyle="#1f2937"; ctx.textAlign="left"; ctx.font="700 34px system-ui,\"Microsoft YaHei\",sans-serif";
+    ctx.fillText(`${dateText} 當天行程`,54,62);
+    const startLoc=root.querySelector("#dp-route-start").value;
+    const sequence=[startLoc].concat(items.map(function (item) { return item.location; }));
+    if (root.querySelector("#dp-route-return").checked) sequence.push(startLoc);
+    ctx.fillStyle="#64748b"; ctx.font="400 18px system-ui,\"Microsoft YaHei\",sans-serif";
+    const summary=wrapCanvasText(ctx,sequence.join(" → "),width-108).slice(0,2);
+    summary.forEach(function (line,index) { ctx.fillText(line,54,98+index*24); });
+    let previous=null;
+    items.forEach(function (item,index) {
+      const y=headerH+index*(cardH+gap);
+      const color=colorHex(item.color);
+      ctx.fillStyle=color; roundedRect(ctx,cardX,y,cardW,cardH,18); ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.94)";
+      ctx.font="700 22px system-ui,\"Microsoft YaHei\",sans-serif";
+      ctx.fillText(String(index+1),cardX+22,y+38);
+      ctx.font="700 24px system-ui,\"Microsoft YaHei\",sans-serif";
+      const titleLines=wrapCanvasText(ctx,item.label || item.location,cardW-235).slice(0,2);
+      titleLines.forEach(function (line,li) { ctx.fillText(line,cardX+60,y+37+li*27); });
+      ctx.font="500 18px system-ui,\"Microsoft YaHei\",sans-serif";
+      ctx.fillText(item.timeText || "自訂時間",cardX+60,y+92);
+      ctx.fillStyle="rgba(255,255,255,.82)";
+      ctx.font="400 16px system-ui,\"Microsoft YaHei\",sans-serif";
+      let detail=item.location+" · 上課 "+item.classMin+" 分"+(item.delayMin ? " + 拖堂 "+item.delayMin+" 分" : "");
+      if (previous) { const travel=routeInfo(previous.location,item.location); detail += " · 轉場約 "+travel.min+" 分"; }
+      const detailLines=wrapCanvasText(ctx,detail,cardW-310).slice(0,2);
+      detailLines.forEach(function (line,li) { ctx.fillText(line,cardX+270,y+39+li*21); });
+      previous=item;
+    });
+    ctx.fillStyle="#94a3b8"; ctx.font="400 14px system-ui,\"Microsoft YaHei\",sans-serif"; ctx.textAlign="right";
+    ctx.fillText("由舞蹈課表與路線規劃產生",width-54,height-28);
+    canvas.toBlob(function (blob) {
+      const link=document.createElement("a"); link.href=URL.createObjectURL(blob); link.download=`當天行程_${dateText}.png`; document.body.appendChild(link); link.click(); link.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(link.href); },1000);
+    },"image/png");
+  }
+
+  function buildDailyScheduleHtml() {
+    const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
+    const items = dailyItems();
+    const rows = items.map(function (item, index) {
+      return `<tr><td>${index + 1}</td><td>${esc(item.timeText || "")}</td><td>${esc(item.label || "")}</td><td>${esc(item.location)}</td><td>${item.classMin} 分${item.delayMin ? `＋拖堂 ${item.delayMin} 分` : ""}</td></tr>`;
+    }).join("");
+    return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>當天行程 ${dateText}</title><style>body{font-family:system-ui,"Microsoft YaHei",sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:10px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>${dateText} 當天行程</h1><table><thead><tr><th>順序</th><th>時間</th><th>安排</th><th>地點</th><th>課堂時間</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  }
+  function exportDailySchedule() {
+    const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
+    const blob = new Blob([buildDailyScheduleHtml()], { type:"text/html;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `當天行程_${dateText}.html`;
+    document.body.appendChild(link); link.click(); link.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+  }
+
+  function selectedKey(cell) { return cell.day + "|" + cell.time + "|" + cell.venue; }
+
+  function renderDays() {
+    const box = root.querySelector(".dp-controls");
+    box.innerHTML = dayOrder.map(function (day) {
+      return `<button type="button" class="btn dp-day" data-day="${day}" aria-pressed="${day===selectedDay}">${dayLabel[day]}</button>`;
+    }).join("");
+    box.querySelectorAll("button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        selectedDay = btn.dataset.day;
+        selected = null;
+        renderDays();
+        syncWorkDateToDay();
+        renderSchedule();
+        renderWorkSchedule();
+        renderNext(null);
+      });
+    });
+  }
+
+  function renderSchedule() {
+    const host = root.querySelector("#dp-schedule");
+    const rows = weekly.filter(function (x) { return x.day === selectedDay; });
+    const times = Array.from(new Set(rows.map(function (x) { return x.time; }))).sort(function (a,b) {
+      const am = minutes(a), bm = minutes(b);
+      return (am?.start ?? 0) - (bm?.start ?? 0);
+    });
+    if (!times.length) {
+      host.innerHTML = `<p class="text-muted">這一天沒有 OCR 可辨識的每週課程。</p>`;
+      return;
+    }
+    host.innerHTML = times.map(function (time) {
+      const cells = rows.filter(function (x) { return x.time === time; });
+      return `<section class="dp-slot">
+        <div class="dp-slot-time">${esc(time)}</div>
+        <div class="dp-cards">${cells.map(renderCourse).join("")}</div>
+      </section>`;
+    }).join("");
+    host.querySelectorAll("[data-course]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const parts = btn.dataset.course.split("|");
+        const cell = weekly.find(function (x) { return selectedKey(x) === btn.dataset.course; });
+        selected = cell || null;
+        if (cell) toggleCourseInRoute(Object.assign({}, cell, {
+          label:cell.venue + "｜" + cell.classes.map(function (item) { return item.class; }).join(" / "),
+          color:"purple",
+          sortStart:minutes(cell.time) ? minutes(cell.time).start : null
+        }));
+        renderSchedule();
+        renderNext(cell);
+      });
+    });
+  }
+
+  function renderCourse(cell) {
+    const key = selectedKey(cell);
+    const trip = home[cell.venue]?.min;
+    const routeIndex = routeStops.findIndex(function (stop) { return stop.courseKey === key; });
+    return `<button type="button" class="dp-course ${venueClass[cell.venue] || ""}" data-course="${esc(key)}" aria-pressed="${routeIndex >= 0}" aria-label="${esc(cell.venue)} ${esc(cell.time)}；點擊切換加入或取消軌跡">
+      <div class="dp-course-title"><strong>${esc(cell.venue)}${routeIndex >= 0 ? ` · 路線第 ${routeIndex + 1} 站` : ""}</strong><span class="text-small text-muted">家→${trip ?? "?"} 分</span></div>
+      <div class="dp-classes">${cell.classes.slice(0,6).map(function (c) {
+        return `<div class="dp-class"><span>${esc(c.class)}</span><span class="text-small text-muted">${esc(c.teacher || "老師待核對")}</span></div>`;
+      }).join("")}</div>
+    </button>`;
+  }
+
+  function renderNext(cell) {
+    const host = root.querySelector("#dp-next");
+    if (!cell) {
+      host.innerHTML = "";
+      return;
+    }
+    const span = minutes(cell.time);
+    if (!span) { host.innerHTML = ""; return; }
+    const candidates = weekly.filter(function (x) {
+      if (x.day !== cell.day || x.venue === cell.venue) return false;
+      const m = minutes(x.time);
+      return m && m.start >= span.end + routeMinutes(cell.venue, x.venue) + 4;
+    }).sort(function (a,b) { return (minutes(a.time)?.start ?? 9999) - (minutes(b.time)?.start ?? 9999); }).slice(0,3);
+    if (!candidates.length) {
+      host.innerHTML = `<p class="text-small text-muted">這節課後沒有找到可直接銜接的下一節課。</p>`;
+      return;
+    }
+    host.innerHTML = `<p class="text-small text-muted">從 ${esc(cell.venue)} 下課後可銜接：` +
+      candidates.map(function (x) { return `${esc(x.time)} ${esc(x.venue)}（${routeMinutes(cell.venue,x.venue)} 分）`; }).join(" · ") + `</p>`;
+  }
+
+  function renderVenues() {
+    root.querySelector("#dp-venues").innerHTML = Object.keys(home).map(function (venue) {
+      const item = home[venue];
+      return `<div class="card ${venueClass[venue] || ""}" style="border-left:4px solid var(--venue-color)">
+        <strong>${esc(venue)}</strong>
+        <div class="text-small text-muted" style="margin:.25rem 0 .5rem">${esc(venueAddress[venue] || "")}</div>
+        <div>家 → ${esc(venue)}：約 <span class="tabular-nums">${item.min}</span> 分（${item.km} km）</div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderMatrix() {
+    const names = ["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG"];
+    const rows = [];
+    for (let i=0;i<names.length;i++) {
+      for (let j=i+1;j<names.length;j++) {
+        const a = names[i], b = names[j], item = between[a]?.[b];
+        if (!item) continue;
+        rows.push(`<tr><td>${esc(a)}</td><td>${esc(b)}</td><td class="text-end tabular-nums">${item.km} km</td><td class="text-end tabular-nums">${item.min} 分</td></tr>`);
+      }
+    }
+    root.querySelector("#dp-matrix-body").innerHTML = rows.join("");
+  }
+
+  initRoutePlanner();
+  initWorkSchedule();
+  renderDays();
+  renderSchedule();
+  renderWorkSchedule();
+  renderVenues();
+  renderMatrix();
+})();
+</script>
+<script>
+(function(){
+  var installBtn=document.createElement('button');
+  installBtn.id='pwa-install-button';
+  installBtn.type='button';
+  installBtn.textContent='安裝到手機';
+  installBtn.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9999;display:none;border:0;border-radius:999px;padding:12px 18px;background:#2563eb;color:#fff;font:600 15px system-ui;box-shadow:0 8px 24px rgba(37,99,235,.35)';
+  document.body.appendChild(installBtn);
+  var promptEvent=null;
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
+  installBtn.addEventListener('click',function(){if(!promptEvent)return;promptEvent.prompt();promptEvent.userChoice.then(function(){promptEvent=null;installBtn.style.display='none';});});
+  window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').catch(function(){});});}
+})();
+</script>
+</body>
+</html>
