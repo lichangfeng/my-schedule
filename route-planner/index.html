@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="./manifest.json?v=10">
+<link rel="manifest" href="./manifest.json?v=11">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="referrer" content="no-referrer">
@@ -84,6 +84,8 @@ button,input,select{font:inherit}
 
     #dance-planner-root .dp-map-toolbar select { min-width:190px; }
     #dance-planner-root .dp-map-open { margin-left:auto; }
+    #dance-planner-root .dp-route-map.map-hidden .dp-map-baidu, #dance-planner-root .dp-route-map.map-hidden .dp-route-map-note { display:none; }
+    #dance-planner-root .dp-map-toggle { margin-left:.5rem; }
     #dance-planner-root .dp-map-baidu { display:block; width:100%; height:460px; background:var(--muted); }
     #dance-planner-root .dp-map-steps { padding:.65rem; border-top:1px solid var(--border); }
     #dance-planner-root .dp-map-all { display:grid; gap:.85rem; padding:.65rem; border-top:1px solid var(--border); }
@@ -150,7 +152,8 @@ button,input,select{font:inherit}
       #dance-planner-root .dp-route-leg { display:grid; gap:.18rem; }
       #dance-planner-root .dp-route-map { overflow:hidden; }
       #dance-planner-root .dp-map-toolbar { align-items:stretch; }
-      #dance-planner-root .dp-map-toolbar label, #dance-planner-root .dp-map-toolbar select, #dance-planner-root .dp-map-open { width:100%; }
+      #dance-planner-root .dp-map-toolbar label, #dance-planner-root .dp-map-toolbar select, #dance-planner-root .dp-map-open, #dance-planner-root .dp-map-toggle { width:100%; }
+      #dance-planner-root .dp-map-toggle { margin-left:0; }
       #dance-planner-root .dp-map-open { margin-left:0; }
       #dance-planner-root .dp-map-fallback { overflow-x:auto; -webkit-overflow-scrolling:touch; }
       #dance-planner-root .dp-map-fallback svg { min-width:560px; }
@@ -356,6 +359,7 @@ button,input,select{font:inherit}
   let routeStops = [];
   let routePickOrder = 0;
   let mapMode = "full";
+  let mapHidden = false;
   let segmentFrom = "家";
   let segmentTo = "HUK 河西店";
   let leafletMap = null;
@@ -537,7 +541,7 @@ button,input,select{font:inherit}
   }
 
   function renderDetailedRouteMap() {
-    return `<div class="dp-route-map">
+    return `<div class="dp-route-map${mapHidden ? " map-hidden" : ""}">
       <div class="dp-map-toolbar">
         <div class="dp-map-mode">
           <div><label class="form-label" for="dp-map-mode">顯示方式</label><select id="dp-map-mode" class="form-select"><option value="full">總路線</option><option value="segment">單段路程</option></select></div>
@@ -548,6 +552,7 @@ button,input,select{font:inherit}
           </div>
         </div>
         <a id="dp-map-open" class="btn dp-map-open" href="#" target="_blank" rel="noreferrer">開啟百度即時地圖</a>
+        <button id="dp-map-toggle" type="button" class="btn dp-map-toggle" aria-pressed="${mapHidden ? "true" : "false"}">${mapHidden ? "顯示地圖" : "隱藏地圖"}</button>
       </div>
       <div id="dp-map-baidu" class="dp-map-baidu" role="img" aria-label="百度完整行程軌跡圖"></div>
       <div class="dp-route-map-note text-small text-muted">單張百度街道圖；可縮放、拖動，不顯示逐步轉向。</div>
@@ -680,6 +685,17 @@ button,input,select{font:inherit}
         }
         renderTrajectoryMap(shown);
       };
+      const mapToggle = host.querySelector("#dp-map-toggle");
+      if (mapToggle) {
+        mapToggle.addEventListener("click", function () {
+          mapHidden = !mapHidden;
+          const box = host.querySelector(".dp-route-map");
+          if (box) box.classList.toggle("map-hidden", mapHidden);
+          mapToggle.textContent = mapHidden ? "顯示地圖" : "隱藏地圖";
+          mapToggle.setAttribute("aria-pressed", mapHidden ? "true" : "false");
+          if (!mapHidden) updateMapDisplay();
+        });
+      }
       modeSelect.addEventListener("change", updateMapDisplay);
       fromSelect.addEventListener("change", updateMapDisplay);
       toSelect.addEventListener("change", updateMapDisplay);
@@ -1246,7 +1262,7 @@ button,input,select{font:inherit}
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
   installBtn.addEventListener('click',function(){if(!promptEvent)return;promptEvent.prompt();promptEvent.userChoice.then(function(){promptEvent=null;installBtn.style.display='none';});});
   window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=10').catch(function(){});});}
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=11').catch(function(){});});}
 })();
 </script>
 </body>
