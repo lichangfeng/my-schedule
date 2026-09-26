@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="./manifest.json?v=6">
+<link rel="manifest" href="./manifest.json?v=7">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="referrer" content="no-referrer">
@@ -128,6 +128,7 @@ button,input,select{font:inherit}
   #dance-planner-root .dp-fold-body .dp-work-head, #dance-planner-root .dp-fold-body .dp-daily-head { margin-top:.1rem; }
   #dance-planner-root .dp-fold .dp-venues { margin:.65rem 0; }
   #dance-planner-root .dp-fold .dp-matrix { margin-top:.75rem; }
+  #dance-planner-root .dp-day[aria-pressed="true"] { background:var(--primary); color:var(--primary-foreground); border-color:var(--primary); }
   /* COMPACT_CSS_END */
     @media (max-width:620px) {
       #dance-planner-root { max-width:100%; }
@@ -162,6 +163,15 @@ button,input,select{font:inherit}
     <div class="dp-controls" role="group" aria-label="選擇星期"></div>
   </div>
 
+  <!-- COMPACT_SCHEDULE_START -->
+  <details id="dp-schedule-fold" class="dp-fold">
+    <summary>每週課表（平常課）</summary>
+    <div class="dp-fold-body">
+  <div id="dp-schedule" aria-live="polite"></div>
+  <div id="dp-next" class="dp-next"></div>
+    </div>
+  </details>
+  <!-- COMPACT_SCHEDULE_END -->
   <section class="card dp-route">
     <h3 style="margin-top:0">總路線規劃</h3>
     <div class="dp-route-grid">
@@ -221,15 +231,6 @@ button,input,select{font:inherit}
   </details>
   <!-- COMPACT_DAILY_END -->
 
-  <!-- COMPACT_SCHEDULE_START -->
-  <details id="dp-schedule-fold" class="dp-fold">
-    <summary>每週課表</summary>
-    <div class="dp-fold-body">
-  <div id="dp-schedule" aria-live="polite"></div>
-  <div id="dp-next" class="dp-next"></div>
-    </div>
-  </details>
-  <!-- COMPACT_SCHEDULE_END -->
   <!-- ODOG_MARKUP_START -->
   <section id="dp-odog-section" class="dp-odog-section" hidden>
     <div class="dp-odog-head"><h3>O-DOG 指定日期課表</h3><span id="dp-odog-date" class="text-small dp-odog-status"></span></div>
@@ -293,6 +294,7 @@ button,input,select{font:inherit}
     "O-DOG":"天心區1123文化藝術創意園5號樓歐道文化中心"
   };
   let selectedDay = "周一";
+  let regularOnly = true;
   let selected = null;
 
   function esc(value) {
@@ -801,6 +803,7 @@ button,input,select{font:inherit}
     const dayIndex = (new Date(dateInput.value + "T00:00:00").getDay() + 6) % 7;
     selectedDay = dayOrder[dayIndex];
     dateInput.addEventListener("change", function () {
+      regularOnly = false;
       const index = (new Date(dateInput.value + "T00:00:00").getDay() + 6) % 7;
       selectedDay = dayOrder[index];
       routeStops = [];
@@ -954,13 +957,15 @@ button,input,select{font:inherit}
     box.querySelectorAll("button").forEach(function (btn) {
       btn.addEventListener("click", function () {
         selectedDay = btn.dataset.day;
+        regularOnly = true;
         const scheduleFold = root.querySelector("#dp-schedule-fold");
-        if (scheduleFold) scheduleFold.open = true;
+        if (scheduleFold) {
+          scheduleFold.open = true;
+          window.setTimeout(function () { scheduleFold.scrollIntoView({ behavior:"smooth", block:"start" }); }, 0);
+        }
         selected = null;
         renderDays();
-        syncWorkDateToDay();
         renderSchedule();
-        renderWorkSchedule();
         renderNext(null);
       });
     });
@@ -972,6 +977,7 @@ button,input,select{font:inherit}
     const section = root.querySelector("#dp-odog-section");
     const host = root.querySelector("#dp-odog-schedule");
     if (!section || !host) return;
+    if (regularOnly) { section.hidden = true; host.innerHTML = ""; return; }
     const dateInput = root.querySelector("#dp-work-date");
     const dateText = dateInput ? (dateInput.value || "2026-09-26") : "2026-09-26";
     const rows = odogSchedule[dateText] || [];
@@ -1037,6 +1043,7 @@ button,input,select{font:inherit}
     const section = root.querySelector("#dp-badeggs-special-section");
     const host = root.querySelector("#dp-badeggs-special-schedule");
     if (!section || !host) return;
+    if (regularOnly) { section.hidden = true; host.innerHTML = ""; return; }
     const dateInput = root.querySelector("#dp-work-date");
     const dateText = dateInput ? (dateInput.value || "2026-09-26") : "2026-09-26";
     const rows = badEggsSpecialSchedule[dateText] || [];
@@ -1189,7 +1196,7 @@ button,input,select{font:inherit}
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
   installBtn.addEventListener('click',function(){if(!promptEvent)return;promptEvent.prompt();promptEvent.userChoice.then(function(){promptEvent=null;installBtn.style.display='none';});});
   window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=6').catch(function(){});});}
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=7').catch(function(){});});}
 })();
 </script>
 </body>
