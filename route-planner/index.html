@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="./manifest.json?v=11">
+<link rel="manifest" href="./manifest.json?v=12">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="referrer" content="no-referrer">
@@ -112,8 +112,9 @@ button,input,select{font:inherit}
 
     #dance-planner-root .v-work { --venue-color:var(--viz-series-5); }
     #dance-planner-root .dp-daily { padding:1rem; margin:0 0 1rem; }
-    #dance-planner-root .dp-daily-head { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:.7rem; }
-    #dance-planner-root .dp-daily-head h3 { margin:0 auto 0 0; }
+    #dance-planner-root .dp-daily-head { display:grid; grid-template-columns:minmax(0,1fr) repeat(3,auto); align-items:center; gap:.5rem; margin-bottom:.7rem; }
+    #dance-planner-root .dp-daily-head h3 { margin:0; }
+    #dance-planner-root .dp-daily-head .btn { white-space:nowrap; }
     #dance-planner-root .dp-daily-list { display:grid; gap:.55rem; }
     #dance-planner-root .dp-daily-item { padding:.65rem .75rem; border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:var(--radius); background:var(--card); }
     #dance-planner-root .dp-daily-title { display:flex; justify-content:space-between; gap:.6rem; align-items:baseline; }
@@ -141,6 +142,9 @@ button,input,select{font:inherit}
       #dance-planner-root .dp-cards, #dance-planner-root .dp-venues, #dance-planner-root .dp-route-grid { grid-template-columns:1fr; }
       #dance-planner-root .dp-course { padding:.8rem .85rem .8rem 1rem; }
       #dance-planner-root select, #dance-planner-root input, #dance-planner-root button { min-height:44px; }
+      #dance-planner-root .dp-daily-head { grid-template-columns:repeat(3,minmax(0,1fr)); gap:.35rem; }
+      #dance-planner-root .dp-daily-head h3 { grid-column:1 / -1; }
+      #dance-planner-root .dp-daily-head .btn { width:100%; min-width:0; padding:.45rem .2rem; font-size:.78rem; }
       #dance-planner-root .dp-route { padding:.85rem; }
       #dance-planner-root .dp-route-stop { grid-template-columns:1fr 1fr; gap:.55rem; padding:.65rem 0; border-top:1px solid var(--border); }
       #dance-planner-root .dp-route-stop > select { grid-column:1 / -1; }
@@ -1217,24 +1221,27 @@ button,input,select{font:inherit}
   }
 
   function renderVenues() {
-    root.querySelector("#dp-venues").innerHTML = Object.keys(home).map(function (venue) {
-      const item = home[venue];
-      return `<div class="card ${venueClass[venue] || ""}" style="border-left:4px solid var(--venue-color)">
-        <strong>${esc(venue)}</strong>
-        <div class="text-small text-muted" style="margin:.25rem 0 .5rem">${esc(venueAddress[venue] || "")}</div>
-        <div>家 → ${esc(venue)}：約 <span class="tabular-nums">${item.min}</span> 分（${item.km} km）</div>
+    const mandatoryLocations = Array.from(new Set(fixedWeekEvents.map(function (event) { return event.location; })));
+    const names = Object.keys(home).concat(mandatoryLocations.filter(function (loc) { return !(loc in home); }));
+    root.querySelector("#dp-venues").innerHTML = names.map(function (venue) {
+      const item = home[venue] || routeInfo("家", venue);
+      const cardClass = home[venue] ? (venueClass[venue] || "") : "v-must";
+      return `<div class="card ${cardClass}" style="border-left:4px solid var(--venue-color)">
+        <strong>${esc(venue)}${home[venue] ? "" : " · 固定必去"}</strong>
+        <div class="text-small text-muted" style="margin:.25rem 0 .5rem">${esc(venueAddress[venue] || poiData[venue]?.name || "")}</div>
+        <div>家 → ${esc(venue)}：約 <span class="tabular-nums">${item.min}</span> 分（${Number(item.km).toFixed(1)} km）</div>
       </div>`;
     }).join("");
   }
 
   function renderMatrix() {
-    const names = ["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG"];
+    const mandatoryLocations = Array.from(new Set(fixedWeekEvents.map(function (event) { return event.location; })));
+    const names = ["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG"].concat(mandatoryLocations.filter(function (loc) { return !["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG"].includes(loc); }));
     const rows = [];
     for (let i=0;i<names.length;i++) {
       for (let j=i+1;j<names.length;j++) {
-        const a = names[i], b = names[j], item = between[a]?.[b];
-        if (!item) continue;
-        rows.push(`<tr><td>${esc(a)}</td><td>${esc(b)}</td><td class="text-end tabular-nums">${item.km} km</td><td class="text-end tabular-nums">${item.min} 分</td></tr>`);
+        const a = names[i], b = names[j], item = routeInfo(a, b);
+        rows.push(`<tr><td>${esc(a)}</td><td>${esc(b)}</td><td class="text-end tabular-nums">${Number(item.km).toFixed(1)} km</td><td class="text-end tabular-nums">${item.min} 分</td></tr>`);
       }
     }
     root.querySelector("#dp-matrix-body").innerHTML = rows.join("");
@@ -1262,7 +1269,7 @@ button,input,select{font:inherit}
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
   installBtn.addEventListener('click',function(){if(!promptEvent)return;promptEvent.prompt();promptEvent.userChoice.then(function(){promptEvent=null;installBtn.style.display='none';});});
   window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=11').catch(function(){});});}
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=12').catch(function(){});});}
 })();
 </script>
 </body>
