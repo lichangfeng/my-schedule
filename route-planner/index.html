@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="./manifest.json?v=12">
+<link rel="manifest" href="./manifest.json?v=13">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="referrer" content="no-referrer">
@@ -1265,11 +1265,33 @@ button,input,select{font:inherit}
   installBtn.textContent='安裝到手機';
   installBtn.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9999;display:none;border:0;border-radius:999px;padding:12px 18px;background:#2563eb;color:#fff;font:600 15px system-ui;box-shadow:0 8px 24px rgba(37,99,235,.35)';
   document.body.appendChild(installBtn);
+  var updateBtn=document.createElement('button');
+  updateBtn.id='pwa-update-button';
+  updateBtn.type='button';
+  updateBtn.textContent='更新';
+  updateBtn.style.cssText='position:fixed;left:14px;bottom:14px;z-index:9999;border:1px solid #94a3b8;border-radius:999px;padding:10px 15px;background:#fff;color:#334155;font:600 14px system-ui;box-shadow:0 6px 18px rgba(15,23,42,.16)';
+  document.body.appendChild(updateBtn);
+  updateBtn.addEventListener('click',function(){
+    updateBtn.disabled=true; updateBtn.textContent='更新中…';
+    var jobs=[];
+    if('serviceWorker' in navigator){jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(reg){return reg.unregister();}));}));}
+    if(window.caches){jobs.push(caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key);}));}));}
+    Promise.all(jobs).catch(function(){}).then(function(){location.replace(location.pathname+'?v=13&refresh='+Date.now());});
+  });
   var promptEvent=null;
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
   installBtn.addEventListener('click',function(){if(!promptEvent)return;promptEvent.prompt();promptEvent.userChoice.then(function(){promptEvent=null;installBtn.style.display='none';});});
   window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js?v=12').catch(function(){});});}
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('./service-worker.js?v=13').then(function(reg){
+        reg.update();
+        reg.addEventListener('updatefound',function(){reg.update();});
+      }).catch(function(){});
+    });
+    var reloading=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){if(reloading)return;reloading=true;window.location.reload();});
+  }
 })();
 </script>
 </body>
