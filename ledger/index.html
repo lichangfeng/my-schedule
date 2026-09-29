@@ -19,7 +19,7 @@
   --danger:#b42318; --warning:#9a6700; --success:#067647; --shadow:0 8px 28px rgba(28,55,52,.08);
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+html{font-size:17px}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
 body{font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;padding:18px}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
@@ -46,7 +46,7 @@ textarea{resize:vertical;min-height:74px}
 .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
 .btn-danger{color:var(--danger);border-color:#f2c8c4}
 .btn-small{padding:6px 9px;border-radius:9px;font-size:.82rem}
-.helper{margin:10px 0 0;color:var(--muted);font-size:.78rem;line-height:1.55}
+.text-small{font-size:.87rem;line-height:1.5}.helper{margin:10px 0 0;color:var(--muted);font-size:.84rem;line-height:1.6}
 .advanced{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}.advanced summary{cursor:pointer;color:var(--muted);font-size:.84rem;font-weight:700}.advanced .form-grid{margin-top:12px}
 .summary-top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;padding:18px 18px 0}
 .month-control{display:grid;gap:5px;min-width:180px}
@@ -54,7 +54,7 @@ textarea{resize:vertical;min-height:74px}
 .metric{border:1px solid var(--line);background:linear-gradient(180deg,#fff,#fafcfb);border-radius:14px;padding:13px}
 .metric span{display:block;color:var(--muted);font-size:.78rem;margin-bottom:6px}
 .metric strong{font-size:1.45rem;line-height:1}
-.metric small{display:block;color:var(--muted);font-size:.72rem;margin-top:5px}
+.metric small{display:block;color:var(--muted);font-size:.81rem;margin-top:5px;line-height:1.45}
 .institution-box{border-top:1px solid var(--line);padding:0 18px 18px}
 .institution-box h3{font-size:.95rem;margin:16px 0 8px}
 .group-list{display:grid;gap:12px}
@@ -63,20 +63,20 @@ textarea{resize:vertical;min-height:74px}
 .institution-group summary::-webkit-details-marker{display:none}
 .institution-group summary::after{content:"▾";color:var(--muted);font-size:.8rem;transition:transform .18s}
 .institution-group[open] summary::after{transform:rotate(180deg)}
-.group-head{min-width:0}.group-head strong{display:block;font-size:1rem}.group-head span{display:block;color:var(--muted);font-size:.76rem;margin-top:3px}
+.group-head{min-width:0}.group-head strong{display:block;font-size:1.06rem}.group-head span{display:block;color:var(--muted);font-size:.84rem;margin-top:4px}
 .group-total{text-align:right;white-space:nowrap;font-weight:800;margin-left:auto}.group-total span{display:block;color:var(--muted);font-size:.75rem;font-weight:600;margin-top:3px}
 .group-body{border-top:1px solid var(--line);padding:0 14px 14px}
 .group-record{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:10px;align-items:start;padding:11px 0;border-bottom:1px solid var(--line)}
-.group-record-date{font-weight:750;font-variant-numeric:tabular-nums}.group-record-main{min-width:0}.group-record-main strong{display:block}.group-record-main span{display:block;color:var(--muted);font-size:.76rem;margin-top:3px;line-height:1.45}.group-record-count{font-weight:800;white-space:nowrap}.group-record-count span{display:block;color:var(--muted);font-size:.72rem;font-weight:600;text-align:right;margin-top:3px}
+.group-record-date{font-weight:750;font-variant-numeric:tabular-nums}.group-record-main{min-width:0}.group-record-main strong{display:block}.group-record-main span{display:block;color:var(--muted);font-size:.84rem;margin-top:4px;line-height:1.5}.group-record-count{font-weight:800;white-space:nowrap}.group-record-count span{display:block;color:var(--muted);font-size:.8rem;font-weight:600;text-align:right;margin-top:4px}
 .group-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:13px}
 .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
 table{width:100%;border-collapse:collapse;min-width:620px;background:#fff}
 th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 11px;vertical-align:top}
-th{background:var(--surface-2);font-size:.78rem;color:var(--muted);position:sticky;top:0}
-td{font-size:.88rem}
+th{background:var(--surface-2);font-size:.86rem;color:var(--muted);position:sticky;top:0}
+td{font-size:.95rem}
 tbody tr:last-child td{border-bottom:0}
 .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.status{display:inline-block;border-radius:999px;padding:3px 8px;font-size:.74rem;font-weight:750;background:var(--accent);color:var(--primary-dark);white-space:nowrap}
+.status{display:inline-block;border-radius:999px;padding:3px 8px;font-size:.8rem;font-weight:750;background:var(--accent);color:var(--primary-dark);white-space:nowrap}
 .status.substitute{background:#fff4e5;color:#8a4b00}.status.cancelled,.status.leave,.status.absent{background:#f4f5f5;color:#66706f}
 .records-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px 12px}
 .records-head h2{font-size:1.05rem;margin:0}
@@ -92,9 +92,17 @@ details.help p{line-height:1.65;margin:8px 0 0}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){
   .mobile-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;position:sticky;top:0;z-index:9;margin:0 0 12px;padding:6px;background:rgba(244,247,246,.94);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px}
-  .mobile-nav a{display:flex;align-items:center;justify-content:center;min-height:42px;border-radius:10px;background:#fff;border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:.83rem;font-weight:750}
+  .mobile-nav a{display:flex;align-items:center;justify-content:center;min-height:46px;border-radius:10px;background:#fff;border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:.95rem;font-weight:750}
   .mobile-nav a:first-child{background:var(--primary);border-color:var(--primary);color:#fff}
-}
+  .table-wrap{border:0;overflow:visible}
+  #institution-summary table,#records-table table{display:block;min-width:0;width:100%}
+  #institution-summary thead,#records-table thead{display:none}
+  #institution-summary tbody,#records-table tbody{display:block;width:100%}
+  #institution-summary tr,#records-table tr{display:block;margin:0 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:13px;background:#fff}
+  #institution-summary td,#records-table td{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;width:100%;padding:6px 0;border:0;text-align:right}
+  #institution-summary td::before,#records-table td::before{content:attr(data-label);color:var(--muted);font-size:.86rem;font-weight:700;text-align:left;flex:0 0 auto}
+  #records-table td:last-child{justify-content:space-between;padding-top:10px;border-top:1px dashed var(--line)}
+  #records-table td:last-child .btn{margin-right:5px}}
 @media(max-width:560px){
   body{padding:10px}.hero{align-items:flex-start;flex-direction:column;gap:10px;margin-bottom:12px}.hero-badge{white-space:normal}
   .card{border-radius:15px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
@@ -102,7 +110,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
   .summary-top,.records-head{padding-left:12px;padding-right:12px}.actions .btn,.group-actions .btn{flex:1 1 100%;width:100%}
   .group-record{grid-template-columns:1fr auto;gap:7px}.group-record-date{grid-column:1/-1}.group-record-main{grid-column:1}.group-record-count{grid-column:2;grid-row:2}
   .toast{left:12px;right:12px;bottom:12px;text-align:center}
-}@media print{
+}@media(max-width:360px){.metrics{grid-template-columns:1fr}.mobile-nav{grid-template-columns:1fr 1fr}.mobile-nav a:last-child{grid-column:1/-1}}
+@media print{
   :root{--bg:#fff}.print-only{display:block}
   body{padding:0;background:#fff}.wrap{max-width:none}.hero{margin-bottom:12px}
   .entry-card,.records-card,.hero-badge,.no-print{display:none!important}
@@ -437,10 +446,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
     }
     var rows = items.map(function (item) {
       var pay = item.ratedClasses === item.payableClasses ? money(item.pay) : "部分未填";
-      return "<tr><td><strong>" + esc(item.institution) + "</strong></td>" +
-        "<td class=\"num\">" + decimal(item.classes) + " 堂</td>" +
-        "<td class=\"num\">" + decimal(item.days) + " 天</td>" +
-        "<td class=\"num\">" + pay + "</td></tr>";
+      return "<tr><td data-label=\"機構\"><strong>" + esc(item.institution) + "</strong></td>" +
+        "<td data-label=\"堂數\" class=\"num\">" + decimal(item.classes) + " 堂</td>" +
+        "<td data-label=\"天數\" class=\"num\">" + decimal(item.days) + " 天</td>" +
+        "<td data-label=\"預估薪資\" class=\"num\">" + pay + "</td></tr>";
     }).join("");
     host.innerHTML = "<div class=\"table-wrap\"><table><thead><tr><th>機構</th><th class=\"num\">堂數</th><th class=\"num\">天數</th><th class=\"num\">預估薪資</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
   }  function renderInstitutionGroups(items, records) {
@@ -546,13 +555,13 @@ details.help p{line-height:1.65;margin:8px 0 0}
       var statusText = STATUS_LABELS[record.status] || esc(record.status || "未設定");
       var rate = numberOrNull(record.rate);
       return "<tr>" +
-        "<td>" + esc(record.date) + "</td>" +
-        "<td><strong>" + esc(record.institution) + "</strong></td>" +
-        "<td>" + esc(record.course || "未填課程") + (record.note ? "<div style=\"font-size:.76rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
-        "<td><span class=\"status " + statusClass + "\">" + statusText + "</span></td>" +
-        "<td class=\"num\">" + decimal(record.count || 0) + "</td>" +
-        "<td class=\"num\">" + (rate === null ? "—" : money(rate)) + "</td>" +
-        "<td><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button> " +
+        "<td data-label=\"日期\">" + esc(record.date) + "</td>" +
+        "<td data-label=\"機構\"><strong>" + esc(record.institution) + "</strong></td>" +
+        "<td data-label=\"課程／備註\">" + esc(record.course || "未填課程") + (record.note ? "<div style=\"font-size:.76rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
+        "<td data-label=\"狀態\"><span class=\"status " + statusClass + "\">" + statusText + "</span></td>" +
+        "<td data-label=\"堂數\" class=\"num\">" + decimal(record.count || 0) + "</td>" +
+        "<td data-label=\"每堂費率\" class=\"num\">" + (rate === null ? "—" : money(rate)) + "</td>" +
+        "<td data-label=\"操作\"><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button> " +
         "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></td>" +
         "</tr>";
     }).join("");
@@ -784,7 +793,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    navigator.serviceWorker.register("./ledger-sw.js?v=4").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=5").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
   }})();
 </script>
