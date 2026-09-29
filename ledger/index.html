@@ -48,7 +48,7 @@ textarea{resize:vertical;min-height:74px}
 .btn-small{padding:6px 9px;border-radius:9px;font-size:.82rem}
 .text-small{font-size:.87rem;line-height:1.5}.helper{margin:10px 0 0;color:var(--muted);font-size:.84rem;line-height:1.6}
 .advanced{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}.advanced summary{cursor:pointer;color:var(--muted);font-size:.84rem;font-weight:700}.advanced .form-grid{margin-top:12px}
-.rate-settings-list{display:grid;gap:8px;margin-top:12px}.rate-row{display:grid;grid-template-columns:minmax(0,1fr) 130px;align-items:center;gap:10px}.rate-row label{font-size:.92rem;color:var(--text);font-weight:750}.rate-row input{text-align:right}.export-picker{display:grid;gap:6px;min-width:min(100%,360px)}.export-picker label{font-size:.86rem;font-weight:700;color:var(--muted)}.export-picker-row{display:grid;grid-template-columns:minmax(150px,1fr) auto auto;gap:8px}.export-picker-row select{min-width:0}
+.rate-settings-list{display:grid;gap:8px;margin-top:12px}.rate-row{display:grid;grid-template-columns:minmax(0,1fr) 130px;align-items:center;gap:10px}.rate-row label{font-size:.92rem;color:var(--text);font-weight:750}.rate-row input{text-align:right}.export-picker{display:grid;gap:6px;min-width:min(100%,360px)}.export-picker label{font-size:.86rem;font-weight:700;color:var(--muted)}.export-picker-row{display:grid;grid-template-columns:minmax(150px,1fr) auto auto auto;gap:8px}.export-picker-row select{min-width:0}
 .summary-top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;padding:18px 18px 0}
 .month-control{display:grid;gap:5px;min-width:180px}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:14px 18px 18px}
@@ -110,7 +110,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
   input,select,textarea,.btn{min-height:44px}.metrics{padding:12px}.metric strong{font-size:1.25rem}.institution-box,.records-wrap{padding-left:12px;padding-right:12px}
   .summary-top,.records-head{padding-left:12px;padding-right:12px}.actions .btn,.group-actions .btn{flex:1 1 100%;width:100%}
   .group-record{grid-template-columns:1fr auto;gap:7px}.group-record-date{grid-column:1/-1}.group-record-main{grid-column:1}.group-record-count{grid-column:2;grid-row:2}
-  .export-picker{min-width:100%}.export-picker-row{grid-template-columns:1fr 1fr}.export-picker-row select{grid-column:1/-1}.rate-row{grid-template-columns:minmax(0,1fr) 120px}
+  .export-picker{min-width:100%}.export-picker-row{grid-template-columns:repeat(3,minmax(0,1fr))}.export-picker-row select{grid-column:1/-1}.rate-row{grid-template-columns:minmax(0,1fr) 120px}
   .toast{left:12px;right:12px;bottom:12px;text-align:center}
 }@media(max-width:360px){.metrics{grid-template-columns:1fr}.mobile-nav{grid-template-columns:1fr 1fr}.mobile-nav a:last-child{grid-column:1/-1}}
 @media print{
@@ -222,6 +222,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
               <select id="export-institution-select"></select>
               <button id="export-selected-csv" class="btn btn-small" type="button">匯出</button>
               <button id="share-selected-csv" class="btn btn-small" type="button">分享</button>
+              <button id="copy-selected-dates" class="btn btn-small btn-primary" type="button">複製文字</button>
             </div>
           </div>
           <div class="actions no-print" style="margin:0">
@@ -275,11 +276,12 @@ details.help p{line-height:1.65;margin:8px 0 0}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "洋湖實驗", "長郡外國語實驗"];
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖實驗", "長郡外國語實驗"];
   var COURSE_BY_INSTITUTION = {
     "AS": ["AS"],
     "西美": ["西美"],
     "META": ["META"],
+    "i5": ["i5"],
     "洋湖實驗": ["洋湖實驗"],
     "長郡外國語實驗": ["長郡外國語實驗"]
   };
@@ -519,27 +521,35 @@ details.help p{line-height:1.65;margin:8px 0 0}
         "<summary><div class=\"group-head\"><strong>" + esc(item.institution) + "</strong><span>本月獨立課堂清單</span></div>" +
         "<div class=\"group-total\">" + decimal(item.classes) + " 堂<span>" + decimal(item.days) + " 天</span></div></summary>" +
         "<div class=\"group-body\">" + lines +
-        "<div class=\"group-actions\"><button class=\"btn btn-small btn-primary\" type=\"button\" data-copy-institution=\"" + esc(item.institution) + "\">複製此機構課程明細</button>" +
+        "<div class=\"group-actions\"><button class=\"btn btn-small btn-primary\" type=\"button\" data-copy-institution=\"" + esc(item.institution) + "\">複製日期文字（微信）</button>" +
         "<button class=\"btn btn-small\" type=\"button\" data-export-institution=\"" + esc(item.institution) + "\">匯出此機構 CSV</button>" +
         "<button class=\"btn btn-small\" type=\"button\" data-share-institution=\"" + esc(item.institution) + "\">分享／儲存此機構</button></div></div>" +
         "</details>";
     }).join("") + "</div>";
-  }  function institutionFinanceText(institution) {
+  }
+  function institutionDateText(institution) {
     var records = payableRecords(filteredRecords()).filter(function (record) {
       return String(record.institution || "未填機構") === institution;
-    }).sort(function (a, b) {
-      return String(a.date).localeCompare(String(b.date));
     });
+    var countsByDate = {};
+    records.forEach(function (record) {
+      var date = String(record.date || "");
+      if (!date) return;
+      countsByDate[date] = (countsByDate[date] || 0) + (Number(record.count) || 0);
+    });
+    var dates = Object.keys(countsByDate).sort();
     var month = el.month.value || monthText();
     var parts = month.split("-");
-    var lines = ["【" + institution + "｜" + parts[0] + "年" + Number(parts[1]) + "月授課明細】"];
-    records.forEach(function (record) {
-      var date = String(record.date).split("-");
-      var recordRate = effectiveRate(record);
-      lines.push(Number(date[1]) + "/" + Number(date[2]) + " " + (record.course || "未填課程") + "：" + decimal(record.count || 0) + "堂" + (recordRate === null ? "" : "，每節" + money(recordRate)) + (record.status === "substitute" ? "（代課）" : ""));
+    var totalClasses = dates.reduce(function (sum, date) { return sum + countsByDate[date]; }, 0);
+    var lines = ["【" + institution + "｜" + parts[0] + "年" + Number(parts[1]) + "月】"];
+    dates.forEach(function (date) {
+      var dateParts = date.split("-");
+      var line = Number(dateParts[1]) + "月" + Number(dateParts[2]) + "日";
+      if (countsByDate[date] > 1) line += "（" + decimal(countsByDate[date]) + "節）";
+      lines.push(line);
     });
-    var summary = summaryData(records);
-    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）" + (summary.hasAnyRate ? "，薪資" + money(summary.totalPay) : ""));
+    if (!dates.length) lines.push("本月沒有上課紀錄。");
+    else lines.push("合計：" + decimal(dates.length) + "天，" + decimal(totalClasses) + "堂");
     return lines.join("\n");
   }  function copyText(text, message) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -547,7 +557,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
     } else fallbackCopy(text);
   }
   function copyInstitutionSummary(institution) {
-    copyText(institutionFinanceText(institution), institution + "課堂明細已複製");
+    copyText(institutionDateText(institution), institution + "日期文字已複製");
   }
   function safeFilename(value) {
     return String(value || "機構").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
@@ -571,7 +581,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
     var csv = csvFor(records, institution);
     if (navigator.share && typeof File !== "undefined") {
       var file = new File([csv], filename, { type: "text/csv;charset=utf-8" });
-      var payload = { title: institution + "上課紀錄", text: institutionFinanceText(institution), files: [file] };
+      var payload = { title: institution + "上課紀錄", text: institutionDateText(institution), files: [file] };
       if (!navigator.canShare || navigator.canShare({ files: [file] })) {
         navigator.share(payload).catch(function (error) {
           if (!error || error.name !== "AbortError") {
@@ -832,6 +842,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
   });
   document.getElementById("export-selected-csv").addEventListener("click", function () { exportInstitutionCsv(document.getElementById("export-institution-select").value); });
   document.getElementById("share-selected-csv").addEventListener("click", function () { shareInstitutionCsv(document.getElementById("export-institution-select").value); });
+  document.getElementById("copy-selected-dates").addEventListener("click", function () { copyInstitutionSummary(document.getElementById("export-institution-select").value); });
   document.getElementById("records-table").addEventListener("click", function (event) {
     var editButton = event.target.closest("[data-edit]");
     var deleteButton = event.target.closest("[data-delete]");
@@ -858,7 +869,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    navigator.serviceWorker.register("./ledger-sw.js?v=6").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=7").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
   }})();
 </script>
