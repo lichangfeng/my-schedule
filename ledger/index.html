@@ -25,6 +25,7 @@ button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 .wrap{max-width:1180px;margin:0 auto}
 .mobile-nav{display:none}
+.entry-summary{list-style:none;cursor:pointer}.entry-summary::-webkit-details-marker{display:none}.entry-toggle-hint{color:var(--muted);font-size:.86rem;font-weight:700;margin-left:auto}.entry-card[open] .entry-toggle-hint{visibility:hidden}
 .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:6px 0 18px}
 .hero h1{font-size:clamp(1.55rem,4vw,2.35rem);line-height:1.15;margin:0 0 6px;letter-spacing:-.03em}
 .hero p{margin:0;color:var(--muted)}
@@ -140,12 +141,13 @@ details.help p{line-height:1.65;margin:8px 0 0}
     <a href="#groups">機構匯出</a>
   </nav>
   <main class="grid">
-    <section class="card entry-card" id="entry">
-      <div class="card-head">
+    <details class="card entry-card" id="entry">
+      <summary class="card-head entry-summary">
         <h2 id="form-title">新增上課紀錄</h2>
-        <button id="cancel-edit" class="btn btn-small" type="button" hidden>取消修改</button>
-      </div>
+        <span class="entry-toggle-hint">點擊展開</span>
+      </summary>
       <div class="card-body">
+        <button id="cancel-edit" class="btn btn-small" type="button" hidden style="margin-bottom:10px">取消修改</button>
         <form id="record-form">
           <div class="form-grid">
             <div class="field full">
@@ -164,10 +166,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
             <div class="field">
               <label for="record-count">堂數（同日兩節填 2）</label>
               <input id="record-count" type="number" min="0.5" step="0.5" value="1" required>
+            </div>
             <div class="field">
               <label for="record-rate">本節薪資（自動帶入，可修改）</label>
               <input id="record-rate" type="number" min="0" step="0.01" placeholder="可在機構薪資設定中預填">
-            </div>
             </div>
           </div>
           <details class="advanced">
@@ -188,7 +190,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
                 <textarea id="record-note" placeholder="代課老師、補課、遲到等"></textarea>
               </div>
             </div>
-          </details>          <div class="actions">
+          </details>
+          <div class="actions">
             <button class="btn btn-primary" type="submit" id="save-record">儲存紀錄</button>
             <button class="btn" type="button" id="reset-form">清空表單</button>
           </div>
@@ -208,7 +211,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
           </div>
         </details>
       </div>
-    </section>
+    </details>
 
     <div>
       <section class="card summary-card" id="summary">
@@ -520,7 +523,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
           "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></div>" +
           "</div>";
       }).join("");
-      return "<details class=\"institution-group\" open>" +
+      return "<details class=\"institution-group\">" +
         "<summary><div class=\"group-head\"><strong>" + esc(item.institution) + "</strong><span>本月獨立課堂清單</span></div>" +
         "<div class=\"group-total\">" + decimal(item.classes) + " 堂<span>" + decimal(item.days) + " 天</span></div></summary>" +
         "<div class=\"group-body\">" + lines +
@@ -700,7 +703,9 @@ details.help p{line-height:1.65;margin:8px 0 0}
     el.formTitle.textContent = "修改上課紀錄";
     el.cancelEdit.hidden = false;
     document.getElementById("save-record").textContent = "儲存修改";
-    document.querySelector(".entry-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    var entryCard = document.querySelector(".entry-card");
+    if (entryCard) entryCard.open = true;
+    if (entryCard) entryCard.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function deleteRecord(id, button) {
     var record = state.records.find(function (item) { return item.id === id; });
@@ -821,6 +826,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
   el.form.addEventListener("submit", saveRecord);
   document.getElementById("reset-form").addEventListener("click", resetForm);
   el.cancelEdit.addEventListener("click", resetForm);
+  document.querySelector(".mobile-nav a[href=\"#entry\"]").addEventListener("click", function () { var entry = document.getElementById("entry"); if (entry) entry.open = true; });
   el.institution.addEventListener("change", function () {
     renderCourseOptions();
     var defaultRate = defaultInstitutionRate(el.institution.value);
@@ -876,7 +882,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    navigator.serviceWorker.register("./ledger-sw.js?v=8").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=9").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
   }})();
 </script>
