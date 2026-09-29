@@ -2065,14 +2065,19 @@ window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.
 (function () {
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
   var reloading = false;
-  navigator.serviceWorker.register("./service-worker.js?v=1", { updateViaCache: "none" }).then(function (registration) {
-    registration.update();
-  }).catch(function () {});
+  var registrationReady = navigator.serviceWorker.register("./service-worker.js?v=2", { updateViaCache: "none" });
+  function checkForUpdate() {
+    if (registrationReady) registrationReady.then(function (registration) { registration.update(); }).catch(function () {});
+  }
+  registrationReady.then(function (registration) { registration.update(); }).catch(function () {});
   navigator.serviceWorker.addEventListener("controllerchange", function () {
     if (reloading) return;
     reloading = true;
     window.location.reload();
   });
+  window.addEventListener("pageshow", checkForUpdate);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) checkForUpdate(); });
+  setInterval(checkForUpdate, 300000);
 })();
 </script></body>
 </html>

@@ -949,8 +949,13 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    navigator.serviceWorker.register("./ledger-sw.js?v=10").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    var ledgerRegistration = navigator.serviceWorker.register("./ledger-sw.js?v=11", { updateViaCache: "none" });
+    function ledgerCheckForUpdate() { ledgerRegistration.then(function (registration) { registration.update(); }).catch(function () {}); }
+    ledgerRegistration.then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
+    window.addEventListener("pageshow", ledgerCheckForUpdate);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) ledgerCheckForUpdate(); });
+    setInterval(ledgerCheckForUpdate, 300000);
   }})();
 </script>
 </body>
