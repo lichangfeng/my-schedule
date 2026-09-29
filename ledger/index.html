@@ -148,16 +148,9 @@ details.help p{line-height:1.65;margin:8px 0 0}
               <label for="record-course">班級（每個機構目前只有一個）</label>
               <select id="record-course" required></select>
             </div>
+
             <div class="field">
-              <label for="record-start">開始時間</label>
-              <input id="record-start" type="time" required>
-            </div>
-            <div class="field">
-              <label for="record-end">結束時間</label>
-              <input id="record-end" type="time" required>
-            </div>
-            <div class="field">
-              <label for="record-count">堂數</label>
+              <label for="record-count">堂數（同日兩節填 2）</label>
               <input id="record-count" type="number" min="0.5" step="0.5" value="1" required>
             </div>
           </div>
@@ -187,7 +180,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
             <button class="btn btn-primary" type="submit" id="save-record">儲存紀錄</button>
             <button class="btn" type="button" id="reset-form">清空表單</button>
           </div>
-          <p class="helper">「已完成」和「代課」會計入堂數；待授課、請假、取消暫不列入統計。同一天同一堂課請只記一次。</p>
+          <p class="helper">「已完成」和「代課」會計入堂數；同一天兩節課請把堂數填 2，不同機構則分開記錄。</p>
         </form>
         <details class="help">
           <summary>備份與還原</summary>
@@ -217,7 +210,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
         <div class="metrics">
           <div class="metric"><span>計薪堂數</span><strong id="metric-classes">0</strong><small id="metric-classes-note">已完成＋代課</small></div>
           <div class="metric"><span>授課機構</span><strong id="metric-institutions">0</strong><small>本月有計薪紀錄</small></div>
-          <div class="metric"><span>授課時數</span><strong id="metric-hours">0</strong><small>有填開始／結束才計算</small></div>
+          <div class="metric"><span>授課天數</span><strong id="metric-days">0</strong><small>同一天只計一天</small></div>
           <div class="metric"><span>預估薪資</span><strong id="metric-pay">—</strong><small id="metric-pay-note">費率留空則不計算</small></div>
         </div>
 
@@ -280,8 +273,6 @@ details.help p{line-height:1.65;margin:8px 0 0}
     date: document.getElementById("record-date"),
     institution: document.getElementById("record-institution"),
     course: document.getElementById("record-course"),
-    start: document.getElementById("record-start"),
-    end: document.getElementById("record-end"),
     count: document.getElementById("record-count"),
     rate: document.getElementById("record-rate"),
     status: document.getElementById("record-status"),
@@ -354,20 +345,6 @@ details.help p{line-height:1.65;margin:8px 0 0}
       showToast("瀏覽器無法儲存資料，請先匯出備份");
     }
   }
-  function durationHours(record) {
-    if (!record.start || !record.end) return 0;
-    var start = minutes(record.start);
-    var end = minutes(record.end);
-    if (start === null || end === null) return 0;
-    if (end < start) end += 24 * 60;
-    return Math.max(0, (end - start) / 60);
-  }
-  function minutes(value) {
-    var match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ""));
-    if (!match) return null;
-    var h = Number(match[1]), m = Number(match[2]);
-    return h >= 0 && h < 24 && m >= 0 && m < 60 ? h * 60 + m : null;
-  }
   function isPayable(record) {
     return !!PAYABLE_STATUS[record.status];
   }
@@ -385,39 +362,40 @@ details.help p{line-height:1.65;margin:8px 0 0}
   function summaryData(records) {
     var paid = payableRecords(records);
     var map = {};
-    var totalClasses = 0, totalHours = 0, totalPay = 0;
-    var ratedClasses = 0, payableClasses = 0;
+    var totalClasses = 0, totalPay = 0, ratedClasses = 0, payableClasses = 0;
+    var allDates = {};
     paid.forEach(function (record) {
       var count = Number(record.count) || 0;
       var rate = numberOrNull(record.rate);
-      var hours = durationHours(record) * count;
       totalClasses += count;
-      totalHours += hours;
       payableClasses += count;
+      if (record.date) allDates[record.date] = true;
       if (rate !== null) {
         totalPay += rate * count;
         ratedClasses += count;
       }
       var key = record.institution || "未填機構";
-      if (!map[key]) map[key] = { institution: key, classes: 0, hours: 0, pay: 0, ratedClasses: 0, payableClasses: 0 };
+      if (!map[key]) map[key] = { institution: key, classes: 0, pay: 0, ratedClasses: 0, payableClasses: 0, dates: {} };
       map[key].classes += count;
-      map[key].hours += hours;
       map[key].payableClasses += count;
+      if (record.date) map[key].dates[record.date] = true;
       if (rate !== null) {
         map[key].pay += rate * count;
         map[key].ratedClasses += count;
       }
     });
-    var byInstitution = Object.keys(map).map(function (key) { return map[key]; }).sort(function (a, b) {
+    var byInstitution = Object.keys(map).map(function (key) {
+      map[key].days = Object.keys(map[key].dates).length;
+      return map[key];
+    }).sort(function (a, b) {
       return b.classes - a.classes || a.institution.localeCompare(b.institution, "zh-Hant");
     });
     return {
-      paid: paid, byInstitution: byInstitution, totalClasses: totalClasses, totalHours: totalHours,
+      paid: paid, byInstitution: byInstitution, totalClasses: totalClasses, totalDays: Object.keys(allDates).length,
       totalPay: totalPay, ratedClasses: ratedClasses, payableClasses: payableClasses,
       hasAnyRate: ratedClasses > 0, ratesComplete: ratedClasses === payableClasses && payableClasses > 0
     };
-  }
-function initEntryOptions(preferredInstitution, preferredCourse) {
+  }function initEntryOptions(preferredInstitution, preferredCourse) {
     el.institution.innerHTML = "<option value=\"\">請選擇機構</option>" + DEFAULT_INSTITUTIONS.map(function (item) {
       return "<option value=\"" + esc(item) + "\">" + esc(item) + "</option>";
     }).join("");
@@ -444,7 +422,7 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
     document.getElementById("metric-classes").textContent = decimal(summary.totalClasses) + " 堂";
     document.getElementById("metric-classes-note").textContent = records.length ? "共 " + records.length + " 筆明細" : "本月尚無紀錄";
     document.getElementById("metric-institutions").textContent = summary.byInstitution.length + " 間";
-    document.getElementById("metric-hours").textContent = decimal(summary.totalHours) + " 小時";
+    document.getElementById("metric-days").textContent = decimal(summary.totalDays) + " 天";
     document.getElementById("metric-pay").textContent = summary.hasAnyRate ? money(summary.totalPay) : "—";
     document.getElementById("metric-pay-note").textContent = summary.ratesComplete ? "已有完整費率" : (summary.hasAnyRate ? "部分紀錄未填費率" : "費率留空則不計算");
     renderInstitutionSummary(summary.byInstitution);
@@ -461,12 +439,11 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
       var pay = item.ratedClasses === item.payableClasses ? money(item.pay) : "部分未填";
       return "<tr><td><strong>" + esc(item.institution) + "</strong></td>" +
         "<td class=\"num\">" + decimal(item.classes) + " 堂</td>" +
-        "<td class=\"num\">" + (item.hours ? decimal(item.hours) + " 小時" : "—") + "</td>" +
+        "<td class=\"num\">" + decimal(item.days) + " 天</td>" +
         "<td class=\"num\">" + pay + "</td></tr>";
     }).join("");
-    host.innerHTML = "<div class=\"table-wrap\"><table><thead><tr><th>機構</th><th class=\"num\">堂數</th><th class=\"num\">時數</th><th class=\"num\">預估薪資</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
-  }
-  function renderInstitutionGroups(items, records) {
+    host.innerHTML = "<div class=\"table-wrap\"><table><thead><tr><th>機構</th><th class=\"num\">堂數</th><th class=\"num\">天數</th><th class=\"num\">預估薪資</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+  }  function renderInstitutionGroups(items, records) {
     var host = document.getElementById("institution-groups");
     if (!host) return;
     if (!items.length) {
@@ -478,50 +455,43 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
       var groupRecords = paid.filter(function (record) {
         return String(record.institution || "未填機構") === item.institution;
       }).sort(function (a, b) {
-        return String(a.date).localeCompare(String(b.date)) || String(a.start || "").localeCompare(String(b.start || ""));
+        return String(a.date).localeCompare(String(b.date));
       });
-      var groupHours = groupRecords.reduce(function (sum, record) {
-        return sum + durationHours(record) * (Number(record.count) || 0);
-      }, 0);
       var lines = groupRecords.map(function (record) {
-        var time = record.start || record.end ? (record.start || "?") + "–" + (record.end || "?") : "未填時間";
-        var status = record.status === "substitute" ? " · 代課" : "";
+        var status = record.status === "substitute" ? "代課" : "已完成";
         var note = record.note ? " · " + esc(record.note) : "";
         return "<div class=\"group-record\">" +
           "<div class=\"group-record-date\">" + esc(record.date) + "</div>" +
-          "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填課程") + "</strong><span>" + esc(time) + status + note + "</span></div>" +
-          "<div class=\"group-record-count\">" + decimal(record.count || 0) + " 堂<span>" + (durationHours(record) ? decimal(durationHours(record) * (Number(record.count) || 0)) + " 小時" : "") + "</span></div>" +
+          "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填課程") + "</strong><span>" + status + note + "</span></div>" +
+          "<div class=\"group-record-count\">" + decimal(record.count || 0) + " 堂</div>" +
           "</div>";
       }).join("");
       return "<details class=\"institution-group\" open>" +
         "<summary><div class=\"group-head\"><strong>" + esc(item.institution) + "</strong><span>本月獨立課堂清單</span></div>" +
-        "<div class=\"group-total\">" + decimal(item.classes) + " 堂<span>" + (item.hours ? decimal(item.hours) + " 小時" : "未填時數") + "</span></div></summary>" +
+        "<div class=\"group-total\">" + decimal(item.classes) + " 堂<span>" + decimal(item.days) + " 天</span></div></summary>" +
         "<div class=\"group-body\">" + lines +
         "<div class=\"group-actions\"><button class=\"btn btn-small btn-primary\" type=\"button\" data-copy-institution=\"" + esc(item.institution) + "\">複製此機構課程明細</button>" +
         "<button class=\"btn btn-small\" type=\"button\" data-export-institution=\"" + esc(item.institution) + "\">匯出此機構 CSV</button>" +
         "<button class=\"btn btn-small\" type=\"button\" data-share-institution=\"" + esc(item.institution) + "\">分享／儲存此機構</button></div></div>" +
         "</details>";
     }).join("") + "</div>";
-  }
-  function institutionFinanceText(institution) {
+  }  function institutionFinanceText(institution) {
     var records = payableRecords(filteredRecords()).filter(function (record) {
       return String(record.institution || "未填機構") === institution;
     }).sort(function (a, b) {
-      return String(a.date).localeCompare(String(b.date)) || String(a.start || "").localeCompare(String(b.start || ""));
+      return String(a.date).localeCompare(String(b.date));
     });
     var month = el.month.value || monthText();
     var parts = month.split("-");
     var lines = ["【" + institution + "｜" + parts[0] + "年" + Number(parts[1]) + "月授課明細】"];
     records.forEach(function (record) {
       var date = String(record.date).split("-");
-      var time = record.start || record.end ? (record.start || "?") + "–" + (record.end || "?") : "";
-      lines.push(Number(date[1]) + "/" + Number(date[2]) + " " + (record.course || "未填課程") + (time ? " " + time : "") + "：" + decimal(record.count || 0) + "堂" + (record.status === "substitute" ? "（代課）" : ""));
+      lines.push(Number(date[1]) + "/" + Number(date[2]) + " " + (record.course || "未填課程") + "：" + decimal(record.count || 0) + "堂" + (record.status === "substitute" ? "（代課）" : ""));
     });
     var summary = summaryData(records);
-    lines.push("合計：" + decimal(summary.totalClasses) + "堂" + (summary.totalHours ? "（" + decimal(summary.totalHours) + "小時）" : ""));
+    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）");
     return lines.join("\n");
-  }
-  function copyText(text, message) {
+  }  function copyText(text, message) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { showToast(message); }, function () { fallbackCopy(text); });
     } else fallbackCopy(text);
@@ -574,25 +544,22 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
     var rows = records.map(function (record) {
       var statusClass = esc(record.status || "completed");
       var statusText = STATUS_LABELS[record.status] || esc(record.status || "未設定");
-      var time = record.start || record.end ? esc((record.start || "?") + "–" + (record.end || "?")) : "—";
       var rate = numberOrNull(record.rate);
       return "<tr>" +
         "<td>" + esc(record.date) + "</td>" +
         "<td><strong>" + esc(record.institution) + "</strong></td>" +
         "<td>" + esc(record.course || "未填課程") + (record.note ? "<div style=\"font-size:.76rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
-        "<td>" + time + "</td>" +
-        "<td class=\"num\">" + decimal(record.count || 0) + "</td>" +
         "<td><span class=\"status " + statusClass + "\">" + statusText + "</span></td>" +
+        "<td class=\"num\">" + decimal(record.count || 0) + "</td>" +
         "<td class=\"num\">" + (rate === null ? "—" : money(rate)) + "</td>" +
         "<td><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button> " +
         "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></td>" +
         "</tr>";
     }).join("");
     host.innerHTML = "<div class=\"table-wrap\"><table class=\"record-table\"><thead><tr>" +
-      "<th>日期</th><th>機構</th><th>課程／備註</th><th>時間</th><th class=\"num\">堂數</th><th>狀態</th><th class=\"num\">每堂費率</th><th>操作</th>" +
+      "<th>日期</th><th>機構</th><th>課程／備註</th><th>狀態</th><th class=\"num\">堂數</th><th class=\"num\">每堂費率</th><th>操作</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>";
-  }
-  function resetForm() {
+  }  function resetForm() {
     editingId = null;
     el.form.reset();
     el.date.value = todayText();
@@ -610,8 +577,6 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
       date: el.date.value,
       institution: el.institution.value.trim(),
       course: el.course.value.trim(),
-      start: el.start.value,
-      end: el.end.value,
       count: Number(el.count.value) || 0,
       rate: el.rate.value === "" ? null : Number(el.rate.value),
       status: el.status.value,
@@ -660,8 +625,6 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
     el.institution.value = record.institution || "";
     renderCourseOptions(record.course);
     el.course.value = record.course || el.course.value;
-    el.start.value = record.start || "";
-    el.end.value = record.end || "";
     el.count.value = record.count || 1;
     el.rate.value = record.rate === null || typeof record.rate === "undefined" ? "" : record.rate;
     el.status.value = record.status || "completed";
@@ -697,17 +660,14 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
     var parts = month.split("-");
     var lines = ["【" + parts[0] + "年" + Number(parts[1]) + "月授課統計】"];
     summary.byInstitution.forEach(function (item) {
-      var line = item.institution + "：" + decimal(item.classes) + "堂";
-      if (item.hours) line += "（" + decimal(item.hours) + "小時）";
-      lines.push(line);
+      lines.push(item.institution + "：" + decimal(item.classes) + "堂（" + decimal(item.days) + "天）");
     });
     if (!summary.byInstitution.length) lines.push("本月尚無計薪堂數。");
-    lines.push("合計：" + decimal(summary.totalClasses) + "堂" + (summary.totalHours ? "（" + decimal(summary.totalHours) + "小時）" : ""));
+    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）");
     var substitutes = records.filter(function (record) { return record.status === "substitute" && isPayable(record); });
     if (substitutes.length) lines.push("其中代課：" + decimal(substitutes.reduce(function (sum, record) { return sum + Number(record.count || 0); }, 0)) + "堂");
     return lines.join("\n");
-  }
-  function copySummary() {
+  }  function copySummary() {
     copyText(financeSummaryText(), "財務摘要已複製");
   }
   function fallbackCopy(text) {
@@ -726,22 +686,21 @@ function initEntryOptions(preferredInstitution, preferredCourse) {
     return "\"" + text.replace(/"/g, "\"\"") + "\"";
   }
   function csvFor(records, label) {
-    var rows = [["日期", "機構", "課程", "開始", "結束", "堂數", "狀態", "每堂費率", "預估薪資", "備註"]];
-    records.slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)) || String(a.start || "").localeCompare(String(b.start || "")); }).forEach(function (record) {
+    var rows = [["日期", "機構", "班級", "堂數", "狀態", "每堂費率", "預估薪資", "備註"]];
+    records.slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); }).forEach(function (record) {
       var count = Number(record.count) || 0;
       var rate = numberOrNull(record.rate);
       rows.push([
-        record.date, record.institution, record.course || "", record.start || "", record.end || "", count,
+        record.date, record.institution, record.course || "", count,
         STATUS_LABELS[record.status] || record.status || "", rate === null ? "" : rate,
         rate === null || !isPayable(record) ? "" : (rate * count).toFixed(2), record.note || ""
       ]);
     });
     var summary = summaryData(records);
     rows.push([]);
-    rows.push([label + "合計（僅計已完成與代課）", "", "", "", "", summary.totalClasses, "", "", summary.hasAnyRate ? summary.totalPay.toFixed(2) : "", ""]);
+    rows.push([label + "合計（僅計已完成與代課）", "", "", summary.totalClasses, "", "", summary.hasAnyRate ? summary.totalPay.toFixed(2) : "", ""]);
     return "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
-  }
-  function downloadText(filename, text, type) {
+  }  function downloadText(filename, text, type) {
     var blob = new Blob([text], { type: type || "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
