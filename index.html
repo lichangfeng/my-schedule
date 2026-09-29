@@ -165,7 +165,7 @@ select.vsel:focus{border-color:#4f6ef2;box-shadow:0 0 0 3px rgba(79,110,242,.15)
 .maintitle{display:inline-block;font-size:36px;font-weight:800;letter-spacing:1px;color:#1f2937;line-height:1.2;padding:2px 10px;border:2px dashed transparent;border-radius:12px;outline:none;transition:border-color .15s;background:none}
 .maintitle.editing{border-color:#4f6ef2;background:rgba(79,110,242,.06);cursor:text}
 .mtbtn{margin-left:8px;border:1px solid #d7dce6;background:#fff;color:#3b4252;font:inherit;font-size:13px;padding:5px 10px;border-radius:9px;cursor:pointer;vertical-align:middle}
-.mtbtn:hover{border-color:#4f6ef2;color:#4f6ef2}.ledger-entry{opacity:1!important;background:#eefaf7;border-color:#9bd8cc;color:#0f766e}.floating{position:fixed;right:16px;bottom:16px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.mtbtn:hover{border-color:#4f6ef2;color:#4f6ef2}.floating{position:fixed;right:16px;bottom:16px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .floating .float-panel{display:none;background:#fff;border:1px solid #e3e8f0;border-radius:14px;box-shadow:0 12px 30px rgba(30,41,59,.18);padding:8px;min-width:170px}
 .floating.open .float-panel{display:flex;flex-direction:column;gap:5px}
 .float-panel .btn{width:100%;justify-content:flex-start;padding:7px 10px;font-size:12.5px}
@@ -256,7 +256,6 @@ body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}</style>
   <div class="maintitle-wrap">
     <div class="maintitle" id="mainTitle" title="双击或点 ✏️ 修改大标题">我的每日工作日程表</div>
     <button class="mtbtn" id="mtEdit" title="修改大标题">✏️ 修改</button>
-    <a class="mtbtn ledger-entry" href="ledger/" title="記錄課堂並按機構匯出">📋 上課紀錄</a>
   </div>
 
 
@@ -400,9 +399,25 @@ function load(){
   sanitizeData();
   save();
 }
+function arrStamp(a){ return (a&&typeof a.updatedAt==="number")?a.updatedAt:0; }
+function mergeArrs(remoteList,localList){
+  var map={}, order=[];
+  function add(list,preferLocal){
+    (list||[]).forEach(function(a){
+      if(!a||!a.id) return;
+      var cur=map[a.id];
+      if(!cur){ map[a.id]=a; order.push(a.id); return; }
+      var sa=arrStamp(a), sc=arrStamp(cur);
+      if(sa>sc||(preferLocal&&sa===sc)) map[a.id]=a;
+    });
+  }
+  add(remoteList,false);
+  add(localList,true);
+  return order.map(function(id){ return map[id]; });
+}
 function migrate(list){
   state.arrs=list.map(function(x){
-    return {id:uid(),versions:[{from:null,to:null,day:x.day,start:x.start,end:x.end,title:x.title||"（未命名安排）",color:x.color||"blue",note:x.note||"",deleted:false}]};
+    return {id:uid(),updatedAt:Date.now(),versions:[{from:null,to:null,day:x.day,start:x.start,end:x.end,title:x.title||"（未命名安排）",color:x.color||"blue",note:x.note||"",deleted:false}]};
   });
 }
 function sanitizeData(){
@@ -423,7 +438,7 @@ function sanitizeData(){
 function sampleArrs(){
   var k=weekKey(new Date());
   return SAMPLE.map(function(x){
-    return {id:uid(),versions:[{from:k,to:null,day:x.day,start:x.start,end:x.end,title:x.title,color:x.color||"blue",note:x.note||"",deleted:false}]};
+    return {id:uid(),updatedAt:Date.now(),versions:[{from:k,to:null,day:x.day,start:x.start,end:x.end,title:x.title,color:x.color||"blue",note:x.note||"",deleted:false}]};
   });
 }
 function save(){
@@ -706,7 +721,7 @@ function doPaste(day,m){
   var dur=clip.dur||60;
   var K=weekKey(state.weekStart);
   var f={day:day,start:m,end:Math.max(m+15,Math.min(DAY_END,m+dur)),title:clip.title,color:clip.color,note:clip.note||""};
-  state.arrs.push({id:uid(),versions:[{from:K,to:null,day:f.day,start:f.start,end:f.end,title:f.title,color:f.color,note:f.note,deleted:false}]});
+  state.arrs.push({id:uid(),updatedAt:Date.now(),versions:[{from:K,to:null,day:f.day,start:f.start,end:f.end,title:f.title,color:f.color,note:f.note,deleted:false}]});
   save(); renderAll();
   var d=addDays(state.weekStart,day);
   $("#pbTxt").textContent="✔ 已粘贴「"+clip.title+"」到 "+WD[day]+"（"+(d.getMonth()+1)+"月"+d.getDate()+"日 "+fmt(m)+"）—— 可继续点击其他日期空白处粘贴";
@@ -752,6 +767,7 @@ function applyChange(arr,K,fields,toEx,deleted){
       arr.versions.push({from:toEx,to:old.to,day:old.day,start:old.start,end:old.end,title:old.title,color:old.color,note:old.note||"",deleted:false});
     }
   }
+  arr.updatedAt=Date.now();
   normalize(arr);
 }
 function beginChange(mode,ev,fields){
@@ -847,8 +863,16 @@ function openDialog(mode,ev){
     }
     if(mode==="create"){
       var K=weekKey(state.weekStart);
-      state.arrs.push({id:uid(),versions:[{from:K,to:null,day:f.day,start:f.start,end:f.end,title:f.title,color:f.color,note:f.note,deleted:false}]});
-      save(); closeDialog(); renderAll();
+      closeDialog();
+      promptScope({
+        mode:"add",K:K,defaultSel:"all",
+        title:"新增「"+f.title+"」（"+WD[f.day]+" "+fmt(f.start)+"–"+fmt(f.end)+"）。要应用到哪些周？",
+        onApply:function(toEx){
+          state.arrs.push({id:uid(),updatedAt:Date.now(),versions:[{from:K,to:toEx,day:f.day,start:f.start,end:f.end,title:f.title,color:f.color,note:f.note,deleted:false}]});
+          save(); renderAll();
+          showToast(toEx===null?"✅ 已添加（本周起每周重复）":"✅ 已添加并同步到所选周数");
+        }
+      });
     } else {
       var arr=arrById(editingEv.arrId);
       var K2=weekKey(state.weekStart);
@@ -884,18 +908,18 @@ function promptScope(cfg){
   var ov=$("#overlay");
   ov.classList.remove("hidden");
   var html="<div class=\"dialog scope\" role=\"dialog\" aria-modal=\"true\">"+
-    "<h3>"+(mode==="delete"?"删除范围":"同步范围")+"</h3>"+
+    "<h3>"+(mode==="delete"?"删除范围":(mode==="add"?"新增范围":"同步范围"))+"</h3>"+
     "<p class=\"dsub\">"+cfg.title+"</p>"+
-    "<div class=\"dnote\">按 Enter 确认选择，Esc 取消/仅本周。</div>"+
+    "<div class=\"dnote\">"+(mode==="add"?"选择这条安排要应用到哪些周（默认：本周及以后所有周）。":"按 Enter 确认选择，Esc 取消/仅本周。")+"</div>"+
     "<div class=\"opts\" id=\"scopeOpts\"></div>"+
     "<div class=\"cprev\" id=\"cPrev\"></div>"+
     "<div class=\"dfoot\">"+
-      "<button class=\"btn"+(mode==="delete"?" danger":"")+"\" id=\"scCancel\">"+(mode==="delete"?"取消":"仅本周")+"</button>"+
+      "<button class=\"btn"+(mode==="delete"?" danger":"")+"\" id=\"scCancel\">"+(mode==="edit"?"仅本周":"取消")+"</button>"+
       "<span class=\"grow\"></span>"+
-      "<button class=\"btn primary\" id=\"scOk\">"+(mode==="delete"?"删除":"同步")+"</button>"+
+      "<button class=\"btn primary\" id=\"scOk\">"+(mode==="delete"?"删除":(mode==="add"?"按所选范围添加":"同步"))+"</button>"+
     "</div></div>";
   ov.innerHTML=html;
-  var wrap=$("#scopeOpts"), sel="1";
+  var wrap=$("#scopeOpts"), sel=cfg.defaultSel||"1";
   function weeksVal(){
     if(sel==="all") return null;
     if(sel==="c"){ var n=parseInt($("#cnum").value,10); if(isNaN(n)||n<1)n=1; if(n>52)n=52; return n; }
@@ -959,10 +983,10 @@ function promptScope(cfg){
   }
   $("#scOk").addEventListener("click",doOk);
   $("#scCancel").addEventListener("click",function(){
-    if(mode==="delete"){ closeScope(); } else { onlyThis(); }
+    if(mode==="edit"){ onlyThis(); } else { closeScope(); }
   });
   var esc=function(e){
-    if(e.key==="Escape"){ if(mode==="delete"){ closeScope(); } else { onlyThis(); } return; }
+    if(e.key==="Escape"){ if(mode==="edit"){ onlyThis(); } else { closeScope(); } return; }
     if(e.key==="Enter"){
       var tag=document.activeElement?document.activeElement.tagName:"";
       if(tag==="BUTTON") return;
@@ -972,7 +996,7 @@ function promptScope(cfg){
   };
   curEsc=esc;
   document.addEventListener("keydown",esc);
-  attachOverlayClose(ov,function(){ if(mode==="delete"){ closeScope(); } else { onlyThis(); } });
+  attachOverlayClose(ov,function(){ if(mode==="edit"){ onlyThis(); } else { closeScope(); } });
   updatePreview();
 }
 /* ---------- 自定义背景（本地 / 互联网） ---------- */
@@ -1673,7 +1697,7 @@ function exportDataFile(){
 function normalizeImport(d){
   function conv(list){
     return list.map(function(x){
-      return {id:uid(),versions:[{from:null,to:null,day:x.day,start:x.start,end:x.end,title:x.title||"（未命名安排）",color:x.color||"blue",note:x.note||"",deleted:false}]};
+      return {id:uid(),updatedAt:Date.now(),versions:[{from:null,to:null,day:x.day,start:x.start,end:x.end,title:x.title||"（未命名安排）",color:x.color||"blue",note:x.note||"",deleted:false}]};
     });
   }
   if(Array.isArray(d)) return {arrs:conv(d)};
@@ -1787,22 +1811,21 @@ function cloudPull(silent,force){
     if(!raw||!raw.trim()) throw new Error("云端的数据文件是空的。请到有数据的那台设备点“上传本机”覆盖它。");
     var data;
     try{ data=JSON.parse(raw); }catch(e){ throw new Error("云端数据格式不正确（可能被手动改过）。请用有数据的那台点“上传本机”覆盖。"); }
-    var remoteT=Number(data.modifiedAt||0);
-    var localT=Number(localStorage.getItem(LASTCHANGE_KEY)||0);
-    if(!force&&remoteT>0&&localT>remoteT+120000){
-      if(cloudCfg.autoPush) cloudPush(true).catch(function(){});
-      if(!silent) showToast("本机数据比云端新，已保留本机数据（可在云同步里点“下载云端”强制覆盖）");
-      return data;
-    }
+    var remoteArrs=data.arrs||[];
+    var mergedArrs=mergeArrs(remoteArrs,state.arrs||[]);
+    data.arrs=mergedArrs;
+    var needPushBack=(JSON.stringify(mergedArrs)!==JSON.stringify(remoteArrs));
     if(!applyImportedData(data,true)) throw new Error("云端数据内容无效，已跳过（本地数据没有改动）");
+    if(needPushBack&&cloudCfg.autoPush){ cloudPush(true).catch(function(){}); }
     cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg();
-    if(!silent) showToast("☁️ 已从云端下载同步");
+    if(!silent) showToast("☁️ 已从云端下载同步（已合并双方数据）");
     return data;
   }).catch(function(e){ if(!silent) alert("云同步失败："+e.message); throw e; }).then(function(x){ cloudPulling=false; return x; },function(e){ cloudPulling=false; throw e; });
 }
 function cloudPush(silent){
   if(!cloudConfigured()){ if(!silent) alert("请先在云同步里填写用户名、仓库名和 Token。"); return Promise.reject(new Error("未配置")); }
-  var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:b64Encode(JSON.stringify(collectData(true))),branch:cloudCfg.branch||"main"};
+  var payloadData=collectData(true);
+  var payload={message:"更新日程数据 "+(new Date().toLocaleString("zh-CN")),content:"",branch:cloudCfg.branch||"main"};
   var apiBase="https://api.github.com/repos/"+encodeURIComponent(cloudCfg.owner)+"/"+encodeURIComponent(cloudCfg.repo);
   function done(){ cloudCfg.lastSync=new Date().toISOString(); saveCloudCfg(); if(!silent) showToast("☁️ 已上传到云端"); }
   function withTimeout(fn){
@@ -1857,7 +1880,16 @@ function cloudPush(silent){
       });
     });
   }
-  return getMeta().then(function(j){
+  return cloudFetchText().catch(function(){ return null; }).then(function(raw){
+    if(raw){
+      try{
+        var rd=JSON.parse(raw);
+        if(rd&&Array.isArray(rd.arrs)){ payloadData.arrs=mergeArrs(rd.arrs,payloadData.arrs); }
+      }catch(e){}
+    }
+    payload.content=b64Encode(JSON.stringify(payloadData));
+    return getMeta();
+  }).then(function(j){
     if(j&&j.sha) payload.sha=j.sha; else delete payload.sha;
     return putFile().then(function(r){
       if(r.status!==422) return r;
