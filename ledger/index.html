@@ -47,6 +47,7 @@ textarea{resize:vertical;min-height:74px}
 .btn-danger{color:var(--danger);border-color:#f2c8c4}
 .btn-small{padding:6px 9px;border-radius:9px;font-size:.82rem}
 .helper{margin:10px 0 0;color:var(--muted);font-size:.78rem;line-height:1.55}
+.advanced{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}.advanced summary{cursor:pointer;color:var(--muted);font-size:.84rem;font-weight:700}.advanced .form-grid{margin-top:12px}
 .summary-top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;padding:18px 18px 0}
 .month-control{display:grid;gap:5px;min-width:180px}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:14px 18px 18px}
@@ -135,52 +136,54 @@ details.help p{line-height:1.65;margin:8px 0 0}
       <div class="card-body">
         <form id="record-form">
           <div class="form-grid">
-            <div class="field">
+            <div class="field full">
               <label for="record-date">日期</label>
               <input id="record-date" type="date" required>
             </div>
-            <div class="field">
-              <label for="record-status">狀態</label>
-              <select id="record-status">
-                <option value="completed">已完成</option>
-                <option value="substitute">代課</option>
-                <option value="planned">待授課（暫不計）</option>
-                <option value="leave">請假</option>
-                <option value="cancelled">取消</option>
-              </select>
-            </div>
             <div class="field full">
               <label for="record-institution">機構</label>
-              <input id="record-institution" list="institution-list" placeholder="例如：HUK 河西店" required>
-              <datalist id="institution-list"></datalist>
+              <select id="record-institution" required></select>
             </div>
             <div class="field full">
-              <label for="record-course">課程／班級</label>
-              <input id="record-course" list="course-list" placeholder="例如：HIPHOP 基礎" required>
-              <datalist id="course-list"></datalist>
+              <label for="record-course">班級（每個機構目前只有一個）</label>
+              <select id="record-course" required></select>
             </div>
             <div class="field">
-              <label for="record-start">開始時間（可留空）</label>
-              <input id="record-start" type="time">
+              <label for="record-start">開始時間</label>
+              <input id="record-start" type="time" required>
             </div>
             <div class="field">
-              <label for="record-end">結束時間（可留空）</label>
-              <input id="record-end" type="time">
+              <label for="record-end">結束時間</label>
+              <input id="record-end" type="time" required>
             </div>
             <div class="field">
               <label for="record-count">堂數</label>
               <input id="record-count" type="number" min="0.5" step="0.5" value="1" required>
             </div>
-            <div class="field">
-              <label for="record-rate">每堂費率（可留空）</label>
-              <input id="record-rate" type="number" min="0" step="0.01" placeholder="只影響預估薪資">
-            </div>
-            <div class="field full">
-              <label for="record-note">備註</label>
-              <textarea id="record-note" placeholder="代課老師、補課、遲到、未計堂數原因等"></textarea>
-            </div>
           </div>
-          <div class="actions">
+          <details class="advanced">
+            <summary>其他選項（通常不用改）</summary>
+            <div class="form-grid">
+              <div class="field">
+                <label for="record-status">狀態</label>
+                <select id="record-status">
+                  <option value="completed">已完成</option>
+                  <option value="substitute">代課</option>
+                  <option value="planned">待授課（暫不計）</option>
+                  <option value="leave">請假</option>
+                  <option value="cancelled">取消</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="record-rate">每堂費率（可留空）</label>
+                <input id="record-rate" type="number" min="0" step="0.01" placeholder="只影響預估薪資">
+              </div>
+              <div class="field full">
+                <label for="record-note">備註</label>
+                <textarea id="record-note" placeholder="代課老師、補課、遲到等"></textarea>
+              </div>
+            </div>
+          </details>          <div class="actions">
             <button class="btn btn-primary" type="submit" id="save-record">儲存紀錄</button>
             <button class="btn" type="button" id="reset-form">清空表單</button>
           </div>
@@ -255,10 +258,14 @@ details.help p{line-height:1.65;margin:8px 0 0}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = [
-    "HUK 河西店", "HUK 世茂店", "BAD EGGS", "O-DOG", "i5私教", "AS", "meta",
-    "西美", "洋湖實驗", "長郡外國語實驗", "隊訓", "其他"
-  ];
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "洋湖實驗", "長郡外國語實驗"];
+  var COURSE_BY_INSTITUTION = {
+    "AS": ["AS"],
+    "西美": ["西美"],
+    "META": ["META"],
+    "洋湖實驗": ["洋湖實驗"],
+    "長郡外國語實驗": ["長郡外國語實驗"]
+  };
   var STATUS_LABELS = {
     completed: "已完成", substitute: "代課", planned: "待授課",
     leave: "請假", cancelled: "取消"
@@ -280,8 +287,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
     status: document.getElementById("record-status"),
     note: document.getElementById("record-note"),
     cancelEdit: document.getElementById("cancel-edit"),
-    institutionList: document.getElementById("institution-list"),
-    courseList: document.getElementById("course-list"),
+
+
     month: document.getElementById("summary-month"),
     toast: document.getElementById("toast")
   };
@@ -410,15 +417,28 @@ details.help p{line-height:1.65;margin:8px 0 0}
       hasAnyRate: ratedClasses > 0, ratesComplete: ratedClasses === payableClasses && payableClasses > 0
     };
   }
-  function fillDatalists() {
-    var institutions = DEFAULT_INSTITUTIONS.concat(state.institutions || []).concat(state.records.map(function (record) { return record.institution; }));
-    institutions = Array.from(new Set(institutions.filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "zh-Hant"); });
-    var courses = Array.from(new Set(state.records.map(function (record) { return record.course; }).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "zh-Hant"); });
-    el.institutionList.innerHTML = institutions.map(function (item) { return "<option value=\"" + esc(item) + "\"></option>"; }).join("");
-    el.courseList.innerHTML = courses.map(function (item) { return "<option value=\"" + esc(item) + "\"></option>"; }).join("");
+function initEntryOptions(preferredInstitution, preferredCourse) {
+    el.institution.innerHTML = "<option value=\"\">請選擇機構</option>" + DEFAULT_INSTITUTIONS.map(function (item) {
+      return "<option value=\"" + esc(item) + "\">" + esc(item) + "</option>";
+    }).join("");
+    if (preferredInstitution && DEFAULT_INSTITUTIONS.indexOf(preferredInstitution) < 0) {
+      el.institution.insertAdjacentHTML("beforeend", "<option value=\"" + esc(preferredInstitution) + "\">" + esc(preferredInstitution) + "（舊紀錄）</option>");
+    }
+    el.institution.value = preferredInstitution || "";
+    renderCourseOptions(preferredCourse);
   }
-  function render() {
-    fillDatalists();
+  function renderCourseOptions(preferredCourse) {
+    var institution = el.institution.value;
+    var courses = COURSE_BY_INSTITUTION[institution] || (institution ? [institution] : []);
+    if (!courses.length) {
+      el.course.innerHTML = "<option value=\"\">請先選擇機構</option>";
+      return;
+    }
+    el.course.innerHTML = courses.map(function (item) {
+      return "<option value=\"" + esc(item) + "\">" + esc(item) + "</option>";
+    }).join("");
+    if (preferredCourse && courses.indexOf(preferredCourse) >= 0) el.course.value = preferredCourse;
+  }  function render() {
     var records = filteredRecords();
     var summary = summaryData(records);
     document.getElementById("metric-classes").textContent = decimal(summary.totalClasses) + " 堂";
@@ -576,6 +596,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
     editingId = null;
     el.form.reset();
     el.date.value = todayText();
+    el.institution.value = "";
+    renderCourseOptions();
     el.count.value = "1";
     el.status.value = "completed";
     el.formTitle.textContent = "新增上課紀錄";
@@ -632,8 +654,12 @@ details.help p{line-height:1.65;margin:8px 0 0}
     if (!record) return;
     editingId = id;
     el.date.value = record.date || todayText();
+    if (record.institution && DEFAULT_INSTITUTIONS.indexOf(record.institution) < 0 && !el.institution.querySelector("option[value=\"" + record.institution.replace(/\"/g, "\\\"") + "\"]")) {
+      el.institution.insertAdjacentHTML("beforeend", "<option value=\"" + esc(record.institution) + "\">" + esc(record.institution) + "（舊紀錄）</option>");
+    }
     el.institution.value = record.institution || "";
-    el.course.value = record.course || "";
+    renderCourseOptions(record.course);
+    el.course.value = record.course || el.course.value;
     el.start.value = record.start || "";
     el.end.value = record.end || "";
     el.count.value = record.count || 1;
@@ -767,6 +793,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
   el.form.addEventListener("submit", saveRecord);
   document.getElementById("reset-form").addEventListener("click", resetForm);
   el.cancelEdit.addEventListener("click", resetForm);
+  el.institution.addEventListener("change", function () { renderCourseOptions(); });
   el.month.addEventListener("change", render);
   document.getElementById("copy-summary").addEventListener("click", copySummary);
   document.getElementById("export-month-csv").addEventListener("click", function () { exportCsv(true); });
@@ -791,6 +818,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
     if (event.key === STORAGE_KEY) { state = loadState(); render(); }
   });
 
+  initEntryOptions();
   resetForm();
   el.month.value = monthText();
   render();
