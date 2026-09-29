@@ -1,0 +1,16 @@
+{
+  "name": "上課紀錄與薪資統計",
+  "short_name": "上課紀錄",
+  "description": "記錄各舞蹈機構課堂，按月統計並分別匯出指定機構的課堂紀錄。",
+  "lang": "zh-Hant",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f7f6",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
