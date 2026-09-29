@@ -48,6 +48,7 @@ textarea{resize:vertical;min-height:74px}
 .btn-small{padding:6px 9px;border-radius:9px;font-size:.82rem}
 .text-small{font-size:.87rem;line-height:1.5}.helper{margin:10px 0 0;color:var(--muted);font-size:.84rem;line-height:1.6}
 .advanced{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}.advanced summary{cursor:pointer;color:var(--muted);font-size:.84rem;font-weight:700}.advanced .form-grid{margin-top:12px}
+.rate-settings-list{display:grid;gap:8px;margin-top:12px}.rate-row{display:grid;grid-template-columns:minmax(0,1fr) 130px;align-items:center;gap:10px}.rate-row label{font-size:.92rem;color:var(--text);font-weight:750}.rate-row input{text-align:right}.export-picker{display:grid;gap:6px;min-width:min(100%,360px)}.export-picker label{font-size:.86rem;font-weight:700;color:var(--muted)}.export-picker-row{display:grid;grid-template-columns:minmax(150px,1fr) auto auto;gap:8px}.export-picker-row select{min-width:0}
 .summary-top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;padding:18px 18px 0}
 .month-control{display:grid;gap:5px;min-width:180px}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:14px 18px 18px}
@@ -109,6 +110,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
   input,select,textarea,.btn{min-height:44px}.metrics{padding:12px}.metric strong{font-size:1.25rem}.institution-box,.records-wrap{padding-left:12px;padding-right:12px}
   .summary-top,.records-head{padding-left:12px;padding-right:12px}.actions .btn,.group-actions .btn{flex:1 1 100%;width:100%}
   .group-record{grid-template-columns:1fr auto;gap:7px}.group-record-date{grid-column:1/-1}.group-record-main{grid-column:1}.group-record-count{grid-column:2;grid-row:2}
+  .export-picker{min-width:100%}.export-picker-row{grid-template-columns:1fr 1fr}.export-picker-row select{grid-column:1/-1}.rate-row{grid-template-columns:minmax(0,1fr) 120px}
   .toast{left:12px;right:12px;bottom:12px;text-align:center}
 }@media(max-width:360px){.metrics{grid-template-columns:1fr}.mobile-nav{grid-template-columns:1fr 1fr}.mobile-nav a:last-child{grid-column:1/-1}}
 @media print{
@@ -161,6 +163,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
             <div class="field">
               <label for="record-count">堂數（同日兩節填 2）</label>
               <input id="record-count" type="number" min="0.5" step="0.5" value="1" required>
+            <div class="field">
+              <label for="record-rate">本節薪資（自動帶入，可修改）</label>
+              <input id="record-rate" type="number" min="0" step="0.01" placeholder="可在機構薪資設定中預填">
+            </div>
             </div>
           </div>
           <details class="advanced">
@@ -176,10 +182,6 @@ details.help p{line-height:1.65;margin:8px 0 0}
                   <option value="cancelled">取消</option>
                 </select>
               </div>
-              <div class="field">
-                <label for="record-rate">每堂費率（可留空）</label>
-                <input id="record-rate" type="number" min="0" step="0.01" placeholder="只影響預估薪資">
-              </div>
               <div class="field full">
                 <label for="record-note">備註</label>
                 <textarea id="record-note" placeholder="代課老師、補課、遲到等"></textarea>
@@ -191,6 +193,11 @@ details.help p{line-height:1.65;margin:8px 0 0}
           </div>
           <p class="helper">「已完成」和「代課」會計入堂數；同一天兩節課請把堂數填 2，不同機構則分開記錄。</p>
         </form>
+        <details class="advanced rate-settings">
+          <summary>機構薪資設定（每節）</summary>
+          <div id="rate-settings"></div>
+          <p class="helper">設定後，新增紀錄會自動帶入；遇到特殊情況，可在單筆紀錄按「修改」調整那節薪資。</p>
+        </details>
         <details class="help">
           <summary>備份與還原</summary>
           <p>建議每月底按「匯出備份」保存一份 JSON。若要換手機或電腦，可在新裝置按「匯入備份」還原全部資料。</p>
@@ -208,6 +215,14 @@ details.help p{line-height:1.65;margin:8px 0 0}
           <div class="month-control">
             <label for="summary-month">統計月份</label>
             <input id="summary-month" type="month">
+          </div>
+          <div class="export-picker no-print">
+            <label for="export-institution-select">選擇單獨機構匯出</label>
+            <div class="export-picker-row">
+              <select id="export-institution-select"></select>
+              <button id="export-selected-csv" class="btn btn-small" type="button">匯出</button>
+              <button id="share-selected-csv" class="btn btn-small" type="button">分享</button>
+            </div>
           </div>
           <div class="actions no-print" style="margin:0">
             <button id="copy-summary" class="btn btn-small" type="button">複製財務摘要</button>
@@ -331,7 +346,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
     showToast.timer = setTimeout(function () { el.toast.classList.remove("show"); }, 2200);
   }
   function loadState() {
-    var fallback = { version: 1, records: [], institutions: DEFAULT_INSTITUTIONS.slice() };
+    var fallback = { version: 1, records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: {} };
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return fallback;
@@ -340,6 +355,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
       parsed.version = 1;
       parsed.records = parsed.records.filter(function (record) { return record && record.date && record.institution; });
       parsed.institutions = Array.isArray(parsed.institutions) ? parsed.institutions : DEFAULT_INSTITUTIONS.slice();
+      parsed.rates = parsed.rates && typeof parsed.rates === "object" ? parsed.rates : {};
       return parsed;
     } catch (error) {
       console.warn("無法讀取本機資料", error);
@@ -354,7 +370,13 @@ details.help p{line-height:1.65;margin:8px 0 0}
       showToast("瀏覽器無法儲存資料，請先匯出備份");
     }
   }
-  function isPayable(record) {
+  function defaultInstitutionRate(institution) {
+    return numberOrNull((state.rates || {})[institution]);
+  }
+  function effectiveRate(record) {
+    var override = numberOrNull(record.rate);
+    return override !== null ? override : defaultInstitutionRate(record.institution);
+  }  function isPayable(record) {
     return !!PAYABLE_STATUS[record.status];
   }
   function filteredRecords() {
@@ -375,7 +397,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
     var allDates = {};
     paid.forEach(function (record) {
       var count = Number(record.count) || 0;
-      var rate = numberOrNull(record.rate);
+      var rate = effectiveRate(record);
       totalClasses += count;
       payableClasses += count;
       if (record.date) allDates[record.date] = true;
@@ -404,7 +426,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
       totalPay: totalPay, ratedClasses: ratedClasses, payableClasses: payableClasses,
       hasAnyRate: ratedClasses > 0, ratesComplete: ratedClasses === payableClasses && payableClasses > 0
     };
-  }function initEntryOptions(preferredInstitution, preferredCourse) {
+  }
+  function initEntryOptions(preferredInstitution, preferredCourse) {
     el.institution.innerHTML = "<option value=\"\">請選擇機構</option>" + DEFAULT_INSTITUTIONS.map(function (item) {
       return "<option value=\"" + esc(item) + "\">" + esc(item) + "</option>";
     }).join("");
@@ -425,6 +448,21 @@ details.help p{line-height:1.65;margin:8px 0 0}
       return "<option value=\"" + esc(item) + "\">" + esc(item) + "</option>";
     }).join("");
     if (preferredCourse && courses.indexOf(preferredCourse) >= 0) el.course.value = preferredCourse;
+  }  function renderRateSettings() {
+    var host = document.getElementById("rate-settings");
+    if (!host) return;
+    host.innerHTML = "<div class=\"rate-settings-list\">" + DEFAULT_INSTITUTIONS.map(function (institution) {
+      var rate = defaultInstitutionRate(institution);
+      return "<div class=\"rate-row\"><label for=\"rate-" + esc(institution) + "\">" + esc(institution) + "</label>" +
+        "<input id=\"rate-" + esc(institution) + "\" data-rate-institution=\"" + esc(institution) + "\" type=\"number\" min=\"0\" step=\"0.01\" value=\"" + (rate === null ? "" : rate) + "\" placeholder=\"每節薪資\"></div>";
+    }).join("") + "</div>";
+  }
+  function initExportInstitutionOptions() {
+    var select = document.getElementById("export-institution-select");
+    if (!select) return;
+    select.innerHTML = DEFAULT_INSTITUTIONS.map(function (institution) {
+      return "<option value=\"" + esc(institution) + "\">" + esc(institution) + "</option>";
+    }).join("");
   }  function render() {
     var records = filteredRecords();
     var summary = summaryData(records);
@@ -468,10 +506,12 @@ details.help p{line-height:1.65;margin:8px 0 0}
       });
       var lines = groupRecords.map(function (record) {
         var status = record.status === "substitute" ? "代課" : "已完成";
+        var rate = effectiveRate(record);
+        var salaryText = rate === null ? "" : " · " + money(rate) + "/節";
         var note = record.note ? " · " + esc(record.note) : "";
         return "<div class=\"group-record\">" +
           "<div class=\"group-record-date\">" + esc(record.date) + "</div>" +
-          "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填課程") + "</strong><span>" + status + note + "</span></div>" +
+          "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填課程") + "</strong><span>" + status + salaryText + note + "</span></div>" +
           "<div class=\"group-record-count\">" + decimal(record.count || 0) + " 堂</div>" +
           "</div>";
       }).join("");
@@ -495,10 +535,11 @@ details.help p{line-height:1.65;margin:8px 0 0}
     var lines = ["【" + institution + "｜" + parts[0] + "年" + Number(parts[1]) + "月授課明細】"];
     records.forEach(function (record) {
       var date = String(record.date).split("-");
-      lines.push(Number(date[1]) + "/" + Number(date[2]) + " " + (record.course || "未填課程") + "：" + decimal(record.count || 0) + "堂" + (record.status === "substitute" ? "（代課）" : ""));
+      var recordRate = effectiveRate(record);
+      lines.push(Number(date[1]) + "/" + Number(date[2]) + " " + (record.course || "未填課程") + "：" + decimal(record.count || 0) + "堂" + (recordRate === null ? "" : "，每節" + money(recordRate)) + (record.status === "substitute" ? "（代課）" : ""));
     });
     var summary = summaryData(records);
-    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）");
+    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）" + (summary.hasAnyRate ? "，薪資" + money(summary.totalPay) : ""));
     return lines.join("\n");
   }  function copyText(text, message) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -553,20 +594,21 @@ details.help p{line-height:1.65;margin:8px 0 0}
     var rows = records.map(function (record) {
       var statusClass = esc(record.status || "completed");
       var statusText = STATUS_LABELS[record.status] || esc(record.status || "未設定");
-      var rate = numberOrNull(record.rate);
+      var rate = effectiveRate(record);
+      var specialRate = rate !== null && numberOrNull(record.rate) !== null && numberOrNull(record.rate) !== defaultInstitutionRate(record.institution);
       return "<tr>" +
         "<td data-label=\"日期\">" + esc(record.date) + "</td>" +
         "<td data-label=\"機構\"><strong>" + esc(record.institution) + "</strong></td>" +
-        "<td data-label=\"課程／備註\">" + esc(record.course || "未填課程") + (record.note ? "<div style=\"font-size:.76rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
+        "<td data-label=\"課程／備註\">" + esc(record.course || "未填課程") + (record.note ? "<div style=\"font-size:.84rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
         "<td data-label=\"狀態\"><span class=\"status " + statusClass + "\">" + statusText + "</span></td>" +
         "<td data-label=\"堂數\" class=\"num\">" + decimal(record.count || 0) + "</td>" +
-        "<td data-label=\"每堂費率\" class=\"num\">" + (rate === null ? "—" : money(rate)) + "</td>" +
+        "<td data-label=\"本節薪資\" class=\"num\">" + (rate === null ? "—" : money(rate) + (specialRate ? " <span class=\"status substitute\">特殊</span>" : "")) + "</td>" +
         "<td data-label=\"操作\"><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button> " +
         "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></td>" +
         "</tr>";
     }).join("");
     host.innerHTML = "<div class=\"table-wrap\"><table class=\"record-table\"><thead><tr>" +
-      "<th>日期</th><th>機構</th><th>課程／備註</th><th>狀態</th><th class=\"num\">堂數</th><th class=\"num\">每堂費率</th><th>操作</th>" +
+      "<th>日期</th><th>機構</th><th>課程／備註</th><th>狀態</th><th class=\"num\">堂數</th><th class=\"num\">本節薪資</th><th>操作</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>";
   }  function resetForm() {
     editingId = null;
@@ -574,6 +616,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
     el.date.value = todayText();
     el.institution.value = "";
     renderCourseOptions();
+    el.rate.value = "";
     el.count.value = "1";
     el.status.value = "completed";
     el.formTitle.textContent = "新增上課紀錄";
@@ -581,19 +624,21 @@ details.help p{line-height:1.65;margin:8px 0 0}
     document.getElementById("save-record").textContent = "儲存紀錄";
   }
   function recordFromForm() {
+    var institution = el.institution.value.trim();
+    var enteredRate = numberOrNull(el.rate.value);
+    var defaultRate = defaultInstitutionRate(institution);
     return {
       id: editingId || uid(),
       date: el.date.value,
-      institution: el.institution.value.trim(),
+      institution: institution,
       course: el.course.value.trim(),
       count: Number(el.count.value) || 0,
-      rate: el.rate.value === "" ? null : Number(el.rate.value),
+      rate: enteredRate !== null && enteredRate === defaultRate ? null : enteredRate,
       status: el.status.value,
       note: el.note.value.trim(),
       updatedAt: new Date().toISOString()
     };
-  }
-  function addInstitution(name) {
+  }  function addInstitution(name) {
     if (!name || DEFAULT_INSTITUTIONS.indexOf(name) >= 0 || (state.institutions || []).indexOf(name) >= 0) return;
     state.institutions = state.institutions || [];
     state.institutions.push(name);
@@ -635,7 +680,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
     renderCourseOptions(record.course);
     el.course.value = record.course || el.course.value;
     el.count.value = record.count || 1;
-    el.rate.value = record.rate === null || typeof record.rate === "undefined" ? "" : record.rate;
+    var editRate = effectiveRate(record);
+    el.rate.value = editRate === null ? "" : editRate;
     el.status.value = record.status || "completed";
     el.note.value = record.note || "";
     el.formTitle.textContent = "修改上課紀錄";
@@ -669,10 +715,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
     var parts = month.split("-");
     var lines = ["【" + parts[0] + "年" + Number(parts[1]) + "月授課統計】"];
     summary.byInstitution.forEach(function (item) {
-      lines.push(item.institution + "：" + decimal(item.classes) + "堂（" + decimal(item.days) + "天）");
+      lines.push(item.institution + "：" + decimal(item.classes) + "堂（" + decimal(item.days) + "天）" + (item.ratedClasses === item.payableClasses ? "，薪資" + money(item.pay) : ""));
     });
     if (!summary.byInstitution.length) lines.push("本月尚無計薪堂數。");
-    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）");
+    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）" + (summary.hasAnyRate ? "，薪資" + money(summary.totalPay) : ""));
     var substitutes = records.filter(function (record) { return record.status === "substitute" && isPayable(record); });
     if (substitutes.length) lines.push("其中代課：" + decimal(substitutes.reduce(function (sum, record) { return sum + Number(record.count || 0); }, 0)) + "堂");
     return lines.join("\n");
@@ -695,10 +741,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
     return "\"" + text.replace(/"/g, "\"\"") + "\"";
   }
   function csvFor(records, label) {
-    var rows = [["日期", "機構", "班級", "堂數", "狀態", "每堂費率", "預估薪資", "備註"]];
+    var rows = [["日期", "機構", "班級", "堂數", "狀態", "本節薪資", "預估薪資", "備註"]];
     records.slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); }).forEach(function (record) {
       var count = Number(record.count) || 0;
-      var rate = numberOrNull(record.rate);
+      var rate = effectiveRate(record);
       rows.push([
         record.date, record.institution, record.course || "", count,
         STATUS_LABELS[record.status] || record.status || "", rate === null ? "" : rate,
@@ -748,9 +794,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
             record.status = record.status || "completed";
             return record;
           }),
-          institutions: Array.isArray(parsed.institutions) ? parsed.institutions : []
+          institutions: Array.isArray(parsed.institutions) ? parsed.institutions : [],
+          rates: parsed.rates && typeof parsed.rates === "object" ? parsed.rates : {}
         };
-        saveState(); render(); showToast("備份已匯入");
+        saveState(); renderRateSettings(); render(); showToast("備份已匯入");
       } catch (error) {
         alert("無法匯入：JSON 格式不正確");
       }
@@ -761,7 +808,11 @@ details.help p{line-height:1.65;margin:8px 0 0}
   el.form.addEventListener("submit", saveRecord);
   document.getElementById("reset-form").addEventListener("click", resetForm);
   el.cancelEdit.addEventListener("click", resetForm);
-  el.institution.addEventListener("change", function () { renderCourseOptions(); });
+  el.institution.addEventListener("change", function () {
+    renderCourseOptions();
+    var defaultRate = defaultInstitutionRate(el.institution.value);
+    el.rate.value = defaultRate === null ? "" : defaultRate;
+  });
   el.month.addEventListener("change", render);
   document.getElementById("copy-summary").addEventListener("click", copySummary);
   document.getElementById("export-month-csv").addEventListener("click", function () { exportCsv(true); });
@@ -769,6 +820,18 @@ details.help p{line-height:1.65;margin:8px 0 0}
   document.getElementById("print-summary").addEventListener("click", function () { window.print(); });
   document.getElementById("export-json").addEventListener("click", exportJson);
   document.getElementById("import-json").addEventListener("change", function () { importJson(this.files && this.files[0]); this.value = ""; });
+  document.getElementById("rate-settings").addEventListener("input", function (event) {
+    var input = event.target.closest("[data-rate-institution]");
+    if (!input) return;
+    var institution = input.dataset.rateInstitution;
+    var oldDefault = defaultInstitutionRate(institution);
+    state.rates = state.rates || {};
+    state.rates[institution] = numberOrNull(input.value);
+    if (el.institution.value === institution && !editingId && (el.rate.value === "" || numberOrNull(el.rate.value) === oldDefault)) el.rate.value = input.value;
+    saveState(); render(); showToast(institution + " 預設每節薪資已更新");
+  });
+  document.getElementById("export-selected-csv").addEventListener("click", function () { exportInstitutionCsv(document.getElementById("export-institution-select").value); });
+  document.getElementById("share-selected-csv").addEventListener("click", function () { shareInstitutionCsv(document.getElementById("export-institution-select").value); });
   document.getElementById("records-table").addEventListener("click", function (event) {
     var editButton = event.target.closest("[data-edit]");
     var deleteButton = event.target.closest("[data-delete]");
@@ -783,17 +846,19 @@ details.help p{line-height:1.65;margin:8px 0 0}
     if (shareButton) shareInstitutionCsv(shareButton.dataset.shareInstitution);
   });
   window.addEventListener("storage", function (event) {
-    if (event.key === STORAGE_KEY) { state = loadState(); render(); }
+    if (event.key === STORAGE_KEY) { state = loadState(); renderRateSettings(); render(); }
   });
 
   initEntryOptions();
+  initExportInstitutionOptions();
+  renderRateSettings();
   resetForm();
   el.month.value = monthText();
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    navigator.serviceWorker.register("./ledger-sw.js?v=5").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=6").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
   }})();
 </script>
