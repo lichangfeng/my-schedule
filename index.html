@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f6ef2">
+<meta name="theme-color" content="#22d3ee">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -249,7 +249,33 @@ body.mobile-fit .dh .dt{font-size:10px;min-width:18px;height:18px}
 body.mobile-fit .tl{font-size:8.5px}
 body.mobile-fit .day-header-row{grid-template-columns:24px repeat(7,1fr)}
 body.mobile-fit .day-body-row{grid-template-columns:24px repeat(7,1fr)}body.mobile-fit .ev .m{font-size:8px;line-height:1.15;margin-top:1px;white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip}
-body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}</style>
+body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}/* TECH_THEME_START */
+body{isolation:isolate;background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.16),transparent 32%),radial-gradient(circle at 92% 8%,rgba(129,140,248,.15),transparent 32%),radial-gradient(circle at 52% 100%,rgba(236,72,153,.08),transparent 42%),#050b14;color:#edf9ff}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.2;background-image:linear-gradient(rgba(62,189,248,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(62,189,248,.1) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 90%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 90%)}
+.app{position:relative;z-index:1}
+.maintitle{background:linear-gradient(92deg,#67e8f9,#818cf8 52%,#f472b6);background-clip:text;-webkit-background-clip:text;color:transparent;text-shadow:0 0 32px rgba(34,211,238,.15)}
+.maintitle.editing{background:rgba(34,211,238,.08);color:#dff9ff;border-color:#22d3ee}
+.mtbtn,.nav,.float-toggle,.day-switch button{background:rgba(14,31,51,.9);border-color:rgba(91,194,235,.28);color:#dff7ff}
+.mtbtn:hover,.nav:hover,.float-toggle:hover,.day-switch button:hover{background:rgba(27,52,78,.94);border-color:#22d3ee;color:#8ff4ff}
+.weekbar{background:linear-gradient(145deg,rgba(13,28,48,.95),rgba(7,17,31,.95));border-color:rgba(75,190,240,.24);box-shadow:0 14px 38px rgba(0,0,0,.34),0 0 24px rgba(34,211,238,.06)}
+.week-title{color:#edfaff}
+.board-wrap{background:rgba(7,17,31,.94);border-color:rgba(75,190,240,.25);box-shadow:0 20px 55px rgba(0,0,0,.42),0 0 32px rgba(34,211,238,.07)}
+.day-header-row{background:linear-gradient(110deg,rgba(18,37,61,.98),rgba(10,24,43,.98));border-color:rgba(83,210,255,.18)}
+.dh{border-color:rgba(83,210,255,.13)}
+.dh .wd,.tl{color:#86a9bf}.dh .dt{color:#dff7ff}.dh.we .wd,.dh.we .dt{color:#66859a}.dh.today .wd{color:#67e8f9}.dh.today .dt{background:linear-gradient(135deg,#06b6d4,#6366f1);box-shadow:0 0 20px rgba(34,211,238,.35)}
+.gutter{background:linear-gradient(180deg,rgba(11,26,45,.98),rgba(7,18,33,.98));border-color:rgba(83,210,255,.16)}
+.daycol{background-color:#071322;border-color:rgba(83,210,255,.12);background-image:repeating-linear-gradient(to bottom,transparent 0 55px,rgba(64,190,240,.17) 63px 64px),repeating-linear-gradient(to bottom,transparent 0 27px,rgba(64,190,240,.07) 31px 32px)}
+.daycol.we{background-color:#09172a}.daycol.today{background-color:#0c2136}
+.ev{border:1px solid rgba(255,255,255,.16);box-shadow:0 5px 15px rgba(0,0,0,.28),0 0 14px rgba(34,211,238,.08)}.ev:hover{box-shadow:0 10px 26px rgba(0,0,0,.42),0 0 20px rgba(129,140,248,.22)}
+.hint{background:linear-gradient(120deg,rgba(120,74,8,.3),rgba(15,35,58,.92));border-color:rgba(250,204,21,.28);color:#fde7a8}.hint b{color:#facc15}.hint .close{color:#fde68a}
+.btn{background:rgba(14,31,51,.9);border-color:rgba(91,194,235,.28);color:#dff7ff}.btn:hover{background:rgba(27,52,78,.94);border-color:#22d3ee}.btn.primary,.btn.primary:hover{background:linear-gradient(135deg,#0891b2,#4f46e5 60%,#9333ea);border:none;color:#fff;box-shadow:0 8px 24px rgba(34,211,238,.22)}
+.dialog,.floating .float-panel{background:linear-gradient(145deg,rgba(13,28,48,.98),rgba(7,17,31,.98));border-color:rgba(75,190,240,.25);box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 28px rgba(34,211,238,.08)}
+.dialog h3,.dialog .dsub{color:#edf9ff}.field input,.field select,.field textarea,.crow input[type=color],.crow select{background:rgba(4,13,25,.86);border-color:rgba(83,190,235,.28);color:#effbff;color-scheme:dark}
+.overlay{background:rgba(2,8,18,.72)}.toast{background:linear-gradient(135deg,#0e7490,#4f46e5);box-shadow:0 12px 34px rgba(34,211,238,.28)}
+.pastebar{background:linear-gradient(135deg,rgba(8,145,178,.96),rgba(79,70,229,.96));box-shadow:0 14px 34px rgba(34,211,238,.24)}
+#bgShade{pointer-events:none}
+@media print{body{background:#fff!important;color:#000!important}.weekbar,.board-wrap,.dialog,.floating .float-panel,.toast{background:#fff!important;color:#000!important;box-shadow:none!important}.maintitle{background:none!important;color:#000!important;-webkit-text-fill-color:#000!important}.day-header-row,.gutter,.daycol{background:#fff!important}.dh .dt,.dh .wd,.tl{color:#000!important}}
+/* TECH_THEME_END */</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -2035,5 +2061,18 @@ if(cloudCfg.autoPull&&cloudConfigured()){ setTimeout(function(){ cloudPull(true)
 setInterval(updateNowLine,30000);
 window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.__mrt=setTimeout(function(){ renderAll(); },200); });
 })();</script>
-</body>
+<script>
+(function () {
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  var reloading = false;
+  navigator.serviceWorker.register("./service-worker.js?v=1", { updateViaCache: "none" }).then(function (registration) {
+    registration.update();
+  }).catch(function () {});
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+})();
+</script></body>
 </html>

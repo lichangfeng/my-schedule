@@ -2,12 +2,12 @@
   "name": "舞蹈課表與路線規劃",
   "short_name": "舞蹈路線",
   "description": "舞蹈課程、工作日程與百度地圖路線統籌",
-  "start_url": "./index.html?v=13",
+  "start_url": "./index.html?v=14",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f3f5f9",
-  "theme_color": "#2563eb",
+  "background_color": "#050b14",
+  "theme_color": "#22d3ee",
   "icons": [
     {
       "src": "./icon-192.png",
