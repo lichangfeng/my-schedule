@@ -783,7 +783,9 @@ details.help p{line-height:1.65;margin:8px 0 0}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js").catch(function () { console.warn("離線模式註冊失敗"); });
+    var ledgerReloading = false;
+    navigator.serviceWorker.register("./ledger-sw.js?v=4").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
   }})();
 </script>
 </body>
