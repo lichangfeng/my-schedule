@@ -859,7 +859,7 @@ function openDialog(mode,ev){
     var f={day:day,start:s,end:en,title:t,color:swSel,note:$("#fNote").value.trim()};
     if(mode==="edit"){
       var unchanged=editingEv.day===f.day&&editingEv.start===f.start&&editingEv.end===f.end&&editingEv.title===f.title&&editingEv.color===f.color&&(editingEv.note||"")===f.note;
-      if(unchanged){ closeDialog(); return; }
+
     }
     if(mode==="create"){
       var K=weekKey(state.weekStart);
@@ -879,7 +879,7 @@ function openDialog(mode,ev){
       closeDialog();
       promptScope({
         mode:"edit",K:K2,
-        title:"已把「"+f.title+"」改为 "+WD[f.day]+" "+fmt(f.start)+"–"+fmt(f.end)+"。是否同步到以后的周？（之前的周不会改动）",
+        title:(unchanged?"「"+f.title+"」没有修改。要把它同步到以后的哪些周？（之前的周不会改动）":"已把「"+f.title+"」改为 "+WD[f.day]+" "+fmt(f.start)+"–"+fmt(f.end)+"。是否同步到以后的周？（之前的周不会改动）"),
         onApply:function(toEx){
           applyChange(arr,K2,f,toEx,false);
           save(); renderAll();
