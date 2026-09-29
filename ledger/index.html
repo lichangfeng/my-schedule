@@ -70,6 +70,7 @@ textarea{resize:vertical;min-height:74px}
 .group-record{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:10px;align-items:start;padding:11px 0;border-bottom:1px solid var(--line)}
 .group-record-date{font-weight:750;font-variant-numeric:tabular-nums}.group-record-main{min-width:0}.group-record-main strong{display:block}.group-record-main span{display:block;color:var(--muted);font-size:.84rem;margin-top:4px;line-height:1.5}.group-record-count{font-weight:800;white-space:nowrap}.group-record-count span{display:block;color:var(--muted);font-size:.8rem;font-weight:600;text-align:right;margin-top:4px}
 .group-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:13px}
+.group-record-actions{display:flex;gap:6px;justify-content:flex-end;grid-column:1/-1;padding-top:3px}
 .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
 table{width:100%;border-collapse:collapse;min-width:620px;background:#fff}
 th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 11px;vertical-align:top}
@@ -515,6 +516,8 @@ details.help p{line-height:1.65;margin:8px 0 0}
           "<div class=\"group-record-date\">" + esc(record.date) + "</div>" +
           "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填課程") + "</strong><span>" + status + salaryText + note + "</span></div>" +
           "<div class=\"group-record-count\">" + decimal(record.count || 0) + " 堂</div>" +
+          "<div class=\"group-record-actions\"><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button>" +
+          "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></div>" +
           "</div>";
       }).join("");
       return "<details class=\"institution-group\" open>" +
@@ -853,6 +856,10 @@ details.help p{line-height:1.65;margin:8px 0 0}
     var exportButton = event.target.closest("[data-export-institution]");
     if (copyButton) copyInstitutionSummary(copyButton.dataset.copyInstitution);
     if (exportButton) exportInstitutionCsv(exportButton.dataset.exportInstitution);
+    var editButton = event.target.closest("[data-edit]");
+    var deleteButton = event.target.closest("[data-delete]");
+    if (editButton) editRecord(editButton.dataset.edit);
+    if (deleteButton) deleteRecord(deleteButton.dataset.delete, deleteButton);
     var shareButton = event.target.closest("[data-share-institution]");
     if (shareButton) shareInstitutionCsv(shareButton.dataset.shareInstitution);
   });
@@ -869,7 +876,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    navigator.serviceWorker.register("./ledger-sw.js?v=7").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=8").then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
   }})();
 </script>
