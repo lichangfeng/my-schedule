@@ -1,0 +1,1028 @@
+(function () {
+  "use strict";
+
+  var APP_VERSION = "1.0.0";
+  var STORAGE_KEY = "danceFinance.v1";
+  var SALARY_KEY = "danceClassLedger.v1";
+  var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
+  var INCOME_CATEGORIES = ["其他收入", "補貼", "退款", "報銷", "禮金", "其他"];
+  var ACCOUNTS = ["微信", "支付寶", "美團月付", "花唄", "借唄", "銀行卡", "信用卡", "現金", "其他"];
+  var COLORS = ["#22d3ee", "#818cf8", "#f472b6", "#facc15", "#34d399", "#fb7185", "#a78bfa", "#38bdf8", "#fb923c", "#2dd4bf", "#c084fc", "#f87171", "#60a5fa", "#a3e635"];
+  var state = loadState();
+  var editingTxId = null;
+  var editingDebtId = null;
+  var editingRecurringId = null;
+
+  var el = {
+    monthPicker: document.getElementById("month-picker"),
+    prevMonth: document.getElementById("prev-month"),
+    nextMonth: document.getElementById("next-month"),
+    metrics: document.getElementById("metrics"),
+    salaryPanel: document.getElementById("salary-panel"),
+    duePanel: document.getElementById("due-panel"),
+    overviewHint: document.getElementById("overview-hint"),
+    txForm: document.getElementById("tx-form"),
+    txId: document.getElementById("tx-id"),
+    txDate: document.getElementById("tx-date"),
+    txAmount: document.getElementById("tx-amount"),
+    txCategory: document.getElementById("tx-category"),
+    txAccount: document.getElementById("tx-account"),
+    txItem: document.getElementById("tx-item"),
+    txStatus: document.getElementById("tx-status"),
+    txDebt: document.getElementById("tx-debt"),
+    txRecurring: document.getElementById("tx-recurring"),
+    txNote: document.getElementById("tx-note"),
+    txReset: document.getElementById("tx-reset"),
+    txHint: document.getElementById("tx-hint"),
+    entryMode: document.getElementById("entry-mode"),
+    entry: document.getElementById("entry"),
+    debtTotal: document.getElementById("debt-total"),
+    debtProgress: document.getElementById("debt-progress"),
+    debtSummary: document.getElementById("debt-summary"),
+    debtList: document.getElementById("debt-list"),
+    debtFormWrap: document.getElementById("debt-form-wrap"),
+    debtForm: document.getElementById("debt-form"),
+    debtFormTitle: document.getElementById("debt-form-title"),
+    debtId: document.getElementById("debt-id"),
+    debtPlatform: document.getElementById("debt-platform"),
+    debtName: document.getElementById("debt-name"),
+    debtBalance: document.getElementById("debt-balance"),
+    debtMonthly: document.getElementById("debt-monthly"),
+    debtDueDay: document.getElementById("debt-due-day"),
+    debtRate: document.getElementById("debt-rate"),
+    debtNote: document.getElementById("debt-note"),
+    debtReset: document.getElementById("debt-reset"),
+    showDebtForm: document.getElementById("show-debt-form"),
+    recurringList: document.getElementById("recurring-list"),
+    recurringFormWrap: document.getElementById("recurring-form-wrap"),
+    recurringForm: document.getElementById("recurring-form"),
+    recurringFormTitle: document.getElementById("recurring-form-title"),
+    recurringId: document.getElementById("recurring-id"),
+    recurringName: document.getElementById("recurring-name"),
+    recurringAmount: document.getElementById("recurring-amount"),
+    recurringCategory: document.getElementById("recurring-category"),
+    recurringAccount: document.getElementById("recurring-account"),
+    recurringDueDay: document.getElementById("recurring-due-day"),
+    recurringActive: document.getElementById("recurring-active"),
+    recurringNote: document.getElementById("recurring-note"),
+    recurringReset: document.getElementById("recurring-reset"),
+    showRecurringForm: document.getElementById("show-recurring-form"),
+    budgetMonthLabel: document.getElementById("budget-month-label"),
+    budgetList: document.getElementById("budget-list"),
+    categoryChart: document.getElementById("category-chart"),
+    accountChart: document.getElementById("account-chart"),
+    trendChart: document.getElementById("trend-chart"),
+    filterType: document.getElementById("filter-type"),
+    filterCategory: document.getElementById("filter-category"),
+    filterSearch: document.getElementById("filter-search"),
+    recordsTable: document.getElementById("records-table"),
+    exportMonthCsv: document.getElementById("export-month-csv"),
+    exportAllCsv: document.getElementById("export-all-csv"),
+    exportJson: document.getElementById("export-json"),
+    importJson: document.getElementById("import-json"),
+    printReport: document.getElementById("print-report"),
+    manualUpdate: document.getElementById("manual-update"),
+    toast: document.getElementById("toast")
+  };
+
+  function uid(prefix) {
+    return (prefix || "id") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
+  }
+  function esc(value) {
+    return String(value === null || typeof value === "undefined" ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  function numberOrZero(value) {
+    var number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  }
+  function numberOrNull(value) {
+    if (value === "" || value === null || typeof value === "undefined") return null;
+    var number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+  function money(value) {
+    var number = numberOrZero(value);
+    return "¥" + number.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  function decimal(value) {
+    var rounded = Math.round(numberOrZero(value) * 100) / 100;
+    return String(rounded).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+  }
+  function pad(value) { return String(value).padStart(2, "0"); }
+  function todayText() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  function monthText() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1);
+  }
+  function monthLabel(month) {
+    var parts = String(month || monthText()).split("-");
+    return parts[0] + "年" + Number(parts[1]) + "月";
+  }
+  function shiftMonth(month, amount) {
+    var parts = String(month || monthText()).split("-");
+    var date = new Date(Number(parts[0]), Number(parts[1]) - 1 + amount, 1);
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1);
+  }
+  function daysInMonth(month) {
+    var parts = String(month).split("-");
+    return new Date(Number(parts[0]), Number(parts[1]), 0).getDate();
+  }
+  function dateForMonthDay(month, day) {
+    var safeDay = Math.max(1, Math.min(daysInMonth(month), Number(day) || 1));
+    return month + "-" + pad(safeDay);
+  }
+  function addDays(dateText, amount) {
+    var parts = String(dateText).split("-");
+    var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    date.setDate(date.getDate() + amount);
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+  }
+  function showToast(message) {
+    el.toast.textContent = message;
+    el.toast.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(function () { el.toast.classList.remove("show"); }, 2400);
+  }
+  function defaultState() {
+    return { version: 1, transactions: [], debts: [], recurring: [], budgets: {}, lastUpdated: "" };
+  }
+  function loadState() {
+    var fallback = defaultState();
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return fallback;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return fallback;
+      parsed.version = 1;
+      parsed.transactions = Array.isArray(parsed.transactions) ? parsed.transactions.filter(function (item) { return item && item.id && item.date; }) : [];
+      parsed.debts = Array.isArray(parsed.debts) ? parsed.debts.filter(function (item) { return item && item.id; }) : [];
+      parsed.recurring = Array.isArray(parsed.recurring) ? parsed.recurring.filter(function (item) { return item && item.id; }) : [];
+      parsed.budgets = parsed.budgets && typeof parsed.budgets === "object" ? parsed.budgets : {};
+      parsed.lastUpdated = parsed.lastUpdated || "";
+      return parsed;
+    } catch (error) {
+      console.warn("無法讀取資金資料", error);
+      return fallback;
+    }
+  }
+  function saveState() {
+    state.lastUpdated = new Date().toISOString();
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      el.overviewHint.textContent = "已自動保存 · 最近更新 " + new Date(state.lastUpdated).toLocaleString("zh-CN", { hour12: false });
+    } catch (error) {
+      console.warn("無法儲存資金資料", error);
+      showToast("瀏覽器無法儲存，請先匯出 JSON 備份");
+    }
+  }
+  function txType() {
+    var checked = document.querySelector('input[name="tx-type"]:checked');
+    return checked ? checked.value : "expense";
+  }
+  function categoriesForType(type) {
+    return type === "income" ? INCOME_CATEGORIES.slice() : EXPENSE_CATEGORIES.slice();
+  }
+  function findDebt(id) {
+    for (var i = 0; i < state.debts.length; i++) if (state.debts[i].id === id) return state.debts[i];
+    return null;
+  }
+  function findRecurring(id) {
+    for (var i = 0; i < state.recurring.length; i++) if (state.recurring[i].id === id) return state.recurring[i];
+    return null;
+  }
+  function platformAccount(platform) {
+    var name = String(platform || "");
+    if (name.indexOf("美團") >= 0) return "美團月付";
+    if (name.indexOf("花唄") >= 0) return "花唄";
+    if (name.indexOf("借唄") >= 0) return "借唄";
+    if (name.indexOf("信用卡") >= 0) return "信用卡";
+    return "其他";
+  }
+  function salaryState() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(SALARY_KEY) || "{}");
+      return parsed && Array.isArray(parsed.records) ? parsed : { records: [], rates: {}, payDays: {} };
+    } catch (error) {
+      return { records: [], rates: {}, payDays: {} };
+    }
+  }
+  function salaryForMonth(month) {
+    var ledger = salaryState();
+    var total = 0;
+    var classes = 0;
+    var missingClasses = 0;
+    var institutions = {};
+    ledger.records.forEach(function (record) {
+      if (!record || String(record.date || "").slice(0, 7) !== month) return;
+      if (record.status !== "completed" && record.status !== "substitute") return;
+      var count = numberOrZero(record.count);
+      var rate = numberOrNull(record.rate);
+      if (rate === null && ledger.rates && ledger.rates[record.institution] !== undefined) rate = numberOrNull(ledger.rates[record.institution]);
+      classes += count;
+      if (rate === null) {
+        missingClasses += count;
+      } else {
+        total += rate * count;
+      }
+      institutions[record.institution || "未填機構"] = true;
+    });
+    return { month: month, total: total, classes: classes, missingClasses: missingClasses, institutionCount: Object.keys(institutions).length };
+  }
+  function transactionsForMonth(month) {
+    return state.transactions.filter(function (item) { return String(item.date || "").slice(0, 7) === month; });
+  }
+  function paidExpensesForMonth(month) {
+    return transactionsForMonth(month).filter(function (item) { return item.type === "expense" && item.status === "paid"; });
+  }
+  function paidIncomeForMonth(month) {
+    return transactionsForMonth(month).filter(function (item) { return item.type === "income" && item.status === "paid"; });
+  }
+  function linkedPaidDebtAmount(debtId, month) {
+    return paidExpensesForMonth(month).filter(function (item) { return item.debtId === debtId; }).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+  }
+  function linkedPaidRecurringAmount(recurringId, month) {
+    return paidExpensesForMonth(month).filter(function (item) { return item.recurringId === recurringId; }).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+  }
+  function dueItemsForMonth(month) {
+    var items = [];
+    state.debts.forEach(function (debt) {
+      if (numberOrZero(debt.monthlyDue) <= 0 || numberOrZero(debt.balance) <= 0) return;
+      var paid = linkedPaidDebtAmount(debt.id, month);
+      var remaining = Math.max(0, numberOrZero(debt.monthlyDue) - paid);
+      if (remaining > 0) {
+        items.push({ id: debt.id, type: "debt", name: debt.name || debt.platform, platform: debt.platform, date: dateForMonthDay(month, debt.dueDay), amount: remaining, paid: paid, target: numberOrZero(debt.monthlyDue) });
+      }
+    });
+    state.recurring.forEach(function (item) {
+      if (!item.active || numberOrZero(item.amount) <= 0) return;
+      var paid = linkedPaidRecurringAmount(item.id, month);
+      var remaining = Math.max(0, numberOrZero(item.amount) - paid);
+      if (remaining > 0) {
+        items.push({ id: item.id, type: "recurring", name: item.name, platform: item.account, date: dateForMonthDay(month, item.dueDay), amount: remaining, paid: paid, target: numberOrZero(item.amount) });
+      }
+    });
+    return items.sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
+  }
+  function dueStatus(item) {
+    if (item.paid >= item.target && item.target > 0) return { key: "good", label: "已繳清" };
+    var today = todayText();
+    if (item.date < today) return { key: "bad", label: "已逾期" };
+    if (item.date <= addDays(today, 3)) return { key: "warn", label: "即將到期" };
+    return { key: "muted", label: "待繳" };
+  }
+  function optionHtml(values, selected, prefix) {
+    return values.map(function (value) {
+      return '<option value="' + esc(value) + '"' + (String(value) === String(selected) ? " selected" : "") + ">" + esc((prefix || "") + value) + "</option>";
+    }).join("");
+  }
+  function setSelectOptions(select, values, selected, prefix) {
+    var keep = selected === undefined ? select.value : selected;
+    select.innerHTML = optionHtml(values, keep, prefix);
+    if (keep && values.indexOf(keep) < 0) {
+      select.value = values[0] || "";
+    }
+  }
+  function renderCategoryOptions(type, preferred) {
+    setSelectOptions(el.txCategory, categoriesForType(type), preferred);
+  }
+  function renderOptions() {
+    renderCategoryOptions(txType());
+    setSelectOptions(el.txAccount, ACCOUNTS, el.txAccount.value || "微信");
+    el.txDebt.innerHTML = '<option value="">不連動</option>' + state.debts.map(function (debt) {
+      return '<option value="' + esc(debt.id) + '">' + esc(debt.name || debt.platform) + " · " + money(debt.monthlyDue) + "/月</option>";
+    }).join("");
+    el.txRecurring.innerHTML = '<option value="">不連動</option>' + state.recurring.map(function (item) {
+      return '<option value="' + esc(item.id) + '">' + esc(item.name) + " · " + money(item.amount) + "/月</option>";
+    }).join("");
+    setSelectOptions(el.recurringCategory, EXPENSE_CATEGORIES, el.recurringCategory.value || "房租水電");
+    setSelectOptions(el.recurringAccount, ACCOUNTS, el.recurringAccount.value || "銀行卡");
+    var filterValues = ["全部分類"].concat(EXPENSE_CATEGORIES, INCOME_CATEGORIES);
+    var currentFilter = el.filterCategory.value || "全部分類";
+    el.filterCategory.innerHTML = filterValues.map(function (value) {
+      var actual = value === "全部分類" ? "" : value;
+      return '<option value="' + esc(actual) + '"' + (currentFilter === actual ? " selected" : "") + ">" + esc(value) + "</option>";
+    }).join("");
+  }
+  function resetTxForm() {
+    editingTxId = null;
+    el.txForm.reset();
+    el.txId.value = "";
+    el.txDate.value = todayText();
+    document.querySelector('input[name="tx-type"][value="expense"]').checked = true;
+    renderCategoryOptions("expense", "餐飲");
+    el.txAccount.value = "微信";
+    el.txStatus.value = "paid";
+    el.txDebt.value = "";
+    el.txRecurring.value = "";
+    el.entryMode.textContent = "新增模式";
+    el.entryMode.className = "pill muted";
+    el.txHint.textContent = "";
+  }
+  function fillTxForm(tx) {
+    editingTxId = tx.id;
+    el.txId.value = tx.id;
+    var radio = document.querySelector('input[name="tx-type"][value="' + tx.type + '"]');
+    if (radio) radio.checked = true;
+    renderCategoryOptions(tx.type, tx.category);
+    el.txDate.value = tx.date;
+    el.txAmount.value = tx.amount;
+    el.txCategory.value = tx.category;
+    el.txAccount.value = tx.account;
+    el.txItem.value = tx.item || "";
+    el.txStatus.value = tx.status || "paid";
+    el.txDebt.value = tx.debtId || "";
+    el.txRecurring.value = tx.recurringId || "";
+    el.txNote.value = tx.note || "";
+    el.entryMode.textContent = "編輯模式";
+    el.entryMode.className = "pill warn";
+    el.txHint.textContent = "正在修改既有記錄；儲存後會更新統計。";
+    el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function adjustDebtBalance(debtId, delta) {
+    if (!debtId) return;
+    var debt = findDebt(debtId);
+    if (!debt) return;
+    debt.balance = numberOrZero(debt.balance) + numberOrZero(delta);
+    debt.updatedAt = new Date().toISOString();
+  }
+  function saveTransaction(event) {
+    event.preventDefault();
+    var type = txType();
+    var amount = numberOrNull(el.txAmount.value);
+    if (amount === null || amount <= 0) return showToast("請輸入大於 0 的金額");
+    if (!el.txDate.value) return showToast("請選擇日期");
+    var tx = {
+      id: editingTxId || uid("tx"),
+      date: el.txDate.value,
+      type: type,
+      category: el.txCategory.value,
+      account: el.txAccount.value,
+      item: el.txItem.value.trim() || el.txCategory.value,
+      amount: amount,
+      status: type === "income" ? "paid" : el.txStatus.value,
+      debtId: type === "expense" ? (el.txDebt.value || "") : "",
+      recurringId: type === "expense" ? (el.txRecurring.value || "") : "",
+      note: el.txNote.value.trim(),
+      createdAt: editingTxId ? undefined : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (tx.debtId) {
+      tx.category = "還款";
+      tx.status = "paid";
+    }
+    var index = -1;
+    for (var i = 0; i < state.transactions.length; i++) if (state.transactions[i].id === editingTxId) index = i;
+    if (index >= 0) {
+      var old = state.transactions[index];
+      if (old.status === "paid" && old.type === "expense" && old.debtId) adjustDebtBalance(old.debtId, numberOrZero(old.amount));
+      tx.createdAt = old.createdAt || new Date().toISOString();
+      state.transactions[index] = tx;
+    } else {
+      state.transactions.push(tx);
+    }
+    if (tx.status === "paid" && tx.type === "expense" && tx.debtId) adjustDebtBalance(tx.debtId, -numberOrZero(tx.amount));
+    saveState();
+    renderAll();
+    resetTxForm();
+    showToast(index >= 0 ? "記錄已更新" : "記錄已儲存");
+  }
+
+  function renderMetrics(month) {
+    var salary = salaryForMonth(month);
+    var otherIncome = paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+    var expenses = paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+    var dueRemaining = dueItemsForMonth(month).reduce(function (sum, item) { return sum + item.amount; }, 0);
+    var available = salary.total + otherIncome - expenses - dueRemaining;
+    var incomeCount = paidIncomeForMonth(month).length;
+    el.metrics.innerHTML =
+      '<div class="metric"><span>舞蹈薪資</span><strong>' + money(salary.total) + '</strong><small>' + decimal(salary.classes) + ' 堂 · ' + salary.institutionCount + ' 個機構' + (salary.missingClasses ? " · " + decimal(salary.missingClasses) + " 堂未設薪資" : "") + '</small></div>' +
+      '<div class="metric"><span>其他收入</span><strong>' + money(otherIncome) + '</strong><small>' + incomeCount + ' 筆已入帳</small></div>' +
+      '<div class="metric"><span>已支付支出</span><strong class="amount-expense">' + money(expenses) + '</strong><small>不含待支付與未完成項目</small></div>' +
+      '<div class="metric"><span>本月尚待繳</span><strong class="amount-income">' + money(dueRemaining) + '</strong><small>欠款月還＋固定支出</small></div>' +
+      '<div class="metric"><span>可用結餘</span><strong style="color:' + (available >= 0 ? "var(--green)" : "var(--red)") + '">' + money(available) + '</strong><small>薪資＋收入－支出－待繳</small></div>';
+  }
+
+  function renderSalary(month) {
+    var salary = salaryForMonth(month);
+    var connected = salary.classes > 0 || salary.total > 0 || salary.missingClasses > 0;
+    var detail = connected
+      ? '<span class="pill good">已連動上課紀錄</span>'
+      : '<span class="pill muted">本月無薪資紀錄</span>';
+    var missing = salary.missingClasses
+      ? '<p class="helper" style="color:var(--yellow)">有 ' + decimal(salary.missingClasses) + ' 堂已完成／代課尚未設定機構薪資，請回上課紀錄補上每節薪資。</p>'
+      : '<p class="helper">已自動計算已完成與代課課堂；待授課、請假、取消不列入薪資。</p>';
+    el.salaryPanel.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:center;gap:12px"><div><strong>舞蹈薪資連動</strong><div class="helper">' + monthLabel(month) + ' · ' + money(salary.total) + '／' + decimal(salary.classes) + ' 堂</div></div><div class="inline-actions">' + detail + '<button id="sync-salary" class="btn small" type="button">重新同步</button></div></div>' + missing;
+  }
+
+  function renderDue(month) {
+    var items = dueItemsForMonth(month);
+    var salary = salaryForMonth(month);
+    var expense = paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+    var available = salary.total + paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0) - expense - items.reduce(function (sum, item) { return sum + item.amount; }, 0);
+    var rows = items.map(function (item) {
+      var status = dueStatus(item);
+      return '<div class="due-row"><div class="due-main"><strong>' + esc(item.name) + '</strong><span>' + esc(item.platform || "") + " · " + monthLabel(month) + " " + Number(item.date.slice(-2)) + " 日 · 已繳 " + money(item.paid) + "</span></div><div class=\"due-value\"><span class=\"pill " + status.key + "\">" + status.label + "</span><div style=\"margin-top:5px;color:" + (item.amount ? "var(--yellow)" : "var(--green)") + ";font-weight:800\">" + money(item.amount) + "</div></div></div>";
+    }).join("");
+    if (!rows) rows = '<div class="empty">這個月目前沒有待繳項目；已繳清或尚未設定月還款／固定支出。</div>';
+    el.duePanel.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:center"><div><strong>本月待繳清單</strong><div class="helper">依付款日排序，金額已扣除本月已登記的還款或固定支出。</div></div><div style="text-align:right"><strong class="' + (items.length ? "amount-income" : "") + '">' + money(items.reduce(function (sum, item) { return sum + item.amount; }, 0)) + '</strong><div class="helper">待繳總額</div></div></div><div class="status-timeline section">' + rows + '</div><p class="helper">目前預估可用結餘：<strong style="color:' + (available >= 0 ? "var(--green)" : "var(--red)") + '">' + money(available) + '</strong>。此數字會隨你記錄支出或收入即時更新。</p>';
+  }
+
+  function renderDebts(month) {
+    var total = state.debts.reduce(function (sum, debt) { return sum + Math.max(0, numberOrZero(debt.balance)); }, 0);
+    var monthly = state.debts.reduce(function (sum, debt) { return sum + Math.max(0, numberOrZero(debt.monthlyDue)); }, 0);
+    var paid = state.debts.reduce(function (sum, debt) { return sum + linkedPaidDebtAmount(debt.id, month); }, 0);
+    el.debtTotal.textContent = money(total);
+    var rate = monthly > 0 ? Math.min(100, paid / monthly * 100) : (state.debts.length ? 100 : 0);
+    el.debtProgress.className = "progress" + (rate >= 100 ? "" : rate > 70 ? " warn" : "");
+    el.debtProgress.innerHTML = '<i style="width:' + Math.min(100, rate).toFixed(1) + '%"></i>';
+    el.debtSummary.textContent = state.debts.length ? "每月應還合計 " + money(monthly) + "；本月已登記 " + money(paid) + "。" : "尚未設定欠款帳戶。";
+    if (!state.debts.length) {
+      el.debtList.innerHTML = '<div class="empty">還沒有欠款帳戶。點右上角「新增帳戶」開始記錄美團月付、花唄或借唄。</div>';
+      return;
+    }
+    el.debtList.innerHTML = state.debts.slice().sort(function (a, b) { return numberOrZero(b.balance) - numberOrZero(a.balance); }).map(function (debt) {
+      var paidThisMonth = linkedPaidDebtAmount(debt.id, month);
+      var due = numberOrZero(debt.monthlyDue);
+      var remaining = Math.max(0, due - paidThisMonth);
+      var status = remaining <= 0 && due > 0 ? '<span class="pill good">本月已繳</span>' : due > 0 ? '<span class="pill warn">待還 ' + money(remaining) + '</span>' : '<span class="pill muted">未設月還</span>';
+      var dueText = debt.dueDay ? "每月 " + Number(debt.dueDay) + " 日" : "未設還款日";
+      return '<article class="debt-card"><div class="debt-top"><div><h3>' + esc(debt.name || debt.platform) + '</h3><div class="helper">' + esc(debt.platform || "其他") + " · " + esc(dueText) + '</div></div>' + status + '</div><div class="debt-balance">' + money(debt.balance) + '</div><div class="debt-meta">目前欠款' + (numberOrZero(debt.balance) < 0 ? "（多付）" : "") + '<br>每月應還 ' + money(debt.monthlyDue) + (debt.annualRate !== undefined && debt.annualRate !== "" && debt.annualRate !== null ? " · 年利率 " + decimal(debt.annualRate) + "%" : "") + (debt.note ? "<br>" + esc(debt.note) : "") + '</div><div class="progress ' + (remaining <= 0 ? "" : "warn") + '"><i style="width:' + (due > 0 ? Math.min(100, paidThisMonth / due * 100) : 0) + '%"></i></div><div class="debt-actions"><button class="btn small primary" data-pay-debt="' + esc(debt.id) + '" type="button">登記還款</button><button class="btn small" data-edit-debt="' + esc(debt.id) + '" type="button">編輯</button><button class="btn small danger" data-delete-debt="' + esc(debt.id) + '" type="button">刪除</button></div></article>';
+    }).join("");
+  }
+
+  function resetDebtForm() {
+    editingDebtId = null;
+    el.debtForm.reset();
+    el.debtId.value = "";
+    el.debtPlatform.value = "美團月付";
+    el.debtBalance.value = "";
+    el.debtMonthly.value = "";
+    el.debtDueDay.value = "10";
+    el.debtRate.value = "";
+    el.debtFormTitle.textContent = "新增欠款帳戶";
+    el.debtFormWrap.open = true;
+  }
+
+  function fillDebtForm(debt) {
+    editingDebtId = debt.id;
+    el.debtId.value = debt.id;
+    el.debtPlatform.value = debt.platform || "其他";
+    el.debtName.value = debt.name || "";
+    el.debtBalance.value = debt.balance;
+    el.debtMonthly.value = debt.monthlyDue;
+    el.debtDueDay.value = debt.dueDay || 10;
+    el.debtRate.value = debt.annualRate === undefined ? "" : debt.annualRate;
+    el.debtNote.value = debt.note || "";
+    el.debtFormTitle.textContent = "編輯欠款帳戶";
+    el.debtFormWrap.open = true;
+    el.debtFormWrap.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function saveDebt(event) {
+    event.preventDefault();
+    var balance = numberOrNull(el.debtBalance.value);
+    var monthly = numberOrNull(el.debtMonthly.value);
+    var day = Number(el.debtDueDay.value);
+    if (balance === null || balance < 0) return showToast("請輸入有效的目前欠款");
+    if (monthly === null || monthly < 0) return showToast("請輸入有效的每月應還金額");
+    if (!(day >= 1 && day <= 31)) return showToast("每月還款日需為 1 至 31");
+    var debt = {
+      id: editingDebtId || uid("debt"),
+      platform: el.debtPlatform.value,
+      name: el.debtName.value.trim() || el.debtPlatform.value,
+      balance: balance,
+      monthlyDue: monthly,
+      dueDay: day,
+      annualRate: el.debtRate.value === "" ? "" : numberOrZero(el.debtRate.value),
+      note: el.debtNote.value.trim(),
+      updatedAt: new Date().toISOString()
+    };
+    var index = -1;
+    for (var i = 0; i < state.debts.length; i++) if (state.debts[i].id === editingDebtId) index = i;
+    if (index >= 0) state.debts[index] = debt; else state.debts.push(debt);
+    saveState();
+    renderOptions();
+    renderAll();
+    resetDebtForm();
+    showToast(index >= 0 ? "欠款帳戶已更新" : "欠款帳戶已新增");
+  }
+
+  function registerDebtPayment(id) {
+    var debt = findDebt(id);
+    if (!debt) return;
+    var month = el.monthPicker.value || monthText();
+    var paid = linkedPaidDebtAmount(id, month);
+    var remaining = Math.max(0, numberOrZero(debt.monthlyDue) - paid);
+    resetTxForm();
+    el.txDate.value = todayText();
+    document.querySelector('input[name="tx-type"][value="expense"]').checked = true;
+    renderCategoryOptions("expense", "還款");
+    el.txAmount.value = remaining > 0 ? remaining : numberOrZero(debt.monthlyDue);
+    el.txCategory.value = "還款";
+    el.txAccount.value = platformAccount(debt.platform);
+    el.txItem.value = (debt.name || debt.platform) + " 月還款";
+    el.txDebt.value = debt.id;
+    el.txStatus.value = "paid";
+    el.txNote.value = "第 " + monthLabel(month) + " 期";
+    el.txHint.textContent = "已帶入還款資料，儲存後會同步扣除欠款餘額。";
+    el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function deleteDebt(id) {
+    var debt = findDebt(id);
+    if (!debt || !window.confirm("確定刪除「" + (debt.name || debt.platform) + "」嗎？既有交易會保留，但不再連動此帳戶。")) return;
+    state.transactions.forEach(function (item) { if (item.debtId === id) item.debtId = ""; });
+    state.debts = state.debts.filter(function (item) { return item.id !== id; });
+    saveState();
+    renderOptions();
+    renderAll();
+    resetDebtForm();
+    showToast("欠款帳戶已刪除");
+  }
+
+  function renderRecurring(month) {
+    if (!state.recurring.length) {
+      el.recurringList.innerHTML = '<div class="empty">尚未設定固定支出。例如房租、水電、網費或保險。</div>';
+      return;
+    }
+    el.recurringList.innerHTML = state.recurring.slice().sort(function (a, b) { return Number(a.dueDay || 99) - Number(b.dueDay || 99); }).map(function (item) {
+      var paid = linkedPaidRecurringAmount(item.id, month);
+      var remaining = Math.max(0, numberOrZero(item.amount) - paid);
+      var status = !item.active ? '<span class="pill muted">停用</span>' : remaining <= 0 ? '<span class="pill good">本月已繳</span>' : '<span class="pill warn">待繳 ' + money(remaining) + '</span>';
+      return '<article class="debt-card"><div class="debt-top"><div><h3>' + esc(item.name) + '</h3><div class="helper">' + esc(item.category) + " · " + esc(item.account) + '</div></div>' + status + '</div><div class="debt-balance">' + money(item.amount) + '</div><div class="debt-meta">每月 ' + Number(item.dueDay) + ' 日<br>本月已登記 ' + money(paid) + (item.note ? "<br>" + esc(item.note) : "") + '</div><div class="debt-actions">' + (item.active ? '<button class="btn small primary" data-pay-recurring="' + esc(item.id) + '" type="button">登記本月支出</button>' : "") + '<button class="btn small" data-edit-recurring="' + esc(item.id) + '" type="button">編輯</button><button class="btn small danger" data-delete-recurring="' + esc(item.id) + '" type="button">刪除</button></div></article>';
+    }).join("");
+  }
+
+  function resetRecurringForm() {
+    editingRecurringId = null;
+    el.recurringForm.reset();
+    el.recurringId.value = "";
+    el.recurringDueDay.value = "1";
+    el.recurringActive.value = "true";
+    setSelectOptions(el.recurringCategory, EXPENSE_CATEGORIES, "房租水電");
+    setSelectOptions(el.recurringAccount, ACCOUNTS, "銀行卡");
+    el.recurringFormTitle.textContent = "新增固定支出";
+    el.recurringFormWrap.open = true;
+  }
+
+  function fillRecurringForm(item) {
+    editingRecurringId = item.id;
+    el.recurringId.value = item.id;
+    el.recurringName.value = item.name || "";
+    el.recurringAmount.value = item.amount;
+    setSelectOptions(el.recurringCategory, EXPENSE_CATEGORIES, item.category || "其他");
+    setSelectOptions(el.recurringAccount, ACCOUNTS, item.account || "銀行卡");
+    el.recurringDueDay.value = item.dueDay || 1;
+    el.recurringActive.value = item.active ? "true" : "false";
+    el.recurringNote.value = item.note || "";
+    el.recurringFormTitle.textContent = "編輯固定支出";
+    el.recurringFormWrap.open = true;
+    el.recurringFormWrap.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function saveRecurring(event) {
+    event.preventDefault();
+    var amount = numberOrNull(el.recurringAmount.value);
+    var day = Number(el.recurringDueDay.value);
+    if (!el.recurringName.value.trim()) return showToast("請輸入項目名稱");
+    if (amount === null || amount <= 0) return showToast("請輸入大於 0 的每月金額");
+    if (!(day >= 1 && day <= 31)) return showToast("每月扣款日需為 1 至 31");
+    var item = {
+      id: editingRecurringId || uid("recurring"),
+      name: el.recurringName.value.trim(),
+      amount: amount,
+      category: el.recurringCategory.value,
+      account: el.recurringAccount.value,
+      dueDay: day,
+      active: el.recurringActive.value === "true",
+      note: el.recurringNote.value.trim(),
+      updatedAt: new Date().toISOString()
+    };
+    var index = -1;
+    for (var i = 0; i < state.recurring.length; i++) if (state.recurring[i].id === editingRecurringId) index = i;
+    if (index >= 0) state.recurring[index] = item; else state.recurring.push(item);
+    saveState();
+    renderOptions();
+    renderAll();
+    resetRecurringForm();
+    showToast(index >= 0 ? "固定支出已更新" : "固定支出已新增");
+  }
+
+  function registerRecurringPayment(id) {
+    var item = findRecurring(id);
+    if (!item) return;
+    var month = el.monthPicker.value || monthText();
+    var paid = linkedPaidRecurringAmount(id, month);
+    var remaining = Math.max(0, numberOrZero(item.amount) - paid);
+    resetTxForm();
+    el.txDate.value = dateForMonthDay(month, item.dueDay);
+    document.querySelector('input[name="tx-type"][value="expense"]').checked = true;
+    renderCategoryOptions("expense", item.category || "其他");
+    el.txAmount.value = remaining > 0 ? remaining : numberOrZero(item.amount);
+    el.txCategory.value = item.category || "其他";
+    el.txAccount.value = item.account || "銀行卡";
+    el.txItem.value = item.name + "（" + monthLabel(month) + "）";
+    el.txRecurring.value = item.id;
+    el.txStatus.value = "paid";
+    el.txNote.value = "每月固定支出";
+    el.txHint.textContent = "已帶入固定支出資料，儲存後會列入本月已支付支出。";
+    el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function deleteRecurring(id) {
+    var item = findRecurring(id);
+    if (!item || !window.confirm("確定刪除「" + item.name + "」嗎？既有交易會保留，但不再連動此項目。")) return;
+    state.transactions.forEach(function (tx) { if (tx.recurringId === id) tx.recurringId = ""; });
+    state.recurring = state.recurring.filter(function (entry) { return entry.id !== id; });
+    saveState();
+    renderOptions();
+    renderAll();
+    resetRecurringForm();
+    showToast("固定支出已刪除");
+  }
+
+  function budgetSpent(month, category) {
+    return paidExpensesForMonth(month).filter(function (item) { return item.category === category; }).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+  }
+  function renderBudget(month) {
+    el.budgetMonthLabel.textContent = monthLabel(month);
+    var usedCategories = {};
+    paidExpensesForMonth(month).forEach(function (item) { usedCategories[item.category || "其他"] = true; });
+    var categories = EXPENSE_CATEGORIES.filter(function (category) { return numberOrZero(state.budgets[category]) > 0 || usedCategories[category]; });
+    if (!categories.length) categories = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "還款", "其他"];
+    el.budgetList.innerHTML = categories.map(function (category) {
+      var spent = budgetSpent(month, category);
+      var budget = numberOrZero(state.budgets[category]);
+      var percent = budget > 0 ? spent / budget * 100 : 0;
+      return '<div class="budget-row"><div class="budget-label">' + esc(category) + '</div><div class="budget-value">' + money(spent) + " / " + money(budget) + '</div><div class="progress ' + (percent > 100 ? "bad" : percent > 80 ? "warn" : "") + '"><i style="width:' + Math.min(100, percent) + '%"></i></div><input data-budget="' + esc(category) + '" type="number" min="0" step="0.01" value="' + (budget || "") + '" placeholder="設定預算" aria-label="' + esc(category) + ' 預算"></div>';
+    }).join("");
+    renderExpenseChart(month);
+  }
+  function renderExpenseChart(month) {
+    var expenses = paidExpensesForMonth(month);
+    var categoryMap = {};
+    expenses.forEach(function (item) { var key = item.category || "其他"; categoryMap[key] = (categoryMap[key] || 0) + numberOrZero(item.amount); });
+    var rows = Object.keys(categoryMap).map(function (key) { return { label: key, value: categoryMap[key] }; }).sort(function (a, b) { return b.value - a.value; });
+    var total = rows.reduce(function (sum, row) { return sum + row.value; }, 0);
+    if (!rows.length) {
+      el.categoryChart.innerHTML = '<div class="empty">本月尚無已支付支出。</div>';
+    } else {
+      el.categoryChart.innerHTML = rows.map(function (row, index) {
+        var percent = total > 0 ? row.value / total * 100 : 0;
+        return '<div class="chart-row"><div class="budget-label">' + esc(row.label) + '</div><div class="chart-bar"><i style="width:' + percent + '%;background:' + COLORS[index % COLORS.length] + '"></i></div><div class="budget-value">' + money(row.value) + '</div></div>';
+      }).join("");
+    }
+    var accountMap = {};
+    expenses.forEach(function (item) { var key = item.account || "其他"; accountMap[key] = (accountMap[key] || 0) + numberOrZero(item.amount); });
+    var accountRows = Object.keys(accountMap).map(function (key) { return { label: key, value: accountMap[key] }; }).sort(function (a, b) { return b.value - a.value; });
+    if (!accountRows.length) {
+      el.accountChart.innerHTML = '<div class="empty">尚無付款方式統計。</div>';
+    } else {
+      el.accountChart.innerHTML = accountRows.map(function (row, index) {
+        var percent = total > 0 ? row.value / total * 100 : 0;
+        return '<div class="chart-row"><div class="budget-label">' + esc(row.label) + '</div><div class="chart-bar"><i style="width:' + percent + '%;background:' + COLORS[(index + 5) % COLORS.length] + '"></i></div><div class="budget-value">' + money(row.value) + '</div></div>';
+      }).join("");
+    }
+    renderTrendChart(month);
+  }
+  function renderTrendChart(month) {
+    var months = [];
+    for (var offset = 5; offset >= 0; offset--) months.push(shiftMonth(month, -offset));
+    var values = months.map(function (item) {
+      return { month: item, value: paidExpensesForMonth(item).reduce(function (sum, tx) { return sum + numberOrZero(tx.amount); }, 0) };
+    });
+    var max = Math.max.apply(null, values.map(function (item) { return item.value; }).concat([1]));
+    el.trendChart.innerHTML = values.map(function (item, index) {
+      var percent = item.value / max * 100;
+      return '<div class="chart-row"><div class="budget-label">' + Number(item.month.slice(5)) + ' 月</div><div class="chart-bar"><i style="width:' + percent + '%;background:' + COLORS[index % COLORS.length] + '"></i></div><div class="budget-value">' + money(item.value) + '</div></div>';
+    }).join("");
+  }
+
+  function filteredTransactions(month) {
+    var type = el.filterType.value;
+    var category = el.filterCategory.value;
+    var q = el.filterSearch.value.trim().toLowerCase();
+    return transactionsForMonth(month).filter(function (item) {
+      if (type && item.type !== type) return false;
+      if (category && item.category !== category) return false;
+      var haystack = [item.item, item.note, item.account, item.category].join(" ").toLowerCase();
+      return !q || haystack.indexOf(q) >= 0;
+    }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")); });
+  }
+  function renderRecords(month) {
+    var records = filteredTransactions(month);
+    if (!records.length) {
+      el.recordsTable.innerHTML = '<div class="empty">目前沒有符合條件的資金記錄。</div>';
+      return;
+    }
+    var rows = records.map(function (item) {
+      var isIncome = item.type === "income";
+      var linked = item.debtId ? '<span class="badge">還款連動</span>' : item.recurringId ? '<span class="badge">固定支出</span>' : "";
+      return '<tr><td>' + esc(item.date) + '</td><td><span class="badge">' + (isIncome ? "收入" : "支出") + '</span></td><td>' + esc(item.category || "其他") + linked + '</td><td><strong>' + esc(item.item || "未命名") + '</strong><div class="note">' + esc(item.note || "") + '</div></td><td>' + esc(item.account || "") + '</td><td class="num ' + (isIncome ? "amount-income" : "amount-expense") + '">' + (isIncome ? "+" : "-") + money(item.amount) + '</td><td><span class="pill ' + (item.status === "paid" ? "good" : "warn") + '">' + (item.status === "paid" ? "已支付／入帳" : "待支付") + '</span></td><td><button class="btn small" data-edit-tx="' + esc(item.id) + '" type="button">編輯</button> <button class="btn small danger" data-delete-tx="' + esc(item.id) + '" type="button">刪除</button></td></tr>';
+    }).join("");
+    el.recordsTable.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>類型</th><th>分類</th><th>項目／備註</th><th>方式／平台</th><th class="num">金額</th><th>狀態</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table></div><p class="helper">目前顯示 ' + records.length + ' 筆；月份由上方「查看月份」控制。</p>';
+  }
+  function csvCell(value) {
+    return '"' + String(value === null || typeof value === "undefined" ? "" : value).replace(/"/g, '""') + '"';
+  }
+  function safeFilename(text) {
+    return String(text || "匯出").replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_");
+  }
+  function downloadText(filename, text, type) {
+    var blob = new Blob([text], { type: type || "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1200);
+  }
+  function csvForMonth(month) {
+    var records = transactionsForMonth(month).slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
+    var salary = salaryForMonth(month);
+    var rows = [["日期", "類型", "分類", "項目／商家", "方式／平台", "金額", "狀態", "連動", "備註"]];
+    if (salary.total > 0 || salary.missingClasses > 0) {
+      rows.push([month + "-01", "收入（自動）", "舞蹈薪資", "舞蹈薪資連動 " + decimal(salary.classes) + " 堂", "上課紀錄", salary.total.toFixed(2), salary.missingClasses ? "部分未設薪資" : "已計算", salary.missingClasses ? decimal(salary.missingClasses) + " 堂未設薪資" : "", "由舞蹈課堂紀錄自動計算"]);
+    }
+    records.forEach(function (item) {
+      rows.push([item.date, item.type === "income" ? "收入" : "支出", item.category || "", item.item || "", item.account || "", numberOrZero(item.amount).toFixed(2), item.status === "paid" ? "已支付／入帳" : "待支付", item.debtId ? "欠款帳戶" : item.recurringId ? "固定支出" : "", item.note || ""]);
+    });
+    var expenses = paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+    var otherIncome = paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+    var due = dueItemsForMonth(month).reduce(function (sum, item) { return sum + item.amount; }, 0);
+    rows.push([]);
+    rows.push(["本月舞蹈薪資", salary.total.toFixed(2), "", "", "", "", "", "", ""]);
+    rows.push(["本月其他收入", otherIncome.toFixed(2), "", "", "", "", "", "", ""]);
+    rows.push(["本月已支付支出", expenses.toFixed(2), "", "", "", "", "", "", ""]);
+    rows.push(["本月尚待繳", due.toFixed(2), "", "", "", "", "", "", ""]);
+    rows.push(["本月可用結餘", (salary.total + otherIncome - expenses - due).toFixed(2), "", "", "", "", "", "", ""]);
+    return "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+  }
+  function allRelevantMonths() {
+    var months = {};
+    state.transactions.forEach(function (item) { if (item.date) months[String(item.date).slice(0, 7)] = true; });
+    salaryState().records.forEach(function (record) { if (record.date) months[String(record.date).slice(0, 7)] = true; });
+    if (!Object.keys(months).length) months[monthText()] = true;
+    return Object.keys(months).sort();
+  }
+  function csvForAll() {
+    var months = allRelevantMonths();
+    var rows = [["月份", "日期", "類型", "分類", "項目／商家", "方式／平台", "金額", "狀態", "連動", "備註"]];
+    months.forEach(function (month) {
+      var salary = salaryForMonth(month);
+      if (salary.total > 0 || salary.missingClasses > 0) {
+        rows.push([month, month + "-01", "收入（自動）", "舞蹈薪資", "舞蹈薪資連動 " + decimal(salary.classes) + " 堂", "上課紀錄", salary.total.toFixed(2), salary.missingClasses ? "部分未設薪資" : "已計算", salary.missingClasses ? decimal(salary.missingClasses) + " 堂未設薪資" : "", "由舞蹈課堂紀錄自動計算"]);
+      }
+      transactionsForMonth(month).slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); }).forEach(function (item) {
+        rows.push([month, item.date, item.type === "income" ? "收入" : "支出", item.category || "", item.item || "", item.account || "", numberOrZero(item.amount).toFixed(2), item.status === "paid" ? "已支付／入帳" : "待支付", item.debtId ? "欠款帳戶" : item.recurringId ? "固定支出" : "", item.note || ""]);
+      });
+      rows.push([month, "", "月度合計", "薪資", "", "", salary.total.toFixed(2), "", "", ""]);
+      rows.push([month, "", "月度合計", "已支付支出", "", "", paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0).toFixed(2), "", "", ""]);
+      rows.push([month, "", "月度合計", "待繳", "", "", dueItemsForMonth(month).reduce(function (sum, item) { return sum + item.amount; }, 0).toFixed(2), "", "", ""]);
+    });
+    return "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+  }
+  function exportMonthCsv() {
+    var month = el.monthPicker.value || monthText();
+    downloadText("資金明細_" + safeFilename(month) + ".csv", csvForMonth(month), "text/csv;charset=utf-8");
+    showToast("本月 CSV 已匯出");
+  }
+  function exportAllCsv() {
+    downloadText("資金明細_全部_" + todayText() + ".csv", csvForAll(), "text/csv;charset=utf-8");
+    showToast("全部 CSV 已匯出");
+  }
+  function exportJson() {
+    var payload = {
+      app: "資金管理",
+      version: APP_VERSION,
+      schema: STORAGE_KEY,
+      exportedAt: new Date().toISOString(),
+      latestSalarySnapshot: salaryForMonth(el.monthPicker.value || monthText()),
+      data: state
+    };
+    downloadText("資金管理備份_" + todayText() + ".json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+    showToast("JSON 備份已匯出");
+  }
+  function normalizeImported(data) {
+    var source = data && data.data ? data.data : data;
+    if (!source || !Array.isArray(source.transactions)) throw new Error("找不到 transactions");
+    var debts = Array.isArray(source.debts) ? source.debts : [];
+    var recurring = Array.isArray(source.recurring) ? source.recurring : [];
+    var debtIds = {};
+    var recurringIds = {};
+    debts.forEach(function (debt) { debtIds[debt.id] = true; });
+    recurring.forEach(function (item) { recurringIds[item.id] = true; });
+    return {
+      version: 1,
+      transactions: source.transactions.filter(function (item) { return item && item.date; }).map(function (item) {
+        return {
+          id: item.id || uid("tx"), date: String(item.date).slice(0, 10), type: item.type === "income" ? "income" : "expense",
+          category: item.category || "其他", account: item.account || "其他", item: item.item || "未命名",
+          amount: Math.max(0, numberOrZero(item.amount)), status: item.status === "pending" ? "pending" : "paid",
+          debtId: debtIds[item.debtId] ? item.debtId : "", recurringId: recurringIds[item.recurringId] ? item.recurringId : "",
+          note: item.note || "", createdAt: item.createdAt || new Date().toISOString(), updatedAt: item.updatedAt || new Date().toISOString()
+        };
+      }),
+      debts: debts.filter(function (item) { return item && item.id; }).map(function (item) {
+        return { id: item.id, platform: item.platform || "其他", name: item.name || item.platform || "未命名", balance: numberOrZero(item.balance), monthlyDue: numberOrZero(item.monthlyDue), dueDay: Math.min(31, Math.max(1, Number(item.dueDay) || 10)), annualRate: item.annualRate === "" || item.annualRate === undefined ? "" : numberOrZero(item.annualRate), note: item.note || "", updatedAt: item.updatedAt || new Date().toISOString() };
+      }),
+      recurring: recurring.filter(function (item) { return item && item.id; }).map(function (item) {
+        return { id: item.id, name: item.name || "未命名", amount: numberOrZero(item.amount), category: item.category || "其他", account: item.account || "其他", dueDay: Math.min(31, Math.max(1, Number(item.dueDay) || 1)), active: item.active !== false, note: item.note || "", updatedAt: item.updatedAt || new Date().toISOString() };
+      }),
+      budgets: source.budgets && typeof source.budgets === "object" ? source.budgets : {},
+      lastUpdated: source.lastUpdated || new Date().toISOString()
+    };
+  }
+  function importJsonFile(file) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(reader.result);
+        var next = normalizeImported(parsed);
+        if (!window.confirm("匯入會取代目前所有資金資料，是否繼續？請確認已先匯出目前備份。")) return;
+        state = next;
+        saveState();
+        renderOptions();
+        renderAll();
+        resetTxForm();
+        resetDebtForm();
+        resetRecurringForm();
+        showToast("JSON 備份已匯入");
+      } catch (error) {
+        console.warn(error);
+        alert("無法匯入：JSON 格式不正確或缺少 transactions。\n" + error.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+  function renderAll() {
+    var month = el.monthPicker.value || monthText();
+    renderMetrics(month);
+    renderSalary(month);
+    renderDue(month);
+    renderDebts(month);
+    renderRecurring(month);
+    renderBudget(month);
+    renderRecords(month);
+  }
+
+  el.txForm.addEventListener("submit", saveTransaction);
+  el.debtForm.addEventListener("submit", saveDebt);
+  el.recurringForm.addEventListener("submit", saveRecurring);
+  document.querySelectorAll('input[name="tx-type"]').forEach(function (radio) {
+    radio.addEventListener("change", function () {
+      renderCategoryOptions(txType(), txType() === "income" ? "其他收入" : "餐飲");
+      if (txType() === "income") {
+        el.txDebt.value = "";
+        el.txRecurring.value = "";
+      }
+    });
+  });
+  el.txDebt.addEventListener("change", function () {
+    if (!el.txDebt.value) return;
+    var debt = findDebt(el.txDebt.value);
+    if (!debt) return;
+    renderCategoryOptions("expense", "還款");
+    el.txCategory.value = "還款";
+    el.txStatus.value = "paid";
+    if (!el.txItem.value || /還款$/.test(el.txItem.value)) el.txItem.value = (debt.name || debt.platform) + " 月還款";
+    var month = el.monthPicker.value || monthText();
+    var remaining = Math.max(0, numberOrZero(debt.monthlyDue) - linkedPaidDebtAmount(debt.id, month));
+    if (!el.txAmount.value) el.txAmount.value = remaining || numberOrZero(debt.monthlyDue);
+    el.txHint.textContent = "此筆記錄會連動欠款餘額；儲存後剩餘金額會自動扣除。";
+  });
+  el.txRecurring.addEventListener("change", function () {
+    var item = findRecurring(el.txRecurring.value);
+    if (!item) return;
+    renderCategoryOptions("expense", item.category || "其他");
+    el.txCategory.value = item.category || "其他";
+    el.txAccount.value = item.account || "銀行卡";
+    el.txAmount.value = item.amount;
+    el.txItem.value = item.name + "（" + monthLabel(el.monthPicker.value || monthText()) + "）";
+    el.txStatus.value = "paid";
+    el.txHint.textContent = "此筆記錄會列入本月固定支出。";
+  });
+  el.txCategory.addEventListener("change", function () {
+    if (el.txCategory.value !== "還款") el.txDebt.value = "";
+  });
+  el.txReset.addEventListener("click", resetTxForm);
+  el.debtReset.addEventListener("click", resetDebtForm);
+  el.recurringReset.addEventListener("click", resetRecurringForm);
+  el.showDebtForm.addEventListener("click", function () { resetDebtForm(); el.debtFormWrap.open = true; });
+  el.showRecurringForm.addEventListener("click", function () { resetRecurringForm(); el.recurringFormWrap.open = true; });
+  el.debtList.addEventListener("click", function (event) {
+    var pay = event.target.closest("[data-pay-debt]");
+    var edit = event.target.closest("[data-edit-debt]");
+    var remove = event.target.closest("[data-delete-debt]");
+    if (pay) registerDebtPayment(pay.dataset.payDebt);
+    if (edit) { var debt = findDebt(edit.dataset.editDebt); if (debt) fillDebtForm(debt); }
+    if (remove) deleteDebt(remove.dataset.deleteDebt);
+  });
+  el.recurringList.addEventListener("click", function (event) {
+    var pay = event.target.closest("[data-pay-recurring]");
+    var edit = event.target.closest("[data-edit-recurring]");
+    var remove = event.target.closest("[data-delete-recurring]");
+    if (pay) registerRecurringPayment(pay.dataset.payRecurring);
+    if (edit) { var item = findRecurring(edit.dataset.editRecurring); if (item) fillRecurringForm(item); }
+    if (remove) deleteRecurring(remove.dataset.deleteRecurring);
+  });
+  el.recordsTable.addEventListener("click", function (event) {
+    var edit = event.target.closest("[data-edit-tx]");
+    var remove = event.target.closest("[data-delete-tx]");
+    if (edit) {
+      var tx = state.transactions.filter(function (item) { return item.id === edit.dataset.editTx; })[0];
+      if (tx) fillTxForm(tx);
+    }
+    if (remove) {
+      var target = state.transactions.filter(function (item) { return item.id === remove.dataset.deleteTx; })[0];
+      if (!target || !window.confirm("確定刪除這筆「" + (target.item || target.category) + "」記錄嗎？")) return;
+      if (target.status === "paid" && target.type === "expense" && target.debtId) adjustDebtBalance(target.debtId, numberOrZero(target.amount));
+      state.transactions = state.transactions.filter(function (item) { return item.id !== target.id; });
+      saveState();
+      renderAll();
+      showToast("記錄已刪除");
+    }
+  });
+  el.budgetList.addEventListener("change", function (event) {
+    var input = event.target.closest("[data-budget]");
+    if (!input) return;
+    var value = numberOrNull(input.value);
+    state.budgets[input.dataset.budget] = value === null ? 0 : Math.max(0, value);
+    saveState();
+    renderBudget(el.monthPicker.value || monthText());
+    renderMetrics(el.monthPicker.value || monthText());
+    showToast("預算已更新");
+  });
+  el.salaryPanel.addEventListener("click", function (event) {
+    if (event.target.id !== "sync-salary") return;
+    renderAll();
+    showToast("已重新讀取舞蹈薪資");
+  });
+  el.monthPicker.addEventListener("change", renderAll);
+  el.prevMonth.addEventListener("click", function () { el.monthPicker.value = shiftMonth(el.monthPicker.value, -1); renderAll(); });
+  el.nextMonth.addEventListener("click", function () { el.monthPicker.value = shiftMonth(el.monthPicker.value, 1); renderAll(); });
+  el.filterType.addEventListener("change", function () { renderRecords(el.monthPicker.value || monthText()); });
+  el.filterCategory.addEventListener("change", function () { renderRecords(el.monthPicker.value || monthText()); });
+  el.filterSearch.addEventListener("input", function () { renderRecords(el.monthPicker.value || monthText()); });
+  el.exportMonthCsv.addEventListener("click", exportMonthCsv);
+  el.exportAllCsv.addEventListener("click", exportAllCsv);
+  el.exportJson.addEventListener("click", exportJson);
+  el.importJson.addEventListener("change", function () { importJsonFile(this.files && this.files[0]); this.value = ""; });
+  el.printReport.addEventListener("click", function () { window.print(); });
+  document.querySelectorAll(".tabs .tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tabs .tab").forEach(function (item) { item.classList.remove("active"); });
+      tab.classList.add("active");
+    });
+  });
+  el.manualUpdate.addEventListener("click", async function () {
+    var button = el.manualUpdate;
+    button.disabled = true;
+    button.textContent = "更新中…";
+    try {
+      if ("serviceWorker" in navigator) {
+        var registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(function (registration) { return registration.unregister(); }));
+      }
+      if (window.caches) {
+        var keys = await caches.keys();
+        await Promise.all(keys.filter(function (key) { return /dance-class-ledger|daily-schedule-tech|finance/i.test(key); }).map(function (key) { return caches.delete(key); }));
+      }
+    } catch (error) {
+      console.warn("更新快取失敗", error);
+    }
+    var target = new URL(location.href);
+    target.searchParams.set("manual-update", String(Date.now()));
+    location.replace(target.toString());
+  });
+  window.addEventListener("storage", function (event) {
+    if (event.key !== STORAGE_KEY && event.key !== SALARY_KEY) return;
+    if (event.key === STORAGE_KEY) state = loadState();
+    renderOptions();
+    renderAll();
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) renderAll();
+  });
+
+  var ledgerLink = document.querySelector("[data-ledger-link]");
+  if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register("./ledger-sw.js?v=18", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+  }
+
+  el.monthPicker.value = monthText();
+  resetTxForm();
+  resetDebtForm();
+  resetRecurringForm();
+  renderOptions();
+  renderAll();
+})();

@@ -1,6 +1,6 @@
-const CACHE = "dance-class-ledger-v17";
+const CACHE = "dance-class-ledger-v18";
 const PAGE = "./index.html";
-const ASSETS = [PAGE, "./salary-calendar.html", "./ledger-manifest.json", "./icon-192.png", "./icon-512.png"];
+const ASSETS = [PAGE, "./salary-calendar.html", "./finance.html", "./finance.css", "./finance.js", "./finance-manifest.json", "./ledger-manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

@@ -1,0 +1,16 @@
+{
+  "name": "資金管理 · 支出、欠款與舞蹈薪資",
+  "short_name": "資金管理",
+  "description": "記錄支出、收入、美團月付、花唄、借唄、每月還款與舞蹈薪資。",
+  "lang": "zh-Hant",
+  "start_url": "./finance.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050b14",
+  "theme_color": "#0b1324",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
