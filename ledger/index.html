@@ -94,7 +94,7 @@ details.help p{line-height:1.65;margin:8px 0 0}
 .print-only{display:none}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){
-  .mobile-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;position:sticky;top:0;z-index:9;margin:0 0 12px;padding:6px;background:rgba(244,247,246,.94);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px}
+  .mobile-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;position:sticky;top:0;z-index:9;margin:0 0 12px;padding:6px;background:rgba(244,247,246,.94);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px}
   .mobile-nav a{display:flex;align-items:center;justify-content:center;min-height:46px;border-radius:10px;background:#fff;border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:.95rem;font-weight:750}
   .mobile-nav a:first-child{background:var(--primary);border-color:var(--primary);color:#fff}
   .table-wrap{border:0;overflow:visible}
@@ -199,11 +199,12 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <h1>上課紀錄與薪資統計</h1>
       <p>記錄每次授課，按月整理各機構堂數，直接給財務核對。</p>
     </div>
-    <div class="hero-badge">資料自動保存 · v15</div>
+    <div class="hero-badge">資料自動保存 · v16</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
     <a href="#entry">＋ 記一課</a>
+    <a href="./salary-calendar.html">薪資日曆</a>
     <a href="#summary">統計</a>
     <a href="#groups">機構匯出</a>
   </nav>
@@ -300,6 +301,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
             </div>
           </div>
           <div class="actions no-print" style="margin:0">
+            <a class="btn btn-small" href="./salary-calendar.html">薪資日曆</a>
             <button id="copy-summary" class="btn btn-small" type="button">複製財務摘要</button>
             <button id="export-month-csv" class="btn btn-small" type="button">匯出本月 CSV</button>
             <button id="print-summary" class="btn btn-small" type="button">列印／存 PDF</button>
@@ -978,7 +980,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=15", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=16", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";

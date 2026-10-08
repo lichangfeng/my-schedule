@@ -1,6 +1,6 @@
-const CACHE = "dance-class-ledger-v15";
+const CACHE = "dance-class-ledger-v16";
 const PAGE = "./index.html";
-const ASSETS = [PAGE, "./ledger-manifest.json", "./icon-192.png", "./icon-512.png"];
+const ASSETS = [PAGE, "./salary-calendar.html", "./ledger-manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -17,9 +17,9 @@ self.addEventListener("fetch", event => {
   if (event.request.mode === "navigate") {
     event.respondWith(fetch(event.request).then(response => {
       const copy = response.clone();
-      caches.open(CACHE).then(cache => cache.put(PAGE, copy));
+      caches.open(CACHE).then(cache => cache.put(event.request, copy));
       return response;
-    }).catch(() => caches.match(PAGE)));
+    }).catch(() => caches.match(event.request).then(cached => cached || caches.match(PAGE))));
     return;
   }
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {

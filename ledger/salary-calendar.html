@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#22d3ee">
+<title>薪資日曆</title>
+<style>
+:root{color-scheme:dark;--bg:#050b14;--surface:rgba(10,22,38,.95);--line:rgba(83,210,255,.22);--text:#edf9ff;--muted:#87a7bd;--cyan:#22d3ee;--violet:#818cf8;--pink:#f472b6;--green:#34d399;--yellow:#facc15;--danger:#fb7185}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.17),transparent 32%),radial-gradient(circle at 92% 8%,rgba(129,140,248,.16),transparent 32%),radial-gradient(circle at 50% 100%,rgba(236,72,153,.09),transparent 42%),#050b14;background-attachment:fixed;color:var(--text);font:17px system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
+body{padding:18px;isolation:isolate}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.2;background-image:linear-gradient(rgba(62,189,248,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(62,189,248,.1) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 90%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 90%)}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:16px}
+.hero h1{margin:0 0 4px;font-size:clamp(1.55rem,4vw,2.3rem);background:linear-gradient(92deg,#67e8f9,#818cf8 54%,#f472b6);background-clip:text;-webkit-background-clip:text;color:transparent}
+.hero p{margin:0;color:var(--muted)}
+.hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.card{background:linear-gradient(145deg,rgba(13,28,48,.95),rgba(7,17,31,.95));border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.4),0 0 32px rgba(34,211,238,.07);backdrop-filter:blur(14px)}
+.controls{display:grid;grid-template-columns:minmax(180px,260px) auto;gap:10px;align-items:end;padding:16px 18px;margin-bottom:14px}
+label{display:block;color:var(--muted);font-size:.86rem;font-weight:700;margin-bottom:6px}
+input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px;background:rgba(4,13,25,.86);color:#f0fbff;padding:10px 11px;font:inherit;color-scheme:dark}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(91,194,235,.28);background:rgba(14,31,51,.9);color:#dff7ff;border-radius:11px;padding:9px 13px;font:inherit;font-weight:750;text-decoration:none;cursor:pointer}
+.btn:hover{border-color:#22d3ee;background:rgba(27,52,78,.94)}
+.btn.primary{background:linear-gradient(135deg,#0891b2,#4f46e5 60%,#9333ea);border:none;color:#fff;box-shadow:0 8px 24px rgba(34,211,238,.2)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.metric{position:relative;overflow:hidden;background:linear-gradient(145deg,rgba(17,35,58,.94),rgba(8,19,35,.96));border:1px solid var(--line);border-radius:15px;padding:14px}
+.metric::after{content:"";position:absolute;left:0;top:0;width:100%;height:2px;background:linear-gradient(90deg,var(--metric-color,#22d3ee),transparent 84%)}
+.metric:nth-child(1){--metric-color:#22d3ee}.metric:nth-child(2){--metric-color:#818cf8}.metric:nth-child(3){--metric-color:#f472b6}.metric:nth-child(4){--metric-color:#facc15}
+.metric span{display:block;color:var(--muted);font-size:.82rem;margin-bottom:6px}.metric strong{font-size:1.45rem}.metric small{display:block;color:var(--muted);font-size:.8rem;margin-top:5px}
+.calendar-card{padding:18px}.calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.calendar-head h2{margin:0;font-size:1.05rem}.legend{color:var(--muted);font-size:.82rem}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.weekday{padding:8px 4px;text-align:center;color:var(--muted);font-size:.82rem;font-weight:750}
+.day{min-height:92px;padding:9px;border:1px solid rgba(83,210,255,.16);border-radius:13px;background:linear-gradient(145deg,rgba(12,29,49,.94),rgba(6,16,30,.94));cursor:pointer;transition:.16s;overflow:hidden}
+.day:hover,.day.selected{border-color:rgba(34,211,238,.65);box-shadow:0 0 0 1px rgba(34,211,238,.15),0 0 22px rgba(34,211,238,.1)}
+.day.empty{cursor:default;background:rgba(5,14,26,.35);border-style:dashed;box-shadow:none}.day.today .day-number{color:#67e8f9}
+.day-number{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.92rem}
+.day-pay{margin-top:9px;font-size:1rem;font-weight:850;color:#67e8f9;word-break:break-all}.day-pay.unset{font-size:.78rem;color:#facc15}.day-count{margin-top:4px;color:var(--muted);font-size:.76rem}
+.dots{display:flex;gap:4px;margin-top:7px}.dot{width:7px;height:7px;border-radius:50%;background:var(--dot);box-shadow:0 0 8px var(--dot)}
+.detail{margin-top:14px;padding:16px;border-top:1px solid var(--line);display:grid;gap:10px}.detail h3{margin:0;font-size:1rem}.detail-empty{color:var(--muted);font-size:.88rem}
+.detail-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid rgba(83,210,255,.12)}.detail-row:last-child{border-bottom:0}.detail-main strong{display:block}.detail-main span{display:block;color:var(--muted);font-size:.82rem;margin-top:4px}.detail-pay{font-weight:850;color:#67e8f9;text-align:right;white-space:nowrap}.detail-pay.unset{color:#facc15;font-size:.82rem}
+.manual-update{position:fixed;left:14px;bottom:14px;z-index:9999;border:0;border-radius:999px;padding:11px 17px;background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;font:700 14px system-ui;box-shadow:0 8px 24px rgba(34,211,238,.3);cursor:pointer}
+@media(max-width:720px){body{padding:10px}.hero{align-items:flex-start;flex-direction:column}.controls{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-card{padding:12px}.calendar{gap:4px}.weekday{font-size:.72rem;padding:6px 2px}.day{min-height:78px;padding:6px;border-radius:10px}.day-number{font-size:.8rem}.day-pay{font-size:.82rem;margin-top:6px}.day-count{font-size:.68rem}.dot{width:5px;height:5px}}
+@media(max-width:390px){.metrics{grid-template-columns:1fr}.calendar-head{align-items:flex-start;flex-direction:column}.day{min-height:70px;padding:5px}.day-pay{font-size:.74rem}.day-count{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div><h1>薪資日曆</h1><p>自動同步上課紀錄與各機構薪資，顯示每天會獲得的薪資。</p></div>
+    <div class="hero-actions"><a class="btn" href="./">回上課紀錄</a><button id="sync-data" class="btn primary" type="button">🔄 同步薪資</button></div>
+  </header>
+
+  <section class="card controls">
+    <div><label for="calendar-month">選擇月份</label><input id="calendar-month" type="month"></div>
+    <button id="current-month" class="btn" type="button">本月</button>
+  </section>
+
+  <section class="metrics">
+    <div class="metric"><span>本月薪資</span><strong id="metric-pay">¥0</strong><small>已設定薪資的課堂</small></div>
+    <div class="metric"><span>授課天數</span><strong id="metric-days">0</strong><small>有薪資紀錄的日期</small></div>
+    <div class="metric"><span>計薪堂數</span><strong id="metric-classes">0</strong><small>已完成＋代課</small></div>
+    <div class="metric"><span>未設薪資</span><strong id="metric-missing">0</strong><small>需要補設定薪資</small></div>
+  </section>
+
+  <section class="card calendar-card">
+    <div class="calendar-head"><h2 id="calendar-title"></h2><div class="legend">每格顯示當日薪資</div></div>
+    <div id="calendar" class="calendar"></div>
+    <div id="day-detail" class="detail"></div>
+  </section>
+</div>
+<script>
+(function () {
+  "use strict";
+  var STORAGE_KEY = "danceClassLedger.v1";
+  var state = loadState();
+  var el = {
+    month: document.getElementById("calendar-month"),
+    calendar: document.getElementById("calendar"),
+    title: document.getElementById("calendar-title"),
+    detail: document.getElementById("day-detail"),
+    toast: null
+  };
+
+  function pad(value) { return String(value).padStart(2, "0"); }
+  function todayText() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function monthText() { return todayText().slice(0, 7); }
+  function numberOrNull(value) { if (value === "" || value === null || typeof value === "undefined") return null; var n = Number(value); return Number.isFinite(n) ? n : null; }
+  function money(value) { return "¥" + Number(value || 0).toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  function decimal(value) { var n = Math.round(Number(value || 0) * 100) / 100; return String(n).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1"); }
+  function esc(value) { return String(value === null || typeof value === "undefined" ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+  function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? parsed : { records: [], rates: {}, payDays: {} }; } catch (error) { return { records: [], rates: {}, payDays: {} }; } }
+  function isPayable(record) { return record.status === "completed" || record.status === "substitute"; }
+  function effectiveRate(record) { var override = numberOrNull(record.rate); if (override !== null) return override; return numberOrNull((state.rates || {})[record.institution]); }
+  function colorFor(institution) { var colors = ["#22d3ee", "#818cf8", "#f472b6", "#34d399", "#facc15", "#fb7185"]; var sum = 0; String(institution || "").split("").forEach(function (ch) { sum += ch.charCodeAt(0); }); return colors[sum % colors.length]; }
+  function recordsForDate(dateText) { return (state.records || []).filter(function (record) { return record.date === dateText && isPayable(record); }); }
+  function dailySummary(dateText) { var records = recordsForDate(dateText); var total = 0, classes = 0, missing = 0, institutions = {}; records.forEach(function (record) { var count = Number(record.count) || 0; var rate = effectiveRate(record); classes += count; institutions[record.institution || "未填機構"] = true; if (rate === null) missing += count; else total += rate * count; }); return { records: records, total: total, classes: classes, missing: missing, institutions: Object.keys(institutions) }; }
+  function monthRecords(month) { return (state.records || []).filter(function (record) { return String(record.date || "").slice(0, 7) === month && isPayable(record); }); }
+  function render() {
+    state = loadState();
+    var month = el.month.value || monthText();
+    var parts = month.split("-");
+    var year = Number(parts[0]), mon = Number(parts[1]);
+    el.title.textContent = year + " 年 " + mon + " 月薪資";
+    var first = new Date(year, mon - 1, 1);
+    var days = new Date(year, mon, 0).getDate();
+    var offset = (first.getDay() + 6) % 7;
+    var html = ["一", "二", "三", "四", "五", "六", "日"].map(function (day) { return "<div class=\"weekday\">週" + day + "</div>"; }).join("");
+    for (var blank = 0; blank < offset; blank++) html += "<div class=\"day empty\"></div>";
+    for (var day = 1; day <= days; day++) {
+      var dateText = year + "-" + pad(mon) + "-" + pad(day);
+      var summary = dailySummary(dateText);
+      var pay = summary.total > 0 ? money(summary.total) : (summary.missing ? "未設薪資" : "—");
+      var dots = summary.institutions.slice(0, 5).map(function (institution) { return "<span class=\"dot\" style=\"--dot:" + colorFor(institution) + "\" title=\"" + esc(institution) + "\"></span>"; }).join("");
+      html += "<button type=\"button\" class=\"day" + (dateText === todayText() ? " today" : "") + "\" data-date=\"" + dateText + "\"><div class=\"day-number\"><span>" + day + "</span></div><div class=\"day-pay" + (pay === "未設薪資" ? " unset" : "") + "\">" + pay + "</div><div class=\"day-count\">" + (summary.classes ? decimal(summary.classes) + " 堂" : "沒有課") + "</div><div class=\"dots\">" + dots + "</div></button>";
+    }
+    el.calendar.innerHTML = html;
+    var records = monthRecords(month);
+    var totalPay = 0, totalClasses = 0, missing = 0, dates = {};
+    records.forEach(function (record) { var count = Number(record.count) || 0; var rate = effectiveRate(record); totalClasses += count; dates[record.date] = true; if (rate === null) missing += count; else totalPay += rate * count; });
+    document.getElementById("metric-pay").textContent = money(totalPay);
+    document.getElementById("metric-days").textContent = Object.keys(dates).length + " 天";
+    document.getElementById("metric-classes").textContent = decimal(totalClasses) + " 堂";
+    document.getElementById("metric-missing").textContent = decimal(missing) + " 堂";
+    selectDate(null);
+  }
+  function selectDate(dateText) {
+    if (!dateText) { el.detail.innerHTML = "<h3>每日明細</h3><div class=\"detail-empty\">點選日曆中的日期，查看當天各機構與薪資。</div>"; return; }
+    var summary = dailySummary(dateText);
+    document.querySelectorAll(".day.selected").forEach(function (node) { node.classList.remove("selected"); });
+    var cell = document.querySelector(".day[data-date=\"" + dateText + "\"]"); if (cell) cell.classList.add("selected");
+    var parts = dateText.split("-");
+    var rows = summary.records.map(function (record) { var rate = effectiveRate(record); return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(record.institution) + " · " + esc(record.course || "未填班級") + "</strong><span>" + decimal(record.count || 0) + " 堂 · " + (record.status === "substitute" ? "代課" : "已完成") + (record.note ? " · " + esc(record.note) : "") + "</span></div><div class=\"detail-pay" + (rate === null ? " unset" : "") + "\">" + (rate === null ? "未設薪資" : money(rate * (Number(record.count) || 0))) + "</div></div>"; }).join("");
+    el.detail.innerHTML = "<h3>" + Number(parts[1]) + " 月 " + Number(parts[2]) + " 日 · " + (summary.missing ? "部分未設薪資" : money(summary.total)) + "</h3>" + (rows || "<div class=\"detail-empty\">這天沒有可計薪紀錄。</div>");
+  }
+  el.calendar.addEventListener("click", function (event) { var cell = event.target.closest("[data-date]"); if (cell) selectDate(cell.dataset.date); });
+  el.month.addEventListener("change", render);
+  document.getElementById("current-month").addEventListener("click", function () { el.month.value = monthText(); render(); });
+  document.getElementById("sync-data").addEventListener("click", function () { render(); this.textContent = "✓ 已同步"; var button = this; setTimeout(function () { button.textContent = "🔄 同步薪資"; }, 1200); });
+  window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) render(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
+  var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=16", { updateViaCache: "none" }).catch(function () {});
+  el.month.value = monthText();
+  render();
+})();
+</script>
+</body>
+</html>
