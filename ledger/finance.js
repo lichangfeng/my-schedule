@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.0.0";
+  var APP_VERSION = "1.1.0";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -49,6 +49,13 @@
     debtBalance: document.getElementById("debt-balance"),
     debtMonthly: document.getElementById("debt-monthly"),
     debtDueDay: document.getElementById("debt-due-day"),
+    debtRepaymentType: document.getElementById("debt-repayment-type"),
+    debtFirstMonth: document.getElementById("debt-first-month"),
+    debtInstallmentMonths: document.getElementById("debt-installment-months"),
+    debtInstallmentField: document.getElementById("debt-installment-field"),
+    debtMonthlyLabel: document.getElementById("debt-monthly-label"),
+    debtDueDayLabel: document.getElementById("debt-due-day-label"),
+    debtPlanHint: document.getElementById("debt-plan-hint"),
     debtRate: document.getElementById("debt-rate"),
     debtNote: document.getElementById("debt-note"),
     debtReset: document.getElementById("debt-reset"),
@@ -211,28 +218,54 @@
       return { records: [], rates: {}, payDays: {} };
     }
   }
-  function salaryForMonth(month) {
+  function salaryForMonth(paymentMonth) {
     var ledger = salaryState();
+    var sourceMonth = shiftMonth(paymentMonth, -1);
     var total = 0;
     var classes = 0;
     var missingClasses = 0;
-    var institutions = {};
+    var map = {};
     ledger.records.forEach(function (record) {
-      if (!record || String(record.date || "").slice(0, 7) !== month) return;
+      if (!record || String(record.date || "").slice(0, 7) !== sourceMonth) return;
       if (record.status !== "completed" && record.status !== "substitute") return;
+      var institution = record.institution || "未填機構";
       var count = numberOrZero(record.count);
       var rate = numberOrNull(record.rate);
-      if (rate === null && ledger.rates && ledger.rates[record.institution] !== undefined) rate = numberOrNull(ledger.rates[record.institution]);
+      if (rate === null && ledger.rates && ledger.rates[institution] !== undefined) rate = numberOrNull(ledger.rates[institution]);
+      if (!map[institution]) map[institution] = { institution: institution, classes: 0, missingClasses: 0, total: 0 };
+      map[institution].classes += count;
       classes += count;
       if (rate === null) {
         missingClasses += count;
+        map[institution].missingClasses += count;
       } else {
         total += rate * count;
+        map[institution].total += rate * count;
       }
-      institutions[record.institution || "未填機構"] = true;
     });
-    return { month: month, total: total, classes: classes, missingClasses: missingClasses, institutionCount: Object.keys(institutions).length };
+    var byInstitution = Object.keys(map).map(function (key) {
+      var payDay = ledger.payDays && ledger.payDays[key] !== undefined ? numberOrNull(ledger.payDays[key]) : null;
+      return {
+        institution: key,
+        classes: map[key].classes,
+        missingClasses: map[key].missingClasses,
+        total: map[key].total,
+        payDay: payDay,
+        payDate: dateForMonthDay(paymentMonth, payDay || 1)
+      };
+    }).sort(function (a, b) { return b.total - a.total || a.institution.localeCompare(b.institution, "zh-Hant"); });
+    return {
+      month: paymentMonth,
+      paymentMonth: paymentMonth,
+      sourceMonth: sourceMonth,
+      total: total,
+      classes: classes,
+      missingClasses: missingClasses,
+      institutionCount: byInstitution.length,
+      byInstitution: byInstitution
+    };
   }
+
   function transactionsForMonth(month) {
     return state.transactions.filter(function (item) { return String(item.date || "").slice(0, 7) === month; });
   }
@@ -248,10 +281,44 @@
   function linkedPaidRecurringAmount(recurringId, month) {
     return paidExpensesForMonth(month).filter(function (item) { return item.recurringId === recurringId; }).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
   }
+  function debtPlanType(debt) {
+    var value = debt && debt.repaymentType;
+    return value === "next_month" || value === "installment" ? value : "monthly";
+  }
+  function debtPlanLabel(debt) {
+    var type = debtPlanType(debt);
+    if (type === "next_month") return "次月一次";
+    if (type === "installment") return "分期還款";
+    return "每月固定";
+  }
+  function debtEndMonth(debt) {
+    var first = debt && debt.firstDueMonth;
+    if (!first || debtPlanType(debt) !== "installment") return "";
+    return shiftMonth(first, Math.max(1, Number(debt.installmentMonths) || 1) - 1);
+  }
+  function debtScheduleIncludes(debt, month) {
+    var type = debtPlanType(debt);
+    var first = debt && debt.firstDueMonth;
+    if (!first) return type === "monthly";
+    if (month < first) return false;
+    if (type === "next_month") return true;
+    if (type === "installment") return month <= debtEndMonth(debt);
+    return true;
+  }
+  function debtScheduleText(debt) {
+    var type = debtPlanType(debt);
+    var first = debt && debt.firstDueMonth;
+    if (!first) return "每月固定 · 未設定首次月份";
+    if (type === "next_month") return "次月一次 · " + monthLabel(first) + " " + Number(debt.dueDay || 1) + " 日";
+    if (type === "installment") return "分 " + Math.max(1, Number(debt.installmentMonths) || 1) + " 期 · " + monthLabel(first) + "至" + monthLabel(debtEndMonth(debt));
+    return "每月固定 · " + monthLabel(first) + "起";
+  }
+
   function dueItemsForMonth(month) {
     var items = [];
     state.debts.forEach(function (debt) {
       if (numberOrZero(debt.monthlyDue) <= 0 || numberOrZero(debt.balance) <= 0) return;
+      if (!debtScheduleIncludes(debt, month)) return;
       var paid = linkedPaidDebtAmount(debt.id, month);
       var remaining = Math.max(0, numberOrZero(debt.monthlyDue) - paid);
       if (remaining > 0) {
@@ -294,7 +361,7 @@
     renderCategoryOptions(txType());
     setSelectOptions(el.txAccount, ACCOUNTS, el.txAccount.value || "微信");
     el.txDebt.innerHTML = '<option value="">不連動</option>' + state.debts.map(function (debt) {
-      return '<option value="' + esc(debt.id) + '">' + esc(debt.name || debt.platform) + " · " + money(debt.monthlyDue) + "/月</option>";
+      return '<option value="' + esc(debt.id) + '">' + esc(debt.name || debt.platform) + " · " + esc(debtPlanLabel(debt)) + " " + money(debt.monthlyDue) + "</option>";
     }).join("");
     el.txRecurring.innerHTML = '<option value="">不連動</option>' + state.recurring.map(function (item) {
       return '<option value="' + esc(item.id) + '">' + esc(item.name) + " · " + money(item.amount) + "/月</option>";
@@ -400,25 +467,25 @@
     var available = salary.total + otherIncome - expenses - dueRemaining;
     var incomeCount = paidIncomeForMonth(month).length;
     el.metrics.innerHTML =
-      '<div class="metric"><span>舞蹈薪資</span><strong>' + money(salary.total) + '</strong><small>' + decimal(salary.classes) + ' 堂 · ' + salary.institutionCount + ' 個機構' + (salary.missingClasses ? " · " + decimal(salary.missingClasses) + " 堂未設薪資" : "") + '</small></div>' +
+      '<div class="metric"><span>舞蹈薪資（本月入帳）</span><strong>' + money(salary.total) + '</strong><small>' + monthLabel(salary.sourceMonth) + "課堂 · " + decimal(salary.classes) + ' 堂 · ' + salary.institutionCount + ' 個機構' + (salary.missingClasses ? " · " + decimal(salary.missingClasses) + " 堂未設薪資" : "") + '</small></div>' +
       '<div class="metric"><span>其他收入</span><strong>' + money(otherIncome) + '</strong><small>' + incomeCount + ' 筆已入帳</small></div>' +
       '<div class="metric"><span>已支付支出</span><strong class="amount-expense">' + money(expenses) + '</strong><small>不含待支付與未完成項目</small></div>' +
       '<div class="metric"><span>本月尚待繳</span><strong class="amount-income">' + money(dueRemaining) + '</strong><small>欠款月還＋固定支出</small></div>' +
       '<div class="metric"><span>可用結餘</span><strong style="color:' + (available >= 0 ? "var(--green)" : "var(--red)") + '">' + money(available) + '</strong><small>薪資＋收入－支出－待繳</small></div>';
   }
-
   function renderSalary(month) {
     var salary = salaryForMonth(month);
     var connected = salary.classes > 0 || salary.total > 0 || salary.missingClasses > 0;
-    var detail = connected
-      ? '<span class="pill good">已連動上課紀錄</span>'
-      : '<span class="pill muted">本月無薪資紀錄</span>';
+    var detail = connected ? '<span class="pill good">次月入帳已連動</span>' : '<span class="pill muted">本月無薪資紀錄</span>';
+    var breakdown = salary.byInstitution.slice(0, 4).map(function (item) {
+      return '<span class="badge">' + esc(item.institution) + " " + money(item.total) + (item.missingClasses ? " · " + decimal(item.missingClasses) + "堂未設薪資" : "") + '</span>';
+    }).join("");
+    if (salary.byInstitution.length > 4) breakdown += '<span class="badge">另有 ' + (salary.byInstitution.length - 4) + ' 個機構</span>';
     var missing = salary.missingClasses
       ? '<p class="helper" style="color:var(--yellow)">有 ' + decimal(salary.missingClasses) + ' 堂已完成／代課尚未設定機構薪資，請回上課紀錄補上每節薪資。</p>'
-      : '<p class="helper">已自動計算已完成與代課課堂；待授課、請假、取消不列入薪資。</p>';
-    el.salaryPanel.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:center;gap:12px"><div><strong>舞蹈薪資連動</strong><div class="helper">' + monthLabel(month) + ' · ' + money(salary.total) + '／' + decimal(salary.classes) + ' 堂</div></div><div class="inline-actions">' + detail + '<button id="sync-salary" class="btn small" type="button">重新同步</button></div></div>' + missing;
+      : '<p class="helper">薪資依課堂日期自動延後一個月入帳；例如 9 月課堂會列入 10 月收入。</p>';
+    el.salaryPanel.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:center;gap:12px"><div><strong>舞蹈薪資連動</strong><div class="helper">' + monthLabel(month) + ' 入帳 · 課堂來源 ' + monthLabel(salary.sourceMonth) + ' · ' + money(salary.total) + '／' + decimal(salary.classes) + ' 堂</div><div style="margin-top:7px">' + (breakdown || '<span class="helper">本月沒有次月入帳薪資。</span>') + '</div></div><div class="inline-actions">' + detail + '<button id="sync-salary" class="btn small" type="button">重新同步</button></div></div>' + missing;
   }
-
   function renderDue(month) {
     var items = dueItemsForMonth(month);
     var salary = salaryForMonth(month);
@@ -434,25 +501,56 @@
 
   function renderDebts(month) {
     var total = state.debts.reduce(function (sum, debt) { return sum + Math.max(0, numberOrZero(debt.balance)); }, 0);
-    var monthly = state.debts.reduce(function (sum, debt) { return sum + Math.max(0, numberOrZero(debt.monthlyDue)); }, 0);
+    var scheduledMonthly = state.debts.filter(function (debt) { return debtScheduleIncludes(debt, month); }).reduce(function (sum, debt) { return sum + Math.max(0, numberOrZero(debt.monthlyDue)); }, 0);
     var paid = state.debts.reduce(function (sum, debt) { return sum + linkedPaidDebtAmount(debt.id, month); }, 0);
     el.debtTotal.textContent = money(total);
-    var rate = monthly > 0 ? Math.min(100, paid / monthly * 100) : (state.debts.length ? 100 : 0);
+    var rate = scheduledMonthly > 0 ? Math.min(100, paid / scheduledMonthly * 100) : (state.debts.length ? 100 : 0);
     el.debtProgress.className = "progress" + (rate >= 100 ? "" : rate > 70 ? " warn" : "");
     el.debtProgress.innerHTML = '<i style="width:' + Math.min(100, rate).toFixed(1) + '%"></i>';
-    el.debtSummary.textContent = state.debts.length ? "每月應還合計 " + money(monthly) + "；本月已登記 " + money(paid) + "。" : "尚未設定欠款帳戶。";
+    el.debtSummary.textContent = state.debts.length ? monthLabel(month) + "排定應還 " + money(scheduledMonthly) + "；本月已登記 " + money(paid) + "。" : "尚未設定欠款帳戶。";
     if (!state.debts.length) {
-      el.debtList.innerHTML = '<div class="empty">還沒有欠款帳戶。點右上角「新增帳戶」開始記錄美團月付、花唄或借唄。</div>';
+      el.debtList.innerHTML = '<div class="empty">還沒有欠款帳戶。點右上角「新增帳戶」開始記錄美團月付、花唄、借唄或借款。</div>';
       return;
     }
     el.debtList.innerHTML = state.debts.slice().sort(function (a, b) { return numberOrZero(b.balance) - numberOrZero(a.balance); }).map(function (debt) {
       var paidThisMonth = linkedPaidDebtAmount(debt.id, month);
       var due = numberOrZero(debt.monthlyDue);
       var remaining = Math.max(0, due - paidThisMonth);
-      var status = remaining <= 0 && due > 0 ? '<span class="pill good">本月已繳</span>' : due > 0 ? '<span class="pill warn">待還 ' + money(remaining) + '</span>' : '<span class="pill muted">未設月還</span>';
-      var dueText = debt.dueDay ? "每月 " + Number(debt.dueDay) + " 日" : "未設還款日";
-      return '<article class="debt-card"><div class="debt-top"><div><h3>' + esc(debt.name || debt.platform) + '</h3><div class="helper">' + esc(debt.platform || "其他") + " · " + esc(dueText) + '</div></div>' + status + '</div><div class="debt-balance">' + money(debt.balance) + '</div><div class="debt-meta">目前欠款' + (numberOrZero(debt.balance) < 0 ? "（多付）" : "") + '<br>每月應還 ' + money(debt.monthlyDue) + (debt.annualRate !== undefined && debt.annualRate !== "" && debt.annualRate !== null ? " · 年利率 " + decimal(debt.annualRate) + "%" : "") + (debt.note ? "<br>" + esc(debt.note) : "") + '</div><div class="progress ' + (remaining <= 0 ? "" : "warn") + '"><i style="width:' + (due > 0 ? Math.min(100, paidThisMonth / due * 100) : 0) + '%"></i></div><div class="debt-actions"><button class="btn small primary" data-pay-debt="' + esc(debt.id) + '" type="button">登記還款</button><button class="btn small" data-edit-debt="' + esc(debt.id) + '" type="button">編輯</button><button class="btn small danger" data-delete-debt="' + esc(debt.id) + '" type="button">刪除</button></div></article>';
+      var scheduled = debtScheduleIncludes(debt, month);
+      var future = debt.firstDueMonth && month < debt.firstDueMonth;
+      var status = numberOrZero(debt.balance) <= 0
+        ? '<span class="pill good">已還清</span>'
+        : !scheduled
+          ? '<span class="pill muted">' + (future ? "未到還款期" : "超出分期期數") + '</span>'
+          : remaining <= 0 && due > 0
+            ? '<span class="pill good">本月已繳</span>'
+            : due > 0
+              ? '<span class="pill warn">待還 ' + money(remaining) + '</span>'
+              : '<span class="pill muted">未設應還</span>';
+      var amountLabel = debtPlanType(debt) === "next_month" ? "本期應還" : debtPlanType(debt) === "installment" ? "每期應還" : "每月應還";
+      return '<article class="debt-card"><div class="debt-top"><div><h3>' + esc(debt.name || debt.platform) + '</h3><div class="helper">' + esc(debt.platform || "其他") + " · " + esc(debtPlanLabel(debt)) + '</div></div>' + status + '</div><div class="debt-balance">' + money(debt.balance) + '</div><div class="debt-meta">目前欠款' + (numberOrZero(debt.balance) < 0 ? "（多付）" : "") + '<br>' + esc(debtScheduleText(debt)) + '<br>' + amountLabel + ' ' + money(debt.monthlyDue) + (debt.annualRate !== undefined && debt.annualRate !== "" && debt.annualRate !== null ? " · 年利率 " + decimal(debt.annualRate) + "%" : "") + (debt.note ? "<br>" + esc(debt.note) : "") + '</div><div class="progress ' + (remaining <= 0 || !scheduled ? "" : "warn") + '"><i style="width:' + (scheduled && due > 0 ? Math.min(100, paidThisMonth / due * 100) : 0) + '%"></i></div><div class="debt-actions"><button class="btn small primary" data-pay-debt="' + esc(debt.id) + '" type="button">' + (scheduled ? "登記還款" : "提前還款") + '</button><button class="btn small" data-edit-debt="' + esc(debt.id) + '" type="button">編輯</button><button class="btn small danger" data-delete-debt="' + esc(debt.id) + '" type="button">刪除</button></div></article>';
     }).join("");
+  }
+  function updateDebtPlanFields() {
+    var type = el.debtRepaymentType.value;
+    if (type === "next_month") {
+      el.debtInstallmentField.classList.add("hidden");
+      el.debtInstallmentMonths.value = "1";
+      el.debtMonthlyLabel.textContent = "次月應還（¥）";
+      el.debtDueDayLabel.textContent = "還款日";
+      el.debtPlanHint.textContent = "次月一次會從首次還款月份開始列入待繳；若未繳清，之後仍會提醒剩餘金額。";
+    } else if (type === "installment") {
+      el.debtInstallmentField.classList.remove("hidden");
+      if (!el.debtInstallmentMonths.value || Number(el.debtInstallmentMonths.value) < 1) el.debtInstallmentMonths.value = "1";
+      el.debtMonthlyLabel.textContent = "每期應還（¥）";
+      el.debtDueDayLabel.textContent = "每期扣款日";
+      el.debtPlanHint.textContent = "分期會從首次還款月份起，在指定期數內按月列入待繳。";
+    } else {
+      el.debtInstallmentField.classList.add("hidden");
+      el.debtMonthlyLabel.textContent = "每月應還（¥）";
+      el.debtDueDayLabel.textContent = "每月還款日";
+      el.debtPlanHint.textContent = "每月固定會從首次還款月份開始，持續到欠款還清。";
+    }
   }
 
   function resetDebtForm() {
@@ -464,6 +562,10 @@
     el.debtMonthly.value = "";
     el.debtDueDay.value = "10";
     el.debtRate.value = "";
+    el.debtRepaymentType.value = "monthly";
+    el.debtFirstMonth.value = shiftMonth(monthText(), 1);
+    el.debtInstallmentMonths.value = "1";
+    updateDebtPlanFields();
     el.debtFormTitle.textContent = "新增欠款帳戶";
     el.debtFormWrap.open = true;
   }
@@ -476,8 +578,12 @@
     el.debtBalance.value = debt.balance;
     el.debtMonthly.value = debt.monthlyDue;
     el.debtDueDay.value = debt.dueDay || 10;
+    el.debtRepaymentType.value = debtPlanType(debt);
+    el.debtFirstMonth.value = debt.firstDueMonth || monthText();
+    el.debtInstallmentMonths.value = Math.max(1, Number(debt.installmentMonths) || 1);
     el.debtRate.value = debt.annualRate === undefined ? "" : debt.annualRate;
     el.debtNote.value = debt.note || "";
+    updateDebtPlanFields();
     el.debtFormTitle.textContent = "編輯欠款帳戶";
     el.debtFormWrap.open = true;
     el.debtFormWrap.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -488,9 +594,15 @@
     var balance = numberOrNull(el.debtBalance.value);
     var monthly = numberOrNull(el.debtMonthly.value);
     var day = Number(el.debtDueDay.value);
+    var type = el.debtRepaymentType.value;
+    var firstMonth = el.debtFirstMonth.value;
+    var installmentMonths = type === "installment" ? Number(el.debtInstallmentMonths.value) : 1;
     if (balance === null || balance < 0) return showToast("請輸入有效的目前欠款");
-    if (monthly === null || monthly < 0) return showToast("請輸入有效的每月應還金額");
-    if (!(day >= 1 && day <= 31)) return showToast("每月還款日需為 1 至 31");
+    if (monthly === null || monthly < 0) return showToast("請輸入有效的應還金額");
+    if (type !== "monthly" && monthly <= 0) return showToast("次月一次與分期還款必須填寫應還金額");
+    if (!(day >= 1 && day <= 31)) return showToast("還款日需為 1 至 31");
+    if (!/^\d{4}-\d{2}$/.test(firstMonth)) return showToast("請選擇首次還款月份");
+    if (!(installmentMonths >= 1 && installmentMonths <= 120)) return showToast("分期期數需為 1 至 120");
     var debt = {
       id: editingDebtId || uid("debt"),
       platform: el.debtPlatform.value,
@@ -498,6 +610,9 @@
       balance: balance,
       monthlyDue: monthly,
       dueDay: day,
+      repaymentType: type,
+      firstDueMonth: firstMonth,
+      installmentMonths: installmentMonths,
       annualRate: el.debtRate.value === "" ? "" : numberOrZero(el.debtRate.value),
       note: el.debtNote.value.trim(),
       updatedAt: new Date().toISOString()
@@ -519,20 +634,19 @@
     var paid = linkedPaidDebtAmount(id, month);
     var remaining = Math.max(0, numberOrZero(debt.monthlyDue) - paid);
     resetTxForm();
-    el.txDate.value = todayText();
+    el.txDate.value = debtScheduleIncludes(debt, month) ? dateForMonthDay(month, debt.dueDay) : todayText();
     document.querySelector('input[name="tx-type"][value="expense"]').checked = true;
     renderCategoryOptions("expense", "還款");
     el.txAmount.value = remaining > 0 ? remaining : numberOrZero(debt.monthlyDue);
     el.txCategory.value = "還款";
     el.txAccount.value = platformAccount(debt.platform);
-    el.txItem.value = (debt.name || debt.platform) + " 月還款";
+    el.txItem.value = (debt.name || debt.platform) + " 還款";
     el.txDebt.value = debt.id;
     el.txStatus.value = "paid";
-    el.txNote.value = "第 " + monthLabel(month) + " 期";
+    el.txNote.value = debtPlanLabel(debt) + " · " + monthLabel(month);
     el.txHint.textContent = "已帶入還款資料，儲存後會同步扣除欠款餘額。";
     el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-
   function deleteDebt(id) {
     var debt = findDebt(id);
     if (!debt || !window.confirm("確定刪除「" + (debt.name || debt.platform) + "」嗎？既有交易會保留，但不再連動此帳戶。")) return;
@@ -748,17 +862,17 @@
     var records = transactionsForMonth(month).slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
     var salary = salaryForMonth(month);
     var rows = [["日期", "類型", "分類", "項目／商家", "方式／平台", "金額", "狀態", "連動", "備註"]];
-    if (salary.total > 0 || salary.missingClasses > 0) {
-      rows.push([month + "-01", "收入（自動）", "舞蹈薪資", "舞蹈薪資連動 " + decimal(salary.classes) + " 堂", "上課紀錄", salary.total.toFixed(2), salary.missingClasses ? "部分未設薪資" : "已計算", salary.missingClasses ? decimal(salary.missingClasses) + " 堂未設薪資" : "", "由舞蹈課堂紀錄自動計算"]);
-    }
-    records.forEach(function (item) {
+    salary.byInstitution.forEach(function (item) {
+      if (item.total <= 0 && item.missingClasses <= 0) return;
+      rows.push([item.payDate, "收入（自動）", "舞蹈薪資", item.institution + " " + decimal(item.classes) + " 堂", "上課紀錄", item.total.toFixed(2), item.missingClasses ? "部分未設薪資" : "已計算", item.missingClasses ? decimal(item.missingClasses) + " 堂未設薪資" : "次月入帳", "課堂來源：" + monthLabel(salary.sourceMonth)]);
+    });    records.forEach(function (item) {
       rows.push([item.date, item.type === "income" ? "收入" : "支出", item.category || "", item.item || "", item.account || "", numberOrZero(item.amount).toFixed(2), item.status === "paid" ? "已支付／入帳" : "待支付", item.debtId ? "欠款帳戶" : item.recurringId ? "固定支出" : "", item.note || ""]);
     });
     var expenses = paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
     var otherIncome = paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
     var due = dueItemsForMonth(month).reduce(function (sum, item) { return sum + item.amount; }, 0);
     rows.push([]);
-    rows.push(["本月舞蹈薪資", salary.total.toFixed(2), "", "", "", "", "", "", ""]);
+    rows.push(["本月入帳舞蹈薪資", salary.total.toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月其他收入", otherIncome.toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月已支付支出", expenses.toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月尚待繳", due.toFixed(2), "", "", "", "", "", "", ""]);
@@ -768,7 +882,7 @@
   function allRelevantMonths() {
     var months = {};
     state.transactions.forEach(function (item) { if (item.date) months[String(item.date).slice(0, 7)] = true; });
-    salaryState().records.forEach(function (record) { if (record.date) months[String(record.date).slice(0, 7)] = true; });
+    salaryState().records.forEach(function (record) { if (record.date) months[shiftMonth(String(record.date).slice(0, 7), 1)] = true; });
     if (!Object.keys(months).length) months[monthText()] = true;
     return Object.keys(months).sort();
   }
@@ -777,10 +891,10 @@
     var rows = [["月份", "日期", "類型", "分類", "項目／商家", "方式／平台", "金額", "狀態", "連動", "備註"]];
     months.forEach(function (month) {
       var salary = salaryForMonth(month);
-      if (salary.total > 0 || salary.missingClasses > 0) {
-        rows.push([month, month + "-01", "收入（自動）", "舞蹈薪資", "舞蹈薪資連動 " + decimal(salary.classes) + " 堂", "上課紀錄", salary.total.toFixed(2), salary.missingClasses ? "部分未設薪資" : "已計算", salary.missingClasses ? decimal(salary.missingClasses) + " 堂未設薪資" : "", "由舞蹈課堂紀錄自動計算"]);
-      }
-      transactionsForMonth(month).slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); }).forEach(function (item) {
+      salary.byInstitution.forEach(function (item) {
+        if (item.total <= 0 && item.missingClasses <= 0) return;
+        rows.push([month, item.payDate, "收入（自動）", "舞蹈薪資", item.institution + " " + decimal(item.classes) + " 堂", "上課紀錄", item.total.toFixed(2), item.missingClasses ? "部分未設薪資" : "已計算", item.missingClasses ? decimal(item.missingClasses) + " 堂未設薪資" : "次月入帳", "課堂來源：" + monthLabel(salary.sourceMonth)]);
+      });      transactionsForMonth(month).slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); }).forEach(function (item) {
         rows.push([month, item.date, item.type === "income" ? "收入" : "支出", item.category || "", item.item || "", item.account || "", numberOrZero(item.amount).toFixed(2), item.status === "paid" ? "已支付／入帳" : "待支付", item.debtId ? "欠款帳戶" : item.recurringId ? "固定支出" : "", item.note || ""]);
       });
       rows.push([month, "", "月度合計", "薪資", "", "", salary.total.toFixed(2), "", "", ""]);
@@ -831,7 +945,7 @@
         };
       }),
       debts: debts.filter(function (item) { return item && item.id; }).map(function (item) {
-        return { id: item.id, platform: item.platform || "其他", name: item.name || item.platform || "未命名", balance: numberOrZero(item.balance), monthlyDue: numberOrZero(item.monthlyDue), dueDay: Math.min(31, Math.max(1, Number(item.dueDay) || 10)), annualRate: item.annualRate === "" || item.annualRate === undefined ? "" : numberOrZero(item.annualRate), note: item.note || "", updatedAt: item.updatedAt || new Date().toISOString() };
+        return { id: item.id, platform: item.platform || "其他", name: item.name || item.platform || "未命名", balance: numberOrZero(item.balance), monthlyDue: numberOrZero(item.monthlyDue), dueDay: Math.min(31, Math.max(1, Number(item.dueDay) || 10)), repaymentType: item.repaymentType === "next_month" || item.repaymentType === "installment" ? item.repaymentType : "monthly", firstDueMonth: /^\d{4}-\d{2}$/.test(item.firstDueMonth || "") ? item.firstDueMonth : "", installmentMonths: Math.min(120, Math.max(1, Number(item.installmentMonths) || 1)), annualRate: item.annualRate === "" || item.annualRate === undefined ? "" : numberOrZero(item.annualRate), note: item.note || "", updatedAt: item.updatedAt || new Date().toISOString() };
       }),
       recurring: recurring.filter(function (item) { return item && item.id; }).map(function (item) {
         return { id: item.id, name: item.name || "未命名", amount: numberOrZero(item.amount), category: item.category || "其他", account: item.account || "其他", dueDay: Math.min(31, Math.max(1, Number(item.dueDay) || 1)), active: item.active !== false, note: item.note || "", updatedAt: item.updatedAt || new Date().toISOString() };
@@ -876,6 +990,7 @@
 
   el.txForm.addEventListener("submit", saveTransaction);
   el.debtForm.addEventListener("submit", saveDebt);
+  el.debtRepaymentType.addEventListener("change", updateDebtPlanFields);
   el.recurringForm.addEventListener("submit", saveRecurring);
   document.querySelectorAll('input[name="tx-type"]').forEach(function (radio) {
     radio.addEventListener("change", function () {
@@ -1016,7 +1131,7 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=18", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=19", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
   el.monthPicker.value = monthText();

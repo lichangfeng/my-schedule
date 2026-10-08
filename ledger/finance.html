@@ -129,7 +129,7 @@
       <div class="card-head">
         <div>
           <h2>欠款與每月還款</h2>
-          <p>管理美團月付、花唄、借唄、信用卡及其他欠款。</p>
+          <p>管理美團月付、花唄、借唄、信用卡，支援次月一次與分期還款。</p>
         </div>
         <button id="show-debt-form" class="btn small good" type="button">＋ 新增帳戶</button>
       </div>
@@ -162,13 +162,31 @@
               <input id="debt-balance" type="number" min="0" step="0.01" inputmode="decimal" required>
             </div>
             <div class="field">
-              <label for="debt-monthly">每月應還（¥）</label>
+              <label for="debt-repayment-type">還款方式</label>
+              <select id="debt-repayment-type">
+                <option value="monthly">每月固定還款</option>
+                <option value="next_month">次月一次性還款</option>
+                <option value="installment">分期還款</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="debt-first-month">首次還款月份</label>
+              <input id="debt-first-month" type="month" required>
+            </div>
+            <div class="field hidden" id="debt-installment-field">
+              <label for="debt-installment-months">分期期數</label>
+              <input id="debt-installment-months" type="number" min="1" max="120" step="1" value="1" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="debt-monthly" id="debt-monthly-label">每月應還（¥）</label>
               <input id="debt-monthly" type="number" min="0" step="0.01" inputmode="decimal" required>
             </div>
             <div class="field">
-              <label for="debt-due-day">每月還款日</label>
+              <label for="debt-due-day" id="debt-due-day-label">每月還款日</label>
               <input id="debt-due-day" type="number" min="1" max="31" step="1" inputmode="numeric" required>
             </div>
+            <p class="helper full" id="debt-plan-hint">次月一次只會在首次還款月份列入待繳；分期會在指定期數內按月列入。</p>
+
             <div class="field">
               <label for="debt-rate">年利率（選填 %）</label>
               <input id="debt-rate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如：18.25">
@@ -301,10 +319,10 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.0.0</span>
+      <span class="pill good" id="version-pill">v1.1.0</span>
     </div>
     <div class="card-body helper">
-      <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」已儲存的已完成／代課課堂；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
+      <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
       <p>「手動更新」會清除本頁與上課紀錄的快取後重新載入，不會刪除你的支出或薪資紀錄。換手機、換瀏覽器或清理瀏覽器資料前，請先按「匯出 JSON 備份」。</p>
     </div>
   </section>
@@ -317,6 +335,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=1"></script>
+<script src="./finance.js?v=2"></script>
 </body>
 </html>
