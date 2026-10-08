@@ -167,6 +167,7 @@
                 <option value="monthly">每月固定還款</option>
                 <option value="next_month">次月一次性還款</option>
                 <option value="installment">分期還款</option>
+                <option value="custom">每月金額不同</option>
               </select>
             </div>
             <div class="field">
@@ -184,6 +185,14 @@
             <div class="field">
               <label for="debt-due-day" id="debt-due-day-label">每月還款日</label>
               <input id="debt-due-day" type="number" min="1" max="31" step="1" inputmode="numeric" required>
+            </div>
+            <div class="field full hidden" id="debt-custom-schedule-field">
+              <label>每月還款計劃</label>
+              <div id="debt-schedule-list" class="schedule-editor"></div>
+              <div class="inline-actions section">
+                <button class="btn small good" id="debt-add-schedule" type="button">＋ 新增一期</button>
+              </div>
+              <p class="helper">每一期可設定不同月份與不同金額；沒有列出的月份不會列入待繳。</p>
             </div>
             <p class="helper full" id="debt-plan-hint">次月一次只會在首次還款月份列入待繳；分期會在指定期數內按月列入。</p>
 
@@ -328,7 +337,7 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.2.0</span>
+      <span class="pill good" id="version-pill">v1.3.0</span>
     </div>
     <div class="card-body helper">
       <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
@@ -344,6 +353,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=3"></script>
+<script src="./finance.js?v=4"></script>
 </body>
 </html>
