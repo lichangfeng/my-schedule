@@ -51,7 +51,7 @@ textarea{resize:vertical;min-height:74px}
 .advanced{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}.advanced summary{cursor:pointer;color:var(--muted);font-size:.84rem;font-weight:700}.advanced .form-grid{margin-top:12px}
 .rate-settings-list{display:grid;gap:10px;margin-top:12px}.rate-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 130px;align-items:center;gap:10px}.rate-row label{font-size:.92rem;color:var(--text);font-weight:750}.rate-row input{text-align:right}.payday-field{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:5px;color:var(--muted);font-size:.86rem}.payday-field input{text-align:center}.export-picker{display:grid;gap:6px;min-width:min(100%,360px)}.export-picker label{font-size:.86rem;font-weight:700;color:var(--muted)}.export-picker-row{display:grid;grid-template-columns:minmax(150px,1fr) auto auto auto;gap:8px}.export-picker-row select{min-width:0}
 .summary-top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;padding:18px 18px 0}
-.month-control{display:grid;gap:7px;min-width:230px}.month-switch{display:grid;grid-template-columns:auto minmax(140px,1fr) auto;gap:6px;align-items:center}.month-switch .btn{min-width:42px;padding:.45rem .65rem}
+.month-control{display:grid;gap:7px;min-width:230px}.month-switch{display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:7px;align-items:center}.month-switch .btn{min-width:64px;padding:.45rem .7rem}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:14px 18px 18px}
 .metric{border:1px solid var(--line);background:linear-gradient(180deg,#fff,#fafcfb);border-radius:14px;padding:13px}
 .metric span{display:block;color:var(--muted);font-size:.78rem;margin-bottom:6px}
@@ -199,7 +199,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <h1>上課紀錄與薪資統計</h1>
       <p>記錄每次授課，按月整理各機構堂數，直接給財務核對。</p>
     </div>
-    <div class="hero-badge">資料自動保存 · v13</div>
+    <div class="hero-badge">資料自動保存 · v14</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
@@ -284,13 +284,11 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <section class="card summary-card" id="summary">
         <div class="summary-top">
           <div class="month-control">
-            <label for="summary-month">統計月份（可切換任何月份）</label>
+            <label for="summary-month">選擇月份</label>
             <div class="month-switch">
-              <button id="month-prev" class="btn btn-small" type="button" aria-label="上一個月">‹</button>
               <input id="summary-month" type="month">
-              <button id="month-next" class="btn btn-small" type="button" aria-label="下一個月">›</button>
+              <button id="month-current" class="btn btn-small" type="button">本月</button>
             </div>
-            <button id="month-current" class="btn btn-small" type="button">回到本月</button>
           </div>
           <div class="export-picker no-print">
             <label for="export-institution-select">選擇單獨機構匯出</label>
@@ -393,13 +391,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   function monthText() {
     return todayText().slice(0, 7);
   }
-  function shiftMonth(delta) {
-    var current = el.month.value || monthText();
-    var parts = current.split("-");
-    var changed = new Date(Number(parts[0]), Number(parts[1]) - 1 + delta, 1);
-    el.month.value = changed.getFullYear() + "-" + pad(changed.getMonth() + 1);
-    render();
-  }  function pad(value) {
+  function pad(value) {
     return String(value).padStart(2, "0");
   }
   function uid() {
@@ -929,8 +921,6 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     el.rate.value = defaultRate === null ? "" : defaultRate;
   });
   el.month.addEventListener("change", render);
-  document.getElementById("month-prev").addEventListener("click", function () { shiftMonth(-1); });
-  document.getElementById("month-next").addEventListener("click", function () { shiftMonth(1); });
   document.getElementById("month-current").addEventListener("click", function () { el.month.value = monthText(); render(); });
   document.getElementById("copy-summary").addEventListener("click", copySummary);
   document.getElementById("export-month-csv").addEventListener("click", function () { exportCsv(true); });
@@ -989,7 +979,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     var ledgerReloading = false;
-    var ledgerRegistration = navigator.serviceWorker.register("./ledger-sw.js?v=13", { updateViaCache: "none" });
+    var ledgerRegistration = navigator.serviceWorker.register("./ledger-sw.js?v=14", { updateViaCache: "none" });
     function ledgerCheckForUpdate() { ledgerRegistration.then(function (registration) { registration.update(); }).catch(function () {}); }
     ledgerRegistration.then(function (registration) { registration.update(); }).catch(function () { console.warn("離線模式註冊失敗"); });
     navigator.serviceWorker.addEventListener("controllerchange", function () { if (ledgerReloading) return; ledgerReloading = true; window.location.reload(); });
