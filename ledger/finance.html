@@ -33,6 +33,8 @@
     <a class="tab" href="#entry">新增記錄</a>
     <a class="tab" href="#debts">欠款與月還</a>
     <a class="tab" href="#recurring">週期支出</a>
+    <a class="tab" href="#income-plans">月度收入</a>
+    <a class="tab" href="#savings">存款目標</a>
     <a class="tab" href="#budget">分類預算</a>
     <a class="tab" href="#records">明細匯出</a>
   </nav>
@@ -110,6 +112,10 @@
             <div class="field full">
               <label for="tx-recurring">連動週期性支出（選填）</label>
               <select id="tx-recurring"><option value="">不連動</option></select>
+            </div>
+            <div class="field full">
+              <label for="tx-income-plan">連動每月收入計劃（選填）</label>
+              <select id="tx-income-plan"><option value="">不連動</option></select>
             </div>
             <div class="field full">
               <label for="tx-note">備註</label>
@@ -274,6 +280,184 @@
     </div>
   </section>
 
+  <section class="card section full" id="income-plans">
+    <div class="card-head">
+      <div>
+        <h2>每月收入計劃</h2>
+        <p>收入日期不固定也能使用；每月只算預計收入，實際到帳後再登記日期。</p>
+      </div>
+      <button id="show-income-plan-form" class="btn small good" type="button">＋ 新增收入</button>
+    </div>
+    <div class="card-body">
+      <div id="income-plan-list" class="debt-grid"></div>
+      <details id="income-plan-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="income-plan-form-title">新增每月收入</summary>
+        <form id="income-plan-form" class="form-grid section">
+          <input id="income-plan-id" type="hidden">
+          <div class="field">
+            <label for="income-plan-name">收入名稱</label>
+            <input id="income-plan-name" type="text" maxlength="60" placeholder="例如：固定合作、分潤、兼職" required>
+          </div>
+          <div class="field">
+            <label for="income-plan-amount">每月預計收入（¥）</label>
+            <input id="income-plan-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="income-plan-start">開始月份</label>
+            <input id="income-plan-start" type="month" required>
+          </div>
+          <div class="field">
+            <label for="income-plan-active">狀態</label>
+            <select id="income-plan-active"><option value="true">啟用</option><option value="false">停用</option></select>
+          </div>
+          <div class="field full">
+            <label for="income-plan-note">備註</label>
+            <input id="income-plan-note" type="text" maxlength="100" placeholder="例如：每月 5～15 日之間到帳">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存收入計劃</button>
+            <button id="income-plan-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  </section>
+  <section class="card section full" id="savings">
+    <div class="card-head">
+      <div>
+        <h2>存款與存款目標</h2>
+        <p>記錄自己的存款帳戶，設定目標金額與期限，查看倒數和每月需存金額。</p>
+      </div>
+      <div class="inline-actions">
+        <button id="show-savings-account-form" class="btn small good" type="button">＋ 新增存款帳戶</button>
+        <button id="show-savings-goal-form" class="btn small primary" type="button">＋ 新增目標</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="subcard">
+        <div class="inline-actions" style="justify-content:space-between;align-items:center">
+          <strong>目前存款合計</strong>
+          <strong id="savings-total" class="amount-income">¥0</strong>
+        </div>
+        <p class="helper" id="savings-summary">尚未設定存款帳戶。</p>
+      </div>
+      <div id="savings-list" class="debt-grid section"></div>
+
+      <details id="savings-account-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="savings-account-form-title">新增存款帳戶</summary>
+        <form id="savings-account-form" class="form-grid section">
+          <input id="savings-account-id" type="hidden">
+          <div class="field">
+            <label for="savings-account-name">帳戶名稱</label>
+            <input id="savings-account-name" type="text" maxlength="60" placeholder="例如：工資卡、支付寶餘額" required>
+          </div>
+          <div class="field">
+            <label for="savings-account-type">帳戶類型</label>
+            <select id="savings-account-type">
+              <option>銀行卡</option><option>微信</option><option>支付寶</option><option>現金</option><option>定期存款</option><option>其他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="savings-account-balance">目前餘額（¥）</label>
+            <input id="savings-account-balance" type="number" min="0" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="savings-account-note">備註</label>
+            <input id="savings-account-note" type="text" maxlength="100" placeholder="例如：緊急備用金">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存存款帳戶</button>
+            <button id="savings-account-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+
+      <details id="savings-movement-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="savings-movement-title">存款變動記錄</summary>
+        <form id="savings-movement-form" class="form-grid section">
+          <input id="savings-movement-id" type="hidden">
+          <div class="field">
+            <label for="savings-movement-account">存款帳戶</label>
+            <select id="savings-movement-account" required></select>
+          </div>
+          <div class="field">
+            <label for="savings-movement-action">動作</label>
+            <select id="savings-movement-action">
+              <option value="deposit">存入／增加</option>
+              <option value="withdraw">取出／減少</option>
+              <option value="adjust">校正餘額</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="savings-movement-amount">金額／新餘額（¥）</label>
+            <input id="savings-movement-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="savings-movement-date">日期</label>
+            <input id="savings-movement-date" type="date" required>
+          </div>
+          <div class="field full">
+            <label for="savings-movement-note">備註</label>
+            <input id="savings-movement-note" type="text" maxlength="100" placeholder="例如：10 月薪資存入">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存存款變動</button>
+            <button id="savings-movement-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+
+      <div class="subcard section">
+        <div class="inline-actions" style="justify-content:space-between;align-items:center">
+          <h3 style="margin:0;font-size:.95rem">存款目標與倒數</h3>
+        </div>
+        <div id="savings-goal-list" class="debt-grid section"></div>
+        <details id="savings-goal-form-wrap" class="subcard section">
+          <summary style="cursor:pointer;font-weight:800" id="savings-goal-form-title">新增存款目標</summary>
+          <form id="savings-goal-form" class="form-grid section">
+            <input id="savings-goal-id" type="hidden">
+            <div class="field">
+              <label for="savings-goal-name">目標名稱</label>
+              <input id="savings-goal-name" type="text" maxlength="60" placeholder="例如：旅行基金、買電腦" required>
+            </div>
+            <div class="field">
+              <label for="savings-goal-account">連動存款帳戶（選填）</label>
+              <select id="savings-goal-account"><option value="">不連動，手動填目前金額</option></select>
+            </div>
+            <div class="field">
+              <label for="savings-goal-current">目前金額（¥）</label>
+              <input id="savings-goal-current" type="number" min="0" step="0.01" inputmode="decimal" value="0">
+            </div>
+            <div class="field">
+              <label for="savings-goal-target">目標金額（¥）</label>
+              <input id="savings-goal-target" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+            </div>
+            <div class="field">
+              <label for="savings-goal-date">目標日期</label>
+              <input id="savings-goal-date" type="date" required>
+            </div>
+            <div class="field">
+              <label for="savings-goal-active">狀態</label>
+              <select id="savings-goal-active"><option value="true">啟用</option><option value="false">停用</option></select>
+            </div>
+            <div class="field full">
+              <label for="savings-goal-note">備註</label>
+              <input id="savings-goal-note" type="text" maxlength="100">
+            </div>
+            <div class="inline-actions full">
+              <button class="btn primary" type="submit">儲存目標</button>
+              <button id="savings-goal-reset" class="btn" type="button">取消／清除</button>
+            </div>
+          </form>
+        </details>
+      </div>
+
+      <div class="subcard section">
+        <h3 style="margin:0 0 12px;font-size:.95rem">最近存款變動</h3>
+        <div id="savings-history"></div>
+      </div>
+    </div>
+  </section>
   <section class="card section" id="budget">
     <div class="card-head">
       <div>
@@ -337,7 +521,7 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.3.0</span>
+      <span class="pill good" id="version-pill">v1.4.0</span>
     </div>
     <div class="card-body helper">
       <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
@@ -353,6 +537,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=4"></script>
+<script src="./finance.js?v=5"></script>
 </body>
 </html>
