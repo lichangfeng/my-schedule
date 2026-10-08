@@ -32,7 +32,7 @@
     <a class="tab active" href="#overview">總覽</a>
     <a class="tab" href="#entry">新增記錄</a>
     <a class="tab" href="#debts">欠款與月還</a>
-    <a class="tab" href="#recurring">固定支出</a>
+    <a class="tab" href="#recurring">週期支出</a>
     <a class="tab" href="#budget">分類預算</a>
     <a class="tab" href="#records">明細匯出</a>
   </nav>
@@ -108,7 +108,7 @@
               <select id="tx-debt"><option value="">不連動</option></select>
             </div>
             <div class="field full">
-              <label for="tx-recurring">連動每月固定支出（選填）</label>
+              <label for="tx-recurring">連動週期性支出（選填）</label>
               <select id="tx-recurring"><option value="">不連動</option></select>
             </div>
             <div class="field full">
@@ -208,15 +208,15 @@
   <section class="card section full" id="recurring">
     <div class="card-head">
       <div>
-        <h2>每月固定支出</h2>
-        <p>房租、水電、網費、保險等每月要繳的項目；可一鍵帶入本月記錄。</p>
+        <h2>週期性固定支出</h2>
+        <p>支援每月、每 2 個月、每 3 個月等週期；只有到繳費月份才列入待繳。</p>
       </div>
       <button id="show-recurring-form" class="btn small good" type="button">＋ 新增項目</button>
     </div>
     <div class="card-body">
       <div id="recurring-list" class="debt-grid"></div>
       <details id="recurring-form-wrap" class="subcard section">
-        <summary style="cursor:pointer;font-weight:800" id="recurring-form-title">新增固定支出</summary>
+        <summary style="cursor:pointer;font-weight:800" id="recurring-form-title">新增週期性支出</summary>
         <form id="recurring-form" class="form-grid section">
           <input id="recurring-id" type="hidden">
           <div class="field">
@@ -224,8 +224,17 @@
             <input id="recurring-name" type="text" maxlength="60" placeholder="例如：房租、水電、健身房" required>
           </div>
           <div class="field">
-            <label for="recurring-amount">每月金額（¥）</label>
+            <label for="recurring-amount">每次繳款金額（¥）</label>
             <input id="recurring-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="recurring-cycle-months">繳費週期（月）</label>
+            <input id="recurring-cycle-months" type="number" min="1" max="24" step="1" value="1" inputmode="numeric" required>
+            <p class="helper">1＝每月一次，3＝每 3 個月一次。</p>
+          </div>
+          <div class="field">
+            <label for="recurring-first-month">首次繳費月份</label>
+            <input id="recurring-first-month" type="month" required>
           </div>
           <div class="field">
             <label for="recurring-category">分類</label>
@@ -236,7 +245,7 @@
             <select id="recurring-account"></select>
           </div>
           <div class="field">
-            <label for="recurring-due-day">每月扣款日</label>
+            <label for="recurring-due-day">繳費日</label>
             <input id="recurring-due-day" type="number" min="1" max="31" step="1" inputmode="numeric" required>
           </div>
           <div class="field">
@@ -319,7 +328,7 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.1.0</span>
+      <span class="pill good" id="version-pill">v1.2.0</span>
     </div>
     <div class="card-body helper">
       <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
@@ -335,6 +344,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=2"></script>
+<script src="./finance.js?v=3"></script>
 </body>
 </html>
