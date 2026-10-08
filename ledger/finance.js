@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.6.0";
+  var APP_VERSION = "1.6.1";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -639,6 +639,15 @@
     showToast(index >= 0 ? "記錄已更新" : "記錄已儲存");
   }
 
+  function savingsGoalMetricHtml() {
+    var goals = state.savingsGoals.filter(function (goal) { return goal.active !== false; });
+    if (!goals.length) return '<div class="metric"><span>存款目標</span><strong>尚未設定</strong><small>前往存款目標新增期限與金額</small></div>';
+    var goal = goals.sort(function (a, b) { return String(a.targetDate || "").localeCompare(String(b.targetDate || "")); })[0];
+    var calc = savingsGoalCountdown(goal);
+    var percent = calc.target > 0 ? Math.min(100, Math.max(0, calc.current / calc.target * 100)) : 0;
+    var detail = calc.remaining <= 0 ? "已達成" : calc.days >= 0 ? "剩 " + calc.days + " 天 · 每月約存 " + money(calc.perMonth) : "已到期 · 還差 " + money(calc.remaining);
+    return '<div class="metric"><span>存款目標</span><strong>' + esc(goal.name) + '</strong><small>' + money(calc.current) + ' / ' + money(calc.target) + ' · ' + detail + '</small><div class="progress"><i style="width:' + percent + '%"></i></div></div>';
+  }
   function renderMetrics(month) {
     var salary = salaryForMonth(month);
     var otherIncome = paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
@@ -654,6 +663,7 @@
       '<div class="metric"><span>待入賬收入</span><strong>' + money(pendingIncome) + '</strong><small>' + (pendingIncome ? '計劃收入尚未確認到賬' : '目前沒有待入賬收入') + '</small></div>' +
       '<div class="metric"><span>已支付支出</span><strong class="amount-expense">' + money(expenses) + '</strong><small>不含待支付與未完成項目</small></div>' +
       '<div class="metric"><span>本月尚待繳</span><strong class="amount-income">' + money(dueRemaining) + '</strong><small>欠款還款＋週期性支出</small></div>' +
+      savingsGoalMetricHtml() +
       '<div class="metric"><span>可用結餘</span><strong style="color:' + (available >= 0 ? "var(--green)" : "var(--red)") + '">' + money(available) + '</strong><small>' + (pendingIncome ? '待入賬全部到賬後：' + money(expectedAvailable) : '本月入賬－支出－待繳') + '</small></div>';
   }
   function renderSalary(month) {
@@ -1696,7 +1706,6 @@
     renderDebts(month);
     renderIncomePlans(month);
     renderSavings();
-    renderSavingsGoalSnapshot();
     renderRecurring(month);
     renderBudget(month);
     renderRecords(month);
@@ -1941,7 +1950,7 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=25", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=26", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
   el.monthPicker.value = monthText();
