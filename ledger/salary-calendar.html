@@ -35,11 +35,11 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
 .day:hover,.day.selected{border-color:rgba(34,211,238,.65);box-shadow:0 0 0 1px rgba(34,211,238,.15),0 0 22px rgba(34,211,238,.1)}
 .day.empty{cursor:default;background:rgba(5,14,26,.35);border-style:dashed;box-shadow:none}.day.today .day-number{color:#67e8f9}
 .day-number{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.92rem}
-.day-pay{margin-top:9px;font-size:1rem;font-weight:850;color:#67e8f9;word-break:break-all}.day-pay.unset{font-size:.78rem;color:#facc15}.day-count{margin-top:4px;color:var(--muted);font-size:.76rem}
+.day-pay{margin-top:9px;font-size:clamp(.72rem,4.3vw,1rem);font-weight:850;color:#67e8f9;white-space:nowrap;overflow:hidden;text-overflow:clip;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.day-pay.unset{font-size:.78rem;color:#facc15}.day-count{margin-top:4px;color:var(--muted);font-size:.76rem}
 .dots{display:flex;gap:4px;margin-top:7px}.dot{width:7px;height:7px;border-radius:50%;background:var(--dot);box-shadow:0 0 8px var(--dot)}
 .detail{margin-top:14px;padding:16px;border-top:1px solid var(--line);display:grid;gap:10px}.detail h3{margin:0;font-size:1rem}.detail-empty{color:var(--muted);font-size:.88rem}
 .detail-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid rgba(83,210,255,.12)}.detail-row:last-child{border-bottom:0}.detail-main strong{display:block}.detail-main span{display:block;color:var(--muted);font-size:.82rem;margin-top:4px}.detail-pay{font-weight:850;color:#67e8f9;text-align:right;white-space:nowrap}.detail-pay.unset{color:#facc15;font-size:.82rem}
-.manual-update{position:fixed;left:14px;bottom:14px;z-index:9999;border:0;border-radius:999px;padding:11px 17px;background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;font:700 14px system-ui;box-shadow:0 8px 24px rgba(34,211,238,.3);cursor:pointer}
+.payroll-card{margin-top:14px;padding:18px}.payroll-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px}.payroll-head h2{margin:0;font-size:1.05rem}.payroll-head span{color:var(--muted);font-size:.82rem}.payroll-table{width:100%;border-collapse:collapse}.payroll-table th,.payroll-table td{padding:10px 8px;border-bottom:1px solid rgba(83,210,255,.15);text-align:left}.payroll-table th{color:var(--muted);font-size:.82rem}.payroll-table td{font-size:.9rem}.payroll-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.payroll-empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed rgba(83,210,255,.22);border-radius:12px}.payroll-unset{color:#facc15}.payroll-date{color:#67e8f9;font-weight:800}.manual-update{position:fixed;left:14px;bottom:14px;z-index:9999;border:0;border-radius:999px;padding:11px 17px;background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;font:700 14px system-ui;box-shadow:0 8px 24px rgba(34,211,238,.3);cursor:pointer}
 @media(max-width:720px){body{padding:10px}.hero{align-items:flex-start;flex-direction:column}.controls{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-card{padding:12px}.calendar{gap:4px}.weekday{font-size:.72rem;padding:6px 2px}.day{min-height:78px;padding:6px;border-radius:10px}.day-number{font-size:.8rem}.day-pay{font-size:.82rem;margin-top:6px}.day-count{font-size:.68rem}.dot{width:5px;height:5px}}
 @media(max-width:390px){.metrics{grid-template-columns:1fr}.calendar-head{align-items:flex-start;flex-direction:column}.day{min-height:70px;padding:5px}.day-pay{font-size:.74rem}.day-count{display:none}}
 </style>
@@ -67,6 +67,10 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     <div class="calendar-head"><h2 id="calendar-title"></h2><div class="legend">每格顯示當日薪資</div></div>
     <div id="calendar" class="calendar"></div>
     <div id="day-detail" class="detail"></div>
+  </section>
+  <section class="card payroll-card">
+    <div class="payroll-head"><h2>依發薪日期</h2><span>薪資統一於次月發放</span></div>
+    <div id="payroll-table"></div>
   </section>
 </div>
 <script>
@@ -96,6 +100,42 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   function recordsForDate(dateText) { return (state.records || []).filter(function (record) { return record.date === dateText && isPayable(record); }); }
   function dailySummary(dateText) { var records = recordsForDate(dateText); var total = 0, classes = 0, missing = 0, institutions = {}; records.forEach(function (record) { var count = Number(record.count) || 0; var rate = effectiveRate(record); classes += count; institutions[record.institution || "未填機構"] = true; if (rate === null) missing += count; else total += rate * count; }); return { records: records, total: total, classes: classes, missing: missing, institutions: Object.keys(institutions) }; }
   function monthRecords(month) { return (state.records || []).filter(function (record) { return String(record.date || "").slice(0, 7) === month && isPayable(record); }); }
+  function paymentDateText(month, payDay) {
+    if (payDay === null) return "未設定";
+    var parts = month.split("-");
+    var year = Number(parts[0]), mon = Number(parts[1]);
+    var next = new Date(year, mon, 1);
+    var lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    var payDate = Math.min(payDay, lastDay);
+    return next.getFullYear() + "/" + pad(next.getMonth() + 1) + "/" + pad(payDate);
+  }
+  function renderPayrollTable(month) {
+    var host = document.getElementById("payroll-table");
+    var records = monthRecords(month);
+    var groups = {};
+    records.forEach(function (record) {
+      var institution = record.institution || "未填機構";
+      var payDay = numberOrNull((state.payDays || {})[institution]);
+      var dateText = paymentDateText(month, payDay);
+      var key = dateText + "|" + institution;
+      if (!groups[key]) groups[key] = { dateText: dateText, institution: institution, classes: 0, amount: 0, missing: 0, sourceMonth: month };
+      var count = Number(record.count) || 0;
+      var rate = effectiveRate(record);
+      groups[key].classes += count;
+      if (rate === null) groups[key].missing += count; else groups[key].amount += rate * count;
+    });
+    var rows = Object.keys(groups).map(function (key) { return groups[key]; }).sort(function (a, b) {
+      if (a.dateText === "未設定") return 1;
+      if (b.dateText === "未設定") return -1;
+      return a.dateText.localeCompare(b.dateText) || a.institution.localeCompare(b.institution, "zh-Hant");
+    });
+    if (!rows.length) { host.innerHTML = "<div class=\"payroll-empty\">這個月沒有可計算的發薪紀錄。</div>"; return; }
+    host.innerHTML = "<div class=\"table-wrap\"><table class=\"payroll-table\"><thead><tr><th>發薪日期</th><th>機構</th><th>課堂月份</th><th class=\"num\">堂數</th><th class=\"num\">薪資</th></tr></thead><tbody>" + rows.map(function (row) {
+      var monthParts = String(row.sourceMonth).split("-");
+      var amount = row.missing ? "<span class=\"payroll-unset\">部分未設薪資</span>" : money(row.amount);
+      return "<tr><td class=\"" + (row.dateText === "未設定" ? "payroll-unset" : "payroll-date") + "\">" + esc(row.dateText) + "</td><td>" + esc(row.institution) + "</td><td>" + monthParts[0] + "/" + monthParts[1] + "</td><td class=\"num\">" + decimal(row.classes) + "</td><td class=\"num\">" + amount + "</td></tr>";
+    }).join("") + "</tbody></table></div>";
+  }
   function render() {
     state = loadState();
     var month = el.month.value || monthText();
@@ -110,9 +150,9 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     for (var day = 1; day <= days; day++) {
       var dateText = year + "-" + pad(mon) + "-" + pad(day);
       var summary = dailySummary(dateText);
-      var pay = summary.total > 0 ? money(summary.total) : (summary.missing ? "未設薪資" : "—");
+      var pay = summary.total > 0 ? decimal(summary.total) : (summary.missing ? "!" : "—");
       var dots = summary.institutions.slice(0, 5).map(function (institution) { return "<span class=\"dot\" style=\"--dot:" + colorFor(institution) + "\" title=\"" + esc(institution) + "\"></span>"; }).join("");
-      html += "<button type=\"button\" class=\"day" + (dateText === todayText() ? " today" : "") + "\" data-date=\"" + dateText + "\"><div class=\"day-number\"><span>" + day + "</span></div><div class=\"day-pay" + (pay === "未設薪資" ? " unset" : "") + "\">" + pay + "</div><div class=\"day-count\">" + (summary.classes ? decimal(summary.classes) + " 堂" : "沒有課") + "</div><div class=\"dots\">" + dots + "</div></button>";
+      html += "<button type=\"button\" class=\"day" + (dateText === todayText() ? " today" : "") + "\" data-date=\"" + dateText + "\"><div class=\"day-number\"><span>" + day + "</span></div><div class=\"day-pay" + (pay === "!" ? " unset" : "") + "\">" + pay + "</div><div class=\"day-count\">" + (summary.classes ? decimal(summary.classes) + " 堂" : "沒有課") + "</div><div class=\"dots\">" + dots + "</div></button>";
     }
     el.calendar.innerHTML = html;
     var records = monthRecords(month);
@@ -123,6 +163,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     document.getElementById("metric-classes").textContent = decimal(totalClasses) + " 堂";
     document.getElementById("metric-missing").textContent = decimal(missing) + " 堂";
     selectDate(null);
+    renderPayrollTable(month);
   }
   function selectDate(dateText) {
     if (!dateText) { el.detail.innerHTML = "<h3>每日明細</h3><div class=\"detail-empty\">點選日曆中的日期，查看當天各機構與薪資。</div>"; return; }
