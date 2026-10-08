@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.4.1";
+  var APP_VERSION = "1.5.0";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -536,6 +536,7 @@
   function resetTxForm() {
     editingTxId = null;
     el.txForm.reset();
+    if (el.entry) el.entry.open = false;
     el.txId.value = "";
     el.txDate.value = todayText();
     document.querySelector('input[name="tx-type"][value="expense"]').checked = true;
@@ -551,6 +552,7 @@
   }
   function fillTxForm(tx) {
     editingTxId = tx.id;
+    if (el.entry) el.entry.open = true;
     el.txId.value = tx.id;
     var radio = document.querySelector('input[name="tx-type"][value="' + tx.type + '"]');
     if (radio) radio.checked = true;
@@ -568,6 +570,7 @@
     el.entryMode.textContent = "編輯模式";
     el.entryMode.className = "pill warn";
     el.txHint.textContent = "正在修改既有記錄；儲存後會更新統計。";
+    if (el.entry) el.entry.open = true;
     el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function adjustDebtBalance(debtId, delta) {
@@ -627,18 +630,19 @@
   function renderMetrics(month) {
     var salary = salaryForMonth(month);
     var otherIncome = paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
+    var incomeCount = paidIncomeForMonth(month).length;
+    var pendingIncome = incomePlanPendingTotal(month);
+    var totalIncome = salary.total + otherIncome;
     var expenses = paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0);
     var dueRemaining = dueItemsForMonth(month).reduce(function (sum, item) { return sum + item.amount; }, 0);
-    var available = salary.total + otherIncome - expenses - dueRemaining;
-    var incomeCount = paidIncomeForMonth(month).length;
-    var expectedIncome = incomePlanPendingTotal(month);
-    var expectedAvailable = available + expectedIncome;
+    var available = totalIncome - expenses - dueRemaining;
+    var expectedAvailable = available + pendingIncome;
     el.metrics.innerHTML =
-      '<div class="metric"><span>舞蹈薪資（本月入帳）</span><strong>' + money(salary.total) + '</strong><small>' + monthLabel(salary.sourceMonth) + "課堂 · " + decimal(salary.classes) + ' 堂 · ' + salary.institutionCount + ' 個機構' + (salary.missingClasses ? " · " + decimal(salary.missingClasses) + " 堂未設薪資" : "") + '</small></div>' +
-      '<div class="metric"><span>其他收入</span><strong>' + money(otherIncome) + '</strong><small>' + incomeCount + ' 筆已入帳' + (expectedIncome ? ' · 預計待入帳 ' + money(expectedIncome) : '') + '</small></div>' +
+      '<div class="metric"><span>本月入賬</span><strong class="amount-income">' + money(totalIncome) + '</strong><small>舞蹈薪資 ' + money(salary.total) + ' · 其他收入 ' + money(otherIncome) + '（' + incomeCount + ' 筆）</small></div>' +
+      '<div class="metric"><span>待入賬收入</span><strong>' + money(pendingIncome) + '</strong><small>' + (pendingIncome ? '計劃收入尚未確認到賬' : '目前沒有待入賬收入') + '</small></div>' +
       '<div class="metric"><span>已支付支出</span><strong class="amount-expense">' + money(expenses) + '</strong><small>不含待支付與未完成項目</small></div>' +
       '<div class="metric"><span>本月尚待繳</span><strong class="amount-income">' + money(dueRemaining) + '</strong><small>欠款還款＋週期性支出</small></div>' +
-      '<div class="metric"><span>可用結餘</span><strong style="color:' + (available >= 0 ? "var(--green)" : "var(--red)") + '">' + money(available) + '</strong><small>' + (expectedIncome ? '若預計收入到帳：' + money(expectedAvailable) : '薪資＋收入－支出－待繳') + '</small></div>';
+      '<div class="metric"><span>可用結餘</span><strong style="color:' + (available >= 0 ? "var(--green)" : "var(--red)") + '">' + money(available) + '</strong><small>' + (pendingIncome ? '待入賬全部到賬後：' + money(expectedAvailable) : '本月入賬－支出－待繳') + '</small></div>';
   }
   function renderSalary(month) {
     var salary = salaryForMonth(month);
@@ -874,6 +878,7 @@
     el.txStatus.value = "paid";
     el.txNote.value = debtPlanLabel(debt) + " · " + monthLabel(month);
     el.txHint.textContent = "已帶入還款資料，儲存後會同步扣除欠款餘額。";
+    if (el.entry) el.entry.open = true;
     el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function deleteDebt(id) {
@@ -904,7 +909,7 @@
           : remaining <= 0
             ? '<span class="pill good">本月已入帳</span>'
             : '<span class="pill warn">待入帳 ' + money(remaining) + '</span>';
-      return '<article class="debt-card"><div class="debt-top"><div><h3>' + esc(plan.name) + '</h3><div class="helper">' + monthLabel(plan.startMonth || monthText()) + '起 · 日期不固定</div></div>' + status + '</div><div class="debt-balance">' + money(plan.amount) + '</div><div class="debt-meta">每月預計收入<br>本月已登記 ' + money(received) + (plan.note ? "<br>" + esc(plan.note) : "") + '</div><div class="debt-actions">' + (plan.active !== false ? '<button class="btn small primary" data-receive-income="' + esc(plan.id) + '" type="button">登記本月收入</button>' : "") + '<button class="btn small" data-edit-income-plan="' + esc(plan.id) + '" type="button">編輯</button><button class="btn small danger" data-delete-income-plan="' + esc(plan.id) + '" type="button">刪除</button></div></article>';
+      return '<article class="debt-card"><div class="debt-top"><div><h3>' + esc(plan.name) + '</h3><div class="helper">' + monthLabel(plan.startMonth || monthText()) + '起 · 日期不固定</div></div>' + status + '</div><div class="debt-balance">' + money(plan.amount) + '</div><div class="debt-meta">每月預計收入<br>本月已登記 ' + money(received) + (plan.note ? "<br>" + esc(plan.note) : "") + '</div><div class="debt-actions">' + (plan.active !== false ? '<button class="btn small primary" data-receive-income="' + esc(plan.id) + '" type="button">確認到賬</button>' : "") + '<button class="btn small" data-edit-income-plan="' + esc(plan.id) + '" type="button">編輯</button><button class="btn small danger" data-delete-income-plan="' + esc(plan.id) + '" type="button">刪除</button></div></article>';
     }).join("");
   }
 
@@ -962,22 +967,12 @@
     if (!plan) return;
     var month = el.monthPicker.value || monthText();
     var received = linkedIncomePlanAmount(id, month);
-    var remaining = Math.max(0, numberOrZero(plan.amount) - received);
-    resetTxForm();
-    document.querySelector('input[name="tx-type"][value="income"]').checked = true;
-    renderCategoryOptions("income", "其他收入");
-    el.txDate.value = todayText();
-    el.txAmount.value = remaining > 0 ? remaining : numberOrZero(plan.amount);
-    el.txCategory.value = "其他收入";
-    el.txAccount.value = "銀行卡";
-    el.txItem.value = plan.name + "（" + monthLabel(month) + "）";
-    el.txIncomePlan.value = plan.id;
-    el.txStatus.value = "paid";
-    el.txNote.value = "每月收入計劃 · 日期不固定";
-    el.txHint.textContent = "請改成實際到帳日期；儲存後會沖銷本月預計收入。";
-    el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
+    var amount = Math.max(0, numberOrZero(plan.amount) - received);
+    if (amount <= 0) return showToast("這筆收入本月已經確認入賬");
+    var date = month === monthText() ? todayText() : dateForMonthDay(month, 1);
+    state.transactions.push({ id: uid("tx"), date: date, type: "income", category: "其他收入", account: "銀行卡", item: plan.name + "（" + monthLabel(month) + "）", amount: amount, status: "paid", debtId: "", recurringId: "", incomePlanId: plan.id, note: "每月收入計劃 · 已確認到賬", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    saveState(); renderAll(); showToast("已確認到賬，自動轉入本月入賬");
   }
-
   function deleteIncomePlan(id) {
     var plan = findIncomePlan(id);
     if (!plan || !window.confirm("確定刪除「" + plan.name + "」嗎？既有收入記錄會保留，但不再連動此計劃。")) return;
@@ -1280,6 +1275,7 @@
     el.txStatus.value = "paid";
     el.txNote.value = recurringScheduleText(item);
     el.txHint.textContent = "已帶入週期性支出資料，儲存後會列入本月已支付支出。";
+    if (el.entry) el.entry.open = true;
     el.entry.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -1408,6 +1404,7 @@
     rows.push([]);
     rows.push(["本月入帳舞蹈薪資", salary.total.toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月其他收入", otherIncome.toFixed(2), "", "", "", "", "", "", ""]);
+    rows.push(["本月合計入賬", (salary.total + otherIncome).toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月已支付支出", expenses.toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月尚待繳", due.toFixed(2), "", "", "", "", "", "", ""]);
     rows.push(["本月可用結餘", (salary.total + otherIncome - expenses - due).toFixed(2), "", "", "", "", "", "", ""]);
@@ -1432,6 +1429,7 @@
         rows.push([month, item.date, item.type === "income" ? "收入" : "支出", item.category || "", item.item || "", item.account || "", numberOrZero(item.amount).toFixed(2), item.status === "paid" ? "已支付／入帳" : "待支付", item.debtId ? "欠款帳戶" : item.recurringId ? "週期支出" : item.incomePlanId ? "月度收入" : "", item.note || ""]);
       });
       rows.push([month, "", "月度合計", "薪資", "", "", salary.total.toFixed(2), "", "", ""]);
+      rows.push([month, "", "月度合計", "合計入賬", "", "", (salary.total + paidIncomeForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0)).toFixed(2), "", "", ""]);
       rows.push([month, "", "月度合計", "已支付支出", "", "", paidExpensesForMonth(month).reduce(function (sum, item) { return sum + numberOrZero(item.amount); }, 0).toFixed(2), "", "", ""]);
       rows.push([month, "", "月度合計", "待繳", "", "", dueItemsForMonth(month).reduce(function (sum, item) { return sum + item.amount; }, 0).toFixed(2), "", "", ""]);
     });
@@ -1722,6 +1720,9 @@
   el.exportJson.addEventListener("click", exportJson);
   el.importJson.addEventListener("change", function () { importJsonFile(this.files && this.files[0]); this.value = ""; });
   el.printReport.addEventListener("click", function () { window.print(); });
+  document.querySelectorAll('a[href="#entry"]').forEach(function (link) {
+    link.addEventListener("click", function () { if (el.entry) el.entry.open = true; });
+  });
   document.querySelectorAll(".tabs .tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
       document.querySelectorAll(".tabs .tab").forEach(function (item) { item.classList.remove("active"); });
@@ -1761,7 +1762,7 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=23", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=24", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
   el.monthPicker.value = monthText();

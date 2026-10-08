@@ -62,12 +62,15 @@
   </section>
 
   <main class="layout section">
-    <section class="card" id="entry">
-      <div class="card-head">
+    <details class="card entry-card" id="entry">
+      <summary class="card-head entry-summary">
         <div>
           <h2>新增／編輯資金記錄</h2>
           <p>記錄一筆支出或收入；還款可連動到下方欠款帳戶。</p>
         </div>
+        <span class="entry-toggle-hint">點擊展開</span>
+        <span class="pill muted" id="entry-mode">新增模式</span>
+      </summary>
         <span class="pill muted" id="entry-mode">新增模式</span>
       </div>
       <div class="card-body">
@@ -129,7 +132,7 @@
           </div>
         </form>
       </div>
-    </section>
+    </details>
 
     <section class="card" id="debts">
       <div class="card-head">
@@ -521,7 +524,7 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.4.1</span>
+      <span class="pill good" id="version-pill">v1.5.0</span>
     </div>
     <div class="card-body helper">
       <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
@@ -537,6 +540,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=6"></script>
+<script src="./finance.js?v=7"></script>
 </body>
 </html>
