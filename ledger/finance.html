@@ -58,6 +58,7 @@
       <div id="metrics" class="metrics"></div>
       <div class="subcard" id="salary-panel"></div>
       <div class="subcard section" id="due-panel"></div>
+      <div class="subcard section" id="savings-goal-snapshot"></div>
     </div>
   </section>
 
@@ -515,6 +516,31 @@
         </div>
       </div>
       <div id="records-table"></div>
+      <details id="bill-import-wrap" class="subcard section"><summary style="cursor:pointer;font-weight:800">智能匯入微信／支付寶付款記錄</summary><div class="section" id="bill-import-body">
+          <p class="helper">可直接貼上微信或支付寶付款文字；也可上傳付款截圖，使用瀏覽器本機 OCR 嘗試辨識。辨識結果會先列在下方，確認後才寫入資金記錄。</p>
+          <div class="form-grid">
+            <div class="field">
+              <label for="bill-import-platform">來源平台</label>
+              <select id="bill-import-platform"><option value="auto">自動判斷</option><option value="wechat">微信</option><option value="alipay">支付寶</option></select>
+            </div>
+            <div class="field">
+              <label for="bill-import-image">付款截圖</label>
+              <input id="bill-import-image" type="file" accept="image/*">
+            </div>
+            <div class="field full">
+              <label for="bill-import-text">複製的付款文字</label>
+              <textarea id="bill-import-text" placeholder="例如：2026-10-08 12:30 美團 -25.50 已支付"></textarea>
+            </div>
+          </div>
+          <div class="inline-actions section">
+            <button id="parse-bill-text" class="btn primary small" type="button">解析文字</button>
+            <button id="recognize-bill-image" class="btn small" type="button">辨識截圖</button>
+            <button id="clear-bill-import" class="btn small" type="button">清除候選</button>
+          </div>
+          <p class="helper" id="bill-import-status"></p>
+          <div id="bill-import-preview" class="section"></div>
+          <div class="inline-actions section"><button id="import-bill-records" class="btn primary small" type="button" disabled>匯入全部候選記錄</button></div>
+        </div></details>
     </div>
   </section>
 
@@ -524,7 +550,7 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.5.0</span>
+      <span class="pill good" id="version-pill">v1.6.0</span>
     </div>
     <div class="card-body helper">
       <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
@@ -540,6 +566,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=7"></script>
+<script src="./finance.js?v=8"></script>
 </body>
 </html>

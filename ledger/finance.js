@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.5.0";
+  var APP_VERSION = "1.6.0";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -10,6 +10,7 @@
   var COLORS = ["#22d3ee", "#818cf8", "#f472b6", "#facc15", "#34d399", "#fb7185", "#a78bfa", "#38bdf8", "#fb923c", "#2dd4bf", "#c084fc", "#f87171", "#60a5fa", "#a3e635"];
   var state = loadState();
   var editingTxId = null;
+  var billImportCandidates = [];
   var editingSavingsAccountId = null;
   var editingSavingsGoalId = null;
   var editingIncomePlanId = null;
@@ -23,6 +24,17 @@
     metrics: document.getElementById("metrics"),
     salaryPanel: document.getElementById("salary-panel"),
     duePanel: document.getElementById("due-panel"),
+    savingsGoalSnapshot: document.getElementById("savings-goal-snapshot"),
+    billImportWrap: document.getElementById("bill-import-wrap"),
+    billImportPlatform: document.getElementById("bill-import-platform"),
+    billImportImage: document.getElementById("bill-import-image"),
+    billImportText: document.getElementById("bill-import-text"),
+    billImportStatus: document.getElementById("bill-import-status"),
+    billImportPreview: document.getElementById("bill-import-preview"),
+    parseBillText: document.getElementById("parse-bill-text"),
+    recognizeBillImage: document.getElementById("recognize-bill-image"),
+    clearBillImport: document.getElementById("clear-bill-import"),
+    importBillRecords: document.getElementById("import-bill-records"),
     overviewHint: document.getElementById("overview-hint"),
     txForm: document.getElementById("tx-form"),
     txId: document.getElementById("tx-id"),
@@ -1167,6 +1179,20 @@
     state.savingsGoals = state.savingsGoals.filter(function (item) { return item.id !== id; });
     saveState(); renderAll(); resetSavingsGoalForm(); showToast("存款目標已刪除");
   }
+  function renderSavingsGoalSnapshot() {
+    if (!state.savingsGoals.length) {
+      el.savingsGoalSnapshot.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:center"><div><strong>存款目標</strong><div class="helper">尚未設定目標。</div></div><a class="btn small" href="#savings">新增目標</a></div>';
+      return;
+    }
+    var goals = state.savingsGoals.filter(function (goal) { return goal.active !== false; }).sort(function (a, b) { return String(a.targetDate || "").localeCompare(String(b.targetDate || "")); }).slice(0, 2);
+    var rows = goals.map(function (goal) {
+      var calc = savingsGoalCountdown(goal);
+      var percent = calc.target > 0 ? Math.min(100, Math.max(0, calc.current / calc.target * 100)) : 0;
+      return '<div style="margin-top:8px"><div class="inline-actions" style="justify-content:space-between;align-items:center"><span><strong>' + esc(goal.name) + '</strong><span class="helper"> · ' + (calc.remaining <= 0 ? "已完成" : calc.days >= 0 ? "剩 " + calc.days + " 天" : "已到期") + '</span></span><span class="helper">' + money(calc.current) + ' / ' + money(calc.target) + '</span></div><div class="progress"><i style="width:' + percent + '%"></i></div></div>';
+    }).join("");
+    el.savingsGoalSnapshot.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:flex-start"><div><strong>存款目標</strong><div class="helper">共 ' + state.savingsGoals.length + ' 個目標 · 顯示最近 ' + goals.length + ' 個</div></div><a class="btn small" href="#savings">查看全部</a></div>' + rows;
+  }
+
   function renderRecurring(month) {
     if (!state.recurring.length) {
       el.recurringList.innerHTML = '<div class="empty">尚未設定週期性支出。例如每 3 個月一付的房租、水電、網費或保險。</div>';
@@ -1545,6 +1571,123 @@
     };
     reader.readAsText(file);
   }
+  function billPlatform(text, fallback) {
+    if (fallback === "wechat" || /微信|wechat|wechat pay/i.test(text)) return "wechat";
+    if (fallback === "alipay" || /支付宝|支付寶|alipay/i.test(text)) return "alipay";
+    return "other";
+  }
+  function billPlatformLabel(platform) { return platform === "wechat" ? "微信" : platform === "alipay" ? "支付寶" : "其他"; }
+  function billCategoryFor(text, type) {
+    var value = String(text || "");
+    if (/美團|美团/.test(value)) return "美團消費";
+    if (/餐飲|餐饮|飯|饭|茶|咖啡|美團|美团|外賣|外卖/.test(value)) return "餐飲";
+    if (/交通|地鐵|地铁|公交|滴滴|打車|打车|出租/.test(value)) return "交通";
+    if (/還款|还款|花唄|花呗|借唄|借呗/.test(value)) return "還款";
+    if (/房租|水電|水电|物業|物业/.test(value)) return "房租水電";
+    if (/話費|话费|網費|网费|流量/.test(value)) return "通訊網路";
+    return type === "income" ? "其他收入" : "其他";
+  }
+  function billDateFor(line) {
+    var now = new Date();
+    var full = line.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+    if (full) return full[1] + "-" + pad(full[2]) + "-" + pad(full[3]);
+    var short = line.match(/(\d{1,2})[-\/.月](\d{1,2})/);
+    if (short) return now.getFullYear() + "-" + pad(short[1]) + "-" + pad(short[2]);
+    return todayText();
+  }
+  function parseBillTextToCandidates(text, platformChoice) {
+    var sourceText = String(text || "").trim();
+    if (!sourceText) return [];
+    var platform = billPlatform(sourceText, platformChoice);
+    var lines = sourceText.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(function (line) { return line.length > 1; });
+    if (lines.length === 1 && /20\d{2}[-\/.年]\d{1,2}/.test(lines[0]) && (lines[0].match(/20\d{2}[-\/.年]\d{1,2}/g) || []).length > 1) {
+      lines = lines[0].split(/(?=20\d{2}[-\/.年]\d{1,2})/).map(function (line) { return line.trim(); }).filter(Boolean);
+    }
+    return lines.map(function (line) {
+      var withoutDate = line.replace(/20\d{2}[-\/.年]\d{1,2}[-\/.月]\d{1,2}(?:日)?/, "").replace(/\d{1,2}:\d{2}(?::\d{2})?/, "");
+      var amountMatches = withoutDate.match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g) || [];
+      var chosen = amountMatches.map(function (raw) {
+        var clean = raw.replace(/\s/g, "");
+        return { raw: clean, amount: Math.abs(Number(clean.replace(/[¥￥,+]/g, ""))), decimal: /\./.test(clean), sign: /^[+\-]/.test(clean), currency: /[¥￥]/.test(clean) };
+      }).filter(function (item) { return Number.isFinite(item.amount) && item.amount > 0; });
+      var amount = chosen.filter(function (item) { return item.decimal || item.sign || item.currency; }).pop() || chosen.pop();
+      if (!amount) return null;
+      var type = /收款|收入|退款|到賬|到账|入賬|入账|轉入|转入|^\+|\+/.test(line) ? "income" : "expense";
+      var merchant = withoutDate.replace(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, " ").replace(/已支付|支付成功|交易成功|微信支付|支付宝|支付寶|支出|收入|付款|收款|消费|消費/g, " ").replace(/[|｜:：,，]+/g, " ").replace(/\s+/g, " ").trim();
+      if (!merchant) merchant = billPlatformLabel(billPlatform(line, platformChoice)) + (type === "income" ? "收款" : "付款");
+      return { id: uid("bill"), selected: true, date: billDateFor(line), type: type, amount: amount.amount, item: merchant.slice(0, 50), category: billCategoryFor(line, type), account: billPlatformLabel(billPlatform(line, platformChoice)), platform: billPlatform(line, platformChoice), note: "智能匯入" };
+    }).filter(Boolean);
+  }
+  function renderBillCandidates() {
+    if (!billImportCandidates.length) {
+      el.billImportPreview.innerHTML = '<div class="empty">尚無候選記錄。貼上付款文字或辨識截圖後按解析。</div>';
+      el.importBillRecords.disabled = true;
+      return;
+    }
+    el.billImportPreview.innerHTML = billImportCandidates.map(function (item, index) {
+      return '<div class="bill-candidate" data-bill-index="' + index + '"><input type="checkbox" data-bill-selected' + (item.selected !== false ? " checked" : "") + ' aria-label="匯入這筆"><input type="date" data-bill-date value="' + esc(item.date) + '"><select data-bill-type><option value="expense"' + (item.type === "expense" ? " selected" : "") + '>支出</option><option value="income"' + (item.type === "income" ? " selected" : "") + '>收入</option></select><input type="number" min="0.01" step="0.01" data-bill-amount value="' + esc(item.amount) + '" aria-label="金額"><input type="text" data-bill-item value="' + esc(item.item) + '" aria-label="項目"><select data-bill-category></select><button class="btn small danger" type="button" data-bill-remove>刪除</button></div>';
+    }).join("");
+    Array.prototype.forEach.call(el.billImportPreview.querySelectorAll(".bill-candidate"), function (row) {
+      var item = billImportCandidates[Number(row.dataset.billIndex)];
+      var categorySelect = row.querySelector("[data-bill-category]");
+      if (item && categorySelect) categorySelect.innerHTML = optionHtml(categoriesForType(item.type), item.category);
+    });    el.importBillRecords.disabled = !billImportCandidates.some(function (item) { return item.selected !== false; });
+  }
+
+  function syncBillCandidatesFromDom() {
+    Array.prototype.forEach.call(el.billImportPreview.querySelectorAll('.bill-candidate'), function (row) {
+      var index = Number(row.dataset.billIndex);
+      var item = billImportCandidates[index];
+      if (!item) return;
+      item.selected = row.querySelector('[data-bill-selected]').checked;
+      item.date = row.querySelector('[data-bill-date]').value || todayText();
+      item.type = row.querySelector('[data-bill-type]').value;
+      item.amount = numberOrZero(row.querySelector('[data-bill-amount]').value);
+      item.item = row.querySelector('[data-bill-item]').value.trim() || "未命名";
+      item.category = row.querySelector('[data-bill-category]').value || (item.type === "income" ? "其他收入" : "其他");
+    });
+  }
+  function clearBillImport() {
+    billImportCandidates = [];
+    el.billImportText.value = "";
+    el.billImportImage.value = "";
+    el.billImportStatus.textContent = "";
+    renderBillCandidates();
+  }
+  function importBillCandidates() {
+    syncBillCandidatesFromDom();
+    var selected = billImportCandidates.filter(function (item) { return item.selected !== false && numberOrZero(item.amount) > 0; });
+    if (!selected.length) return showToast("沒有可匯入的候選記錄");
+    selected.forEach(function (item) {
+      state.transactions.push({ id: uid("tx"), date: item.date, type: item.type === "income" ? "income" : "expense", category: item.category, account: item.account || "其他", item: item.item, amount: numberOrZero(item.amount), status: "paid", debtId: "", recurringId: "", incomePlanId: "", note: item.note || "智能匯入", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    });
+    saveState(); renderAll(); clearBillImport(); showToast("已匯入 " + selected.length + " 筆付款記錄");
+  }
+  function loadTesseract(callback) {
+    if (window.Tesseract) return callback();
+    var script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+    script.onload = function () { callback(); };
+    script.onerror = function () { callback(new Error("OCR 元件載入失敗")); };
+    document.head.appendChild(script);
+  }
+  function recognizeBillImage() {
+    var file = el.billImportImage.files && el.billImportImage.files[0];
+    if (!file) return showToast("請先選擇付款截圖");
+    el.billImportStatus.textContent = "正在載入本機 OCR，第一次可能需要一些時間…";
+    loadTesseract(function (error) {
+      if (error || !window.Tesseract) { el.billImportStatus.textContent = "OCR 元件載入失敗，請改用複製付款文字貼上。"; return; }
+      el.billImportStatus.textContent = "正在辨識截圖…";
+      window.Tesseract.recognize(file, "chi_sim+eng", { logger: function (message) { if (message.status === "recognizing text") el.billImportStatus.textContent = "正在辨識截圖… " + Math.round((message.progress || 0) * 100) + "%"; } }).then(function (result) {
+        var text = result && result.data ? result.data.text : "";
+        el.billImportText.value = text;
+        billImportCandidates = parseBillTextToCandidates(text, el.billImportPlatform.value);
+        el.billImportStatus.textContent = billImportCandidates.length ? "已辨識出 " + billImportCandidates.length + " 筆，請在下方確認後匯入。" : "沒有辨識出可用的付款金額，請改用貼上文字。";
+        renderBillCandidates();
+      }).catch(function () { el.billImportStatus.textContent = "辨識失敗，請改用複製付款文字貼上。"; });
+    });
+  }
+
   function renderAll() {
     var month = el.monthPicker.value || monthText();
     renderMetrics(month);
@@ -1553,6 +1696,7 @@
     renderDebts(month);
     renderIncomePlans(month);
     renderSavings();
+    renderSavingsGoalSnapshot();
     renderRecurring(month);
     renderBudget(month);
     renderRecords(month);
@@ -1715,6 +1859,41 @@
   el.filterType.addEventListener("change", function () { renderRecords(el.monthPicker.value || monthText()); });
   el.filterCategory.addEventListener("change", function () { renderRecords(el.monthPicker.value || monthText()); });
   el.filterSearch.addEventListener("input", function () { renderRecords(el.monthPicker.value || monthText()); });
+  el.parseBillText.addEventListener("click", function () {
+    billImportCandidates = parseBillTextToCandidates(el.billImportText.value, el.billImportPlatform.value);
+    el.billImportStatus.textContent = billImportCandidates.length ? "已解析出 " + billImportCandidates.length + " 筆，請在下方確認後匯入。" : "沒有解析到付款金額，請確認文字內容或改用截圖辨識。";
+    renderBillCandidates();
+  });
+  el.recognizeBillImage.addEventListener("click", recognizeBillImage);
+  el.clearBillImport.addEventListener("click", clearBillImport);
+  el.importBillRecords.addEventListener("click", importBillCandidates);
+  el.billImportPreview.addEventListener("change", function (event) {
+    var row = event.target.closest(".bill-candidate");
+    if (!row) return;
+    var index = Number(row.dataset.billIndex);
+    var item = billImportCandidates[index];
+    if (!item) return;
+    if (event.target.matches("[data-bill-type]")) {
+      item.type = event.target.value;
+      item.category = item.type === "income" ? "其他收入" : "其他";
+      renderBillCandidates();
+      return;
+    }
+    syncBillCandidatesFromDom();
+    el.importBillRecords.disabled = !billImportCandidates.some(function (entry) { return entry.selected !== false; });
+  });
+  el.billImportPreview.addEventListener("input", function () {
+    syncBillCandidatesFromDom();
+    el.importBillRecords.disabled = !billImportCandidates.some(function (entry) { return entry.selected !== false; });
+  });
+  el.billImportPreview.addEventListener("click", function (event) {
+    var remove = event.target.closest("[data-bill-remove]");
+    if (!remove) return;
+    var row = remove.closest(".bill-candidate");
+    var index = Number(row.dataset.billIndex);
+    billImportCandidates.splice(index, 1);
+    renderBillCandidates();
+  });
   el.exportMonthCsv.addEventListener("click", exportMonthCsv);
   el.exportAllCsv.addEventListener("click", exportAllCsv);
   el.exportJson.addEventListener("click", exportJson);
@@ -1762,7 +1941,7 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=24", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=25", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
   el.monthPicker.value = monthText();
