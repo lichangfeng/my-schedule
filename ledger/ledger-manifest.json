@@ -3,7 +3,7 @@
   "short_name": "上課紀錄",
   "description": "記錄各舞蹈機構課堂，按月統計並分別匯出指定機構的課堂紀錄。",
   "lang": "zh-Hant",
-  "start_url": "./index.html?v=14",
+  "start_url": "./index.html?v=15",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

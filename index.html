@@ -2063,21 +2063,32 @@ window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.
 })();</script>
 <script>
 (function () {
-  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
-  var reloading = false;
-  var registrationReady = navigator.serviceWorker.register("./service-worker.js?v=2", { updateViaCache: "none" });
-  function checkForUpdate() {
-    if (registrationReady) registrationReady.then(function (registration) { registration.update(); }).catch(function () {});
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("./service-worker.js?v=3", { updateViaCache: "none" }).catch(function () {});
   }
-  registrationReady.then(function (registration) { registration.update(); }).catch(function () {});
-  navigator.serviceWorker.addEventListener("controllerchange", function () {
-    if (reloading) return;
-    reloading = true;
-    window.location.reload();
+  var updateButton = document.createElement("button");
+  updateButton.id = "manual-update-button";
+  updateButton.type = "button";
+  updateButton.textContent = "🔄 更新";
+  updateButton.style.cssText = "position:fixed;left:14px;bottom:14px;z-index:9999;border:0;border-radius:999px;padding:11px 17px;background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;font:700 14px system-ui;box-shadow:0 8px 24px rgba(34,211,238,.3);cursor:pointer";
+  updateButton.addEventListener("click", async function () {
+    updateButton.disabled = true;
+    updateButton.textContent = "更新中…";
+    try {
+      if ("serviceWorker" in navigator) {
+        var registration = await navigator.serviceWorker.getRegistration();
+        if (registration) await registration.unregister();
+      }
+      if (window.caches) {
+        var keys = await caches.keys();
+        await Promise.all(keys.filter(function (key) { return key.indexOf("daily-schedule-") === 0; }).map(function (key) { return caches.delete(key); }));
+      }
+    } catch (error) {}
+    var target = new URL(location.href);
+    target.searchParams.set("manual-update", String(Date.now()));
+    location.replace(target.toString());
   });
-  window.addEventListener("pageshow", checkForUpdate);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) checkForUpdate(); });
-  setInterval(checkForUpdate, 300000);
+  document.body.appendChild(updateButton);
 })();
 </script></body>
 </html>
