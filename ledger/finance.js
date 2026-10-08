@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.3.0";
+  var APP_VERSION = "1.4.1";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -776,7 +776,7 @@
     el.debtScheduleList.innerHTML = "";
     updateDebtPlanFields();
     el.debtFormTitle.textContent = "新增欠款帳戶";
-    el.debtFormWrap.open = true;
+    el.debtFormWrap.open = false;
   }
 
   function fillDebtForm(debt) {
@@ -915,7 +915,7 @@
     el.incomePlanStart.value = el.monthPicker.value || monthText();
     el.incomePlanActive.value = "true";
     el.incomePlanFormTitle.textContent = "新增每月收入";
-    el.incomePlanFormWrap.open = true;
+    el.incomePlanFormWrap.open = false;
   }
 
   function fillIncomePlanForm(plan) {
@@ -1047,7 +1047,7 @@
     el.savingsAccountId.value = "";
     el.savingsAccountType.value = "銀行卡";
     el.savingsAccountFormTitle.textContent = "新增存款帳戶";
-    el.savingsAccountFormWrap.open = true;
+    el.savingsAccountFormWrap.open = false;
   }
   function fillSavingsAccountForm(account) {
     editingSavingsAccountId = account.id;
@@ -1095,7 +1095,7 @@
     el.savingsMovementDate.value = todayText();
     el.savingsMovementAction.value = "deposit";
     el.savingsMovementTitle.textContent = "存款變動記錄";
-    el.savingsMovementFormWrap.open = true;
+    el.savingsMovementFormWrap.open = false;
   }
   function registerSavingsMovement(accountId, action) {
     var account = findSavingsAccount(accountId);
@@ -1134,7 +1134,7 @@
     el.savingsGoalDate.value = addDays(todayText(), 180);
     el.savingsGoalActive.value = "true";
     el.savingsGoalFormTitle.textContent = "新增存款目標";
-    el.savingsGoalFormWrap.open = true;
+    el.savingsGoalFormWrap.open = false;
   }
   function fillSavingsGoalForm(goal) {
     editingSavingsGoalId = goal.id;
@@ -1208,7 +1208,7 @@
     setSelectOptions(el.recurringCategory, EXPENSE_CATEGORIES, "房租水電");
     setSelectOptions(el.recurringAccount, ACCOUNTS, "銀行卡");
     el.recurringFormTitle.textContent = "新增週期性支出";
-    el.recurringFormWrap.open = true;
+    el.recurringFormWrap.open = false;
   }
 
   function fillRecurringForm(item) {
@@ -1761,7 +1761,7 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=21", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=23", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
   el.monthPicker.value = monthText();
