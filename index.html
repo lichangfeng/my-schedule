@@ -1182,12 +1182,18 @@ const BG_COLORS=[
   {n:"天蓝",c:"#e0f2fe"},{n:"浅紫",c:"#ede9fe"},{n:"浅粉",c:"#fce7f3"},{n:"浅红",c:"#fecaca"},
   {n:"石板",c:"#475569"},{n:"深蓝",c:"#1e3a8a"},{n:"墨绿",c:"#14532d"},{n:"深灰",c:"#111827"}
 ];
+var THEMES={
+  cyber:{name:"赛博朋克",css:"repeating-linear-gradient(0deg, rgba(0,229,255,.10) 0 1px, transparent 1px 44px),repeating-linear-gradient(90deg, rgba(255,0,200,.10) 0 1px, transparent 1px 44px),radial-gradient(circle at 18% 12%, rgba(255,0,200,.42), transparent 46%),radial-gradient(circle at 82% 4%, rgba(0,229,255,.40), transparent 42%),linear-gradient(160deg,#0a0f22 0%,#151a36 45%,#200f2e 100%)",color:"#0a0f22"},
+  aurora:{name:"极光",css:"radial-gradient(circle at 15% 18%, rgba(0,255,180,.35), transparent 45%),radial-gradient(circle at 85% 8%, rgba(130,60,255,.38), transparent 45%),linear-gradient(160deg,#04121a,#0a1a2b 50%,#06121f)",color:"#04121a"},
+  space:{name:"深空",css:"radial-gradient(circle at 70% 18%, rgba(90,120,255,.30), transparent 45%),radial-gradient(circle at 20% 80%, rgba(255,120,220,.18), transparent 45%),linear-gradient(160deg,#05060f,#0d1230 60%,#05060f)",color:"#05060f"}
+};
 let bgCur={type:"none",value:"",shade:0.35};   /* 表格背景 */
 let pgCur={type:"none",value:"",shade:0.35};   /* 网页背景 */
 function normBg(o){
   if(!o||typeof o!=="object") return {type:"none",value:"",shade:0.35};
   if(o.type==="none"||!o.value) return {type:"none",value:"",shade:(typeof o.shade==="number"?o.shade:0.35)};
-  return {type:(o.type==="url"?"url":(o.type==="color"?"color":"data")),value:o.value,shade:(typeof o.shade==="number"?o.shade:0.35)};
+  var _ty=(o.type==="url")?"url":((o.type==="color")?"color":((o.type==="theme")?"theme":"data"));
+  return {type:_ty,value:o.value,shade:(typeof o.shade==="number"?o.shade:0.35)};
 }
 function loadBg(){
   try{
@@ -1209,11 +1215,12 @@ function applyBg(){
   body.classList.toggle("bg-on",has);
   if(board){
     if(bgCur.type==="color"){ board.style.backgroundColor=bgCur.value; board.style.backgroundImage=""; }
+    else if(bgCur.type==="theme"){ board.style.backgroundImage=(THEMES[bgCur.value]?THEMES[bgCur.value].css:""); board.style.backgroundSize="cover"; board.style.backgroundPosition="center"; board.style.backgroundColor=(THEMES[bgCur.value]?THEMES[bgCur.value].color:""); }
     else if(has){ board.style.backgroundImage="url('"+bgCur.value+"')"; board.style.backgroundSize="cover"; board.style.backgroundPosition="center"; }
     else { board.style.backgroundImage=""; board.style.backgroundColor=""; board.style.backgroundSize=""; board.style.backgroundPosition=""; }
   }
   if(ov){
-    if(has&&bgCur.type!=="color"){
+    if(has&&(bgCur.type==="data"||bgCur.type==="url")){
       var a=Math.max(0,Math.min(0.85,bgCur.shade));
       ov.style.display="block"; ov.style.background="rgba(255,255,255,"+a+")";
     } else { ov.style.display="none"; ov.style.background=""; }
@@ -1224,7 +1231,11 @@ function applyPageBg(){
   var sh=$("#bgShade");
   var has=(pgCur.type!=="none"&&pgCur.value);
   body.classList.toggle("pg-bg",has);
-  if(pgCur.type==="color"){
+  if(pgCur.type==="theme"){
+    body.style.backgroundImage=(THEMES[pgCur.value]?THEMES[pgCur.value].css:"");
+    body.style.backgroundColor=(THEMES[pgCur.value]?THEMES[pgCur.value].color:"");
+    body.style.backgroundSize="cover"; body.style.backgroundPosition="center"; body.style.backgroundAttachment="fixed";
+  } else if(pgCur.type==="color"){
     body.style.backgroundColor=pgCur.value;
     body.style.backgroundImage="none";
     body.style.backgroundAttachment="";
@@ -1242,7 +1253,7 @@ function applyPageBg(){
     body.style.backgroundAttachment="";
   }
   if(sh){
-    if(pgCur.type!=="color"&&has){
+    if((pgCur.type==="data"||pgCur.type==="url")&&has){
       var a=Math.max(0,Math.min(0.85,pgCur.shade));
       sh.style.background="rgba(255,255,255,"+a+")";
     } else { sh.style.background="transparent"; }
@@ -1268,10 +1279,11 @@ function openBgDialog(){
     "<div class=\"field\"><label>① 纯色背景</label><div class=\"swatches\" id=\"bgCols\"></div>"+
       "<div class=\"crow\" style=\"margin-top:6px\"><span class=\"lab\">自定义颜色</span><input type=\"color\" id=\"bgCustom\" value=\"#94a3b8\">"+
       "<button class=\"btn\" id=\"bgClearColor\">无背景</button></div></div>"+
-    "<div class=\"field\"><label>② 本地图片</label>"+
+    "<div class=\"field\"><label>② 主题风格（纯 CSS，可同步）</label><div class=\"swatches\" id=\"bgThemes\"></div></div>"+
+    "<div class=\"field\"><label>③ 本地图片</label>"+
       "<input type=\"file\" id=\"bgFile\" accept=\"image/*\">"+
       "<div class=\"dnote\">选择电脑上的图片（建议 5MB 以内）。</div></div>"+
-    "<div class=\"field\"><label>③ 互联网图片</label>"+
+    "<div class=\"field\"><label>④ 互联网图片</label>"+
       "<div class=\"bgrow\"><input type=\"text\" id=\"bgUrl\" placeholder=\"https://example.com/photo.jpg\">"+
       "<button class=\"btn\" id=\"bgUrlGo\">预览</button></div>"+
       "<div class=\"dnote\">输入网址后点“预览”；需要联网，部分网站禁止外链会失败。</div></div>"+
@@ -1291,8 +1303,10 @@ function openBgDialog(){
     var c=pickObj();
     $("#bgShV").textContent=Math.round(c.shade*100)+"%";
     var pr=$("#bgPrev");
-    pr.style.backgroundImage=(c.type==="data"||c.type==="url")?"url('"+c.value+"')":"none";
-    pr.style.backgroundColor=(c.type==="color")?c.value:"#eef1f7";
+    if(c.type==="theme"&&THEMES[c.value]){ pr.style.backgroundImage=THEMES[c.value].css; pr.style.backgroundColor=THEMES[c.value].color; }
+    else if(c.type==="data"||c.type==="url"){ pr.style.backgroundImage="url('"+c.value+"')"; pr.style.backgroundColor="#eef1f7"; }
+    else if(c.type==="color"){ pr.style.backgroundImage="none"; pr.style.backgroundColor=c.value; }
+    else { pr.style.backgroundImage="none"; pr.style.backgroundColor="#eef1f7"; }
     $("#bgCustom").value=(c.type==="color")?c.value:"#94a3b8";
     $("#bgShadeR").value=Math.round(c.shade*100);
     var scopeLabel=(scope==="page")?"网页背景":"表格背景";
@@ -1319,6 +1333,12 @@ function openBgDialog(){
   });
   $("#bgCustom").addEventListener("input",function(){ cur=pickObj(); cur.type="color"; cur.value=$("#bgCustom").value; paint(); });
   $("#bgClearColor").addEventListener("click",function(){ cur=pickObj(); cur.type="none"; cur.value=""; paint(); });
+  var thBox=$("#bgThemes");
+  Object.keys(THEMES).forEach(function(id){
+    var b=document.createElement("button"); b.type="button"; b.className="sw"; b.style.width="86px"; b.style.height="46px"; b.style.borderRadius="10px"; b.style.backgroundImage=THEMES[id].css; b.style.backgroundColor=THEMES[id].color; b.title=THEMES[id].name;
+    b.addEventListener("click",function(){ cur=pickObj(); cur.type="theme"; cur.value=id; paint(); });
+    thBox.appendChild(b);
+  });
   /* 本地 / 网址 */
   $("#bgFile").addEventListener("change",function(){
     cur=pickObj();
