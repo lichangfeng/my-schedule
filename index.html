@@ -253,7 +253,32 @@ body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}.micbtn{border:1px solid 
 .micbtn:hover{border-color:#4f6ef2}
 .micbtn.rec{background:#ef4444;border-color:#ef4444;color:#fff;animation:micpulse 1s infinite}
 @keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}100%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}#voiceAddBtn{background:linear-gradient(135deg,#4f6ef2,#7c5cf5);color:#fff;border:none}
-.float-toggle.rec{background:#ef4444!important;color:#fff;animation:micpulse 1s infinite}.float-toggle,.micbtn,#voiceAddBtn{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;pointer-events:auto}</style>
+.float-toggle.rec{background:#ef4444!important;color:#fff;animation:micpulse 1s infinite}.float-toggle,.micbtn,#voiceAddBtn{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;pointer-events:auto}body.theme-cyber{background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.17),transparent 32%),radial-gradient(circle at 92% 8%,rgba(129,140,248,.16),transparent 32%),radial-gradient(circle at 50% 100%,rgba(236,72,153,.09),transparent 42%),#050b14;background-attachment:fixed;color:#edf9ff}
+body.theme-cyber .maintitle{color:#edf9ff;text-shadow:0 0 20px rgba(34,211,238,.6)}
+body.theme-cyber .weekbar,body.theme-cyber .board-wrap,body.theme-cyber .float-panel,body.theme-cyber .dialog{background:rgba(10,22,38,.95);border-color:rgba(83,210,255,.28);box-shadow:0 18px 50px rgba(0,0,0,.45)}
+body.theme-cyber .week-title{color:#edf9ff}
+body.theme-cyber .nav,body.theme-cyber .btn,body.theme-cyber .float-toggle{background:rgba(13,29,49,.92);color:#dff7ff;border-color:rgba(83,210,255,.35)}
+body.theme-cyber .btn:hover,body.theme-cyber .nav:hover{background:rgba(34,211,238,.16);border-color:rgba(34,211,238,.6)}
+body.theme-cyber .day-header-row{background:rgba(13,29,49,.92)}
+body.theme-cyber .dh{border-color:rgba(83,210,255,.16)}
+body.theme-cyber .dh .wd{color:#87a7bd}
+body.theme-cyber .dh .dt{color:#dff7ff;background:transparent}
+body.theme-cyber .dh.today .dt{background:linear-gradient(135deg,#22d3ee,#818cf8);color:#04121c}
+body.theme-cyber .gutter{background:rgba(13,29,49,.92);border-color:rgba(83,210,255,.18)}
+body.theme-cyber .tl{color:#67e8f9}
+body.theme-cyber .daycol{background-color:rgba(8,18,32,.72)}
+body.theme-cyber .daycol.today{background-color:rgba(34,211,238,.10)}
+body.theme-cyber .daycol.we{background-color:rgba(8,18,32,.5)}
+body.theme-cyber .ev{box-shadow:0 0 0 1px rgba(223,247,255,.22),0 6px 18px rgba(0,0,0,.45)}
+body.theme-cyber .hint,body.theme-cyber .hidebar,body.theme-cyber .pastebar,body.theme-cyber .toast{background:rgba(13,29,49,.97);color:#dff7ff;border:1px solid rgba(83,210,255,.3)}
+body.theme-cyber .opt{background:rgba(13,29,49,.75);border-color:rgba(83,210,255,.25)}
+body.theme-cyber .opt .lbl{color:#edf9ff}
+body.theme-cyber .opt .sub{color:#87a7bd}
+body.theme-cyber .dialog h3,body.theme-cyber .dialog label,body.theme-cyber .dialog .dsub,body.theme-cyber .dnote{color:#dff7ff}
+body.theme-cyber .field input,body.theme-cyber .field textarea,body.theme-cyber select.vsel{background:rgba(8,18,32,.9);color:#edf9ff;border-color:rgba(83,210,255,.32)}
+body.theme-cyber .bgprev,body.theme-cyber #vpv{background-color:#050b14;border-color:rgba(83,210,255,.3)}
+body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
+@media print{body.theme-cyber{background:#fff!important;color:#111!important}body.theme-cyber .board-wrap,body.theme-cyber .daycol,body.theme-cyber .day-header-row,body.theme-cyber .gutter{background:#fff!important;color:#111!important}}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -1216,7 +1241,7 @@ const BG_COLORS=[
   {n:"石板",c:"#475569"},{n:"深蓝",c:"#1e3a8a"},{n:"墨绿",c:"#14532d"},{n:"深灰",c:"#111827"}
 ];
 var THEMES={
-  cyber:{name:"赛博朋克",css:"repeating-linear-gradient(0deg, rgba(0,229,255,.10) 0 1px, transparent 1px 44px),repeating-linear-gradient(90deg, rgba(255,0,200,.10) 0 1px, transparent 1px 44px),radial-gradient(circle at 18% 12%, rgba(255,0,200,.42), transparent 46%),radial-gradient(circle at 82% 4%, rgba(0,229,255,.40), transparent 42%),linear-gradient(160deg,#0a0f22 0%,#151a36 45%,#200f2e 100%)",color:"#0a0f22"},
+  cyber:{name:"赛博朋克",css:"repeating-linear-gradient(0deg, rgba(34,211,238,.07) 0 1px, transparent 1px 44px),repeating-linear-gradient(90deg, rgba(129,140,248,.07) 0 1px, transparent 1px 44px),radial-gradient(circle at 8% 0%,rgba(34,211,238,.20),transparent 34%),radial-gradient(circle at 92% 8%,rgba(129,140,248,.18),transparent 34%),radial-gradient(circle at 50% 100%,rgba(236,72,153,.10),transparent 42%),linear-gradient(#050b14,#050b14)",color:"#050b14"},
   aurora:{name:"极光",css:"radial-gradient(circle at 15% 18%, rgba(0,255,180,.35), transparent 45%),radial-gradient(circle at 85% 8%, rgba(130,60,255,.38), transparent 45%),linear-gradient(160deg,#04121a,#0a1a2b 50%,#06121f)",color:"#04121a"},
   space:{name:"深空",css:"radial-gradient(circle at 70% 18%, rgba(90,120,255,.30), transparent 45%),radial-gradient(circle at 20% 80%, rgba(255,120,220,.18), transparent 45%),linear-gradient(160deg,#05060f,#0d1230 60%,#05060f)",color:"#05060f"}
 };
@@ -1427,7 +1452,7 @@ const VFONTS={
   kai:"'KaiTi','STKaiti','Kaiti SC',serif",
   dengxian:"'DengXian','Microsoft YaHei',sans-serif"
 };
-let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true};function loadView(){
+let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default"};function loadView(){
   try{
     var raw=localStorage.getItem(VIEW_KEY);
     if(raw){
@@ -1439,6 +1464,7 @@ let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inh
         if(typeof o.leadZero==="boolean")vset.leadZero=o.leadZero;
         if(typeof o.grid==="number")vset.grid=o.grid;
         vset.cardFont=o.cardFont||"inherit";
+        vset.theme=o.theme||"default";
         if(typeof o.tSize==="number")vset.tSize=o.tSize;
         if(typeof o.mSize==="number")vset.mSize=o.mSize;
         if(typeof o.tBold==="boolean")vset.tBold=o.tBold;
@@ -1482,6 +1508,7 @@ function applyView(){
   document.body.style.setProperty("--emul",vset.mUnder?"underline":"none");
   document.body.style.setProperty("--etsh",shadowVal(vset.tShadow));
   document.body.style.setProperty("--emsh",shadowVal(vset.mShadow));
+  document.body.classList.toggle("theme-cyber",vset.theme==="cyber");
 }
 function saveView(){
   try{ localStorage.setItem(VIEW_KEY,JSON.stringify(vset)); }catch(e){}
@@ -1513,7 +1540,7 @@ function alOptsHTML(){
   return "<option value=\"left\">靠左</option><option value=\"center\">居中</option><option value=\"right\">靠右</option>";
 }
 function openViewDialog(){
-  var cur={font:vset.font,size:vset.size,dateFmt:vset.dateFmt,leadZero:vset.leadZero,grid:vset.grid,cardFont:vset.cardFont,tSize:vset.tSize,mSize:vset.mSize,tBold:vset.tBold,mBold:vset.mBold,tColor:vset.tColor,mColor:vset.mColor,tAlign:vset.tAlign,mAlign:vset.mAlign,tItalic:vset.tItalic,mItalic:vset.mItalic,tUnder:vset.tUnder,mUnder:vset.mUnder,tShadow:vset.tShadow,mShadow:vset.mShadow};
+  var cur={font:vset.font,size:vset.size,dateFmt:vset.dateFmt,leadZero:vset.leadZero,grid:vset.grid,cardFont:vset.cardFont,tSize:vset.tSize,mSize:vset.mSize,tBold:vset.tBold,mBold:vset.mBold,tColor:vset.tColor,mColor:vset.mColor,tAlign:vset.tAlign,mAlign:vset.mAlign,tItalic:vset.tItalic,mItalic:vset.mItalic,tUnder:vset.tUnder,mUnder:vset.mUnder,tShadow:vset.tShadow,mShadow:vset.mShadow,theme:vset.theme};
   var ov=$("#overlay");
   ov.classList.remove("hidden");
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\">"+
@@ -1522,6 +1549,7 @@ function openViewDialog(){
     "<div class=\"field\"><label>页面字体（表头/时间轴）</label><select class=\"vsel\" id=\"vFont\">"+fontOptsHTML(false)+"</select></div>"+
     "<div class=\"field\"><label>页面字号 <span id=\"vSizeV\"></span>px</label>"+
       "<input type=\"range\" id=\"vSize\" min=\"10\" max=\"24\" step=\"1\"></div>"+
+    "<div class=\"field\"><label>配色主题</label><div id=\"vTheme\"></div></div>"+
     "<div class=\"field\"><label>日期格式（表头）</label><div id=\"vDateF\"></div></div>"+
     "<div class=\"field\"><label>时间格式</label><div id=\"vTimeF\"></div></div>"+
     "<div class=\"field\"><label>网格线强度 <span id=\"vGridV\"></span>%</label>"+
@@ -1601,6 +1629,7 @@ function openViewDialog(){
     });
   }
   buildRadios("vDateF",[{v:"cn",t:"9月7日"},{v:"num",t:"9/7"},{v:"full",t:"2026-9-7"}],cur.dateFmt,function(v){cur.dateFmt=v;});
+  buildRadios("vTheme",[{v:"default",t:"默认（浅色）"},{v:"cyber",t:"赛博朋克（霓虹暗色）"}],cur.theme,function(v){cur.theme=v;});
   buildRadios("vTimeF",[{v:"1",t:"09:30（带前导 0）"},{v:"0",t:"9:30（不带 0）"}],cur.leadZero?1:0,function(v){cur.leadZero=(v==="1");});
   $("#vFont").addEventListener("change",function(){ cur.font=$("#vFont").value; paint(); });
   sizeR.addEventListener("input",function(){ cur.size=parseInt(sizeR.value,10); paint(); });
@@ -1626,7 +1655,7 @@ function openViewDialog(){
   $("#vOk").addEventListener("click",okV);
   $("#vCancel").addEventListener("click",closeV);
   $("#vReset").addEventListener("click",function(){
-    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true};
+    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default"};
     applyView(); saveView(); renderAll(); closeV();
   });
   var esc=function(e){
