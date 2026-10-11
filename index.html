@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.8">
+<meta name="app-version" content="2026-10-12.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -889,7 +889,45 @@ function applyAliases(s){
   }
   return t;
 }
-function openAliasDialog(){
+function lcsLen(a,b){
+  a=String(a||"").toLowerCase(); b=String(b||"").toLowerCase();
+  if(!a||!b) return 0;
+  var prev=[],cur=[],best=0;
+  for(var j=0;j<=b.length;j++) prev[j]=0;
+  for(var i=1;i<=a.length;i++){
+    cur[0]=0;
+    for(var j=1;j<=b.length;j++){
+      cur[j]=(a.charAt(i-1)===b.charAt(j-1))?(prev[j-1]+1):0;
+      if(cur[j]>best) best=cur[j];
+    }
+    prev=cur.slice();
+  }
+  return best;
+}
+function zhOnly(s){ return String(s||"").replace(/[^\u4e00-\u9fa5]/g,""); }
+function knownTitles(){
+  var map={};
+  for(var i=0;i<state.arrs.length;i++){
+    var vs=state.arrs[i].versions||[];
+    for(var j=0;j<vs.length;j++){
+      var ti=String(vs[j].title||"").trim();
+      if(ti) map[ti]=1;
+    }
+  }
+  return Object.keys(map);
+}
+function snapToKnown(title){
+  var list=knownTitles();
+  if(!list.length||!title) return title;
+  var best=null,bestScore=0;
+  for(var i=0;i<list.length;i++){
+    var s=lcsLen(title,list[i])+2*lcsLen(zhOnly(title),zhOnly(list[i]));
+    if(s>bestScore){ bestScore=s; best=list[i]; }
+  }
+  var zh=lcsLen(zhOnly(title),zhOnly(best||""));
+  if(best&&bestScore>=4&&(zh>=2||bestScore/Math.max(2,title.length)>=0.6)) return best;
+  return title;
+}function openAliasDialog(){
   var ov=$("#overlay"); ov.classList.remove("hidden");
   var body=aliases.map(function(a){ return a[0]+"="+a[1]; }).join("\n");
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>名称纠正（语音识别修正）</h3>"+
@@ -1009,6 +1047,7 @@ function openAliasDialog(){
 }
 function applyVoiceText(text){
   var p=parseVoiceFull(applyAliases(text));
+  p.title=snapToKnown(p.title);
   var day=(p.day!==null&&p.day!==undefined&&!isNaN(p.day))?p.day:((typeof mobileDay==="number"&&mobileDay!==null)?mobileDay:0);
   var st=(p.start===null)?DAY_START:p.start;
   var en=(p.end===null)?(st+60):p.end;
@@ -1178,7 +1217,7 @@ function openDialog(mode,ev){
       var tb=sw.querySelector('[data-color="'+p.color+'"]');
       if(tb) tb.classList.add("sel");
     }
-    if(p.title) $("#fTitle").value=p.title;
+    if(p.title){ p.title=snapToKnown(p.title); $("#fTitle").value=p.title; }
     if(showMsg) showToast("⚡ 已识别："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+p.title);
   }
   $("#fTitle").addEventListener("input",function(){ if(imeComposing) return; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },700); });
