@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.9">
+<meta name="app-version" content="2026-10-12.10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -1220,7 +1220,9 @@ function openDialog(mode,ev){
     if(p.title){ p.title=snapToKnown(p.title); $("#fTitle").value=p.title; }
     if(showMsg) showToast("⚡ 已识别："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+p.title);
   }
-  $("#fTitle").addEventListener("input",function(){ if(imeComposing) return; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },700); });
+  $("#fTitle").addEventListener("input",function(){ if(imeComposing) return; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },350); });
+  $("#fTitle").addEventListener("change",function(){ doTitleParse(true); });
+  $("#fTitle").addEventListener("keyup",function(){ clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(false); },500); });
   $("#fTitle").addEventListener("compositionstart",function(){ imeComposing=true; });
   $("#fTitle").addEventListener("compositionend",function(){ imeComposing=false; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },400); });
   $("#fTitle").addEventListener("blur",function(){ clearTimeout(parseTimer); doTitleParse(false); });
