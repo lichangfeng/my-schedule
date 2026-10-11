@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.15">
+<meta name="app-version" content="2026-10-12.16">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -330,6 +330,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
       <button class="btn" id="cloudBtn">☁️ 云同步（GitHub）</button>
       <button class="btn" id="reloadBtn">🔄 刷新到最新版</button>
       <button class="btn" id="aliasBtn">📝 名称纠正（识别修正）</button>
+      <button class="btn" id="aiBtn">🤖 AI 解析（可选，更准）</button>
       <button class="btn" id="viewModeBtn">📱 手机视图</button>
       <button class="btn" id="printBtn">🖨 打印 / 导出 PDF</button>
       <button class="btn" id="helpBtn">❓ 使用说明</button>
@@ -1013,6 +1014,79 @@ function snapToKnown(title){
   var esc=function(e){ if(e.key==="Escape") closeAl(); };
   curEsc=esc; document.addEventListener("keydown",esc);
   attachOverlayClose(ov,closeAl);
+}var AI_KEY="myScheduleAI";
+var aiCfg={provider:"",key:"",model:""};
+var KNOWN_SHOPS="HUK 河西店(简称HUK西)、HUK 世茂店(简称HUK东)、BAD EGGS、O-DOG、i5、AS、西美、洋湖实验、長郡外國語實驗";
+var KNOWN_TEACHERS="HUK西：小富、琳珑、牛牛、冰冰、小秦、十一、阿卷、饺子、五一、兔子、瑶瑶、一诺、海涛、可欣、小雪、惠子、八一、ZEZE、汤汤、小泰、融融、CC；HUK东：小y、lee、优益c、柚子、甲甲、艺艺、椰子、zeze、凡凡、一凡、娇子、郭虎、小黑、莉莉、依依、闫津、josh、泰瑞阳、贺贺、闫洋、谭老师、henry、金鸣、阿九、咩咩、mimmi、二毛、小六、龙荔、斑斑、贝爷、酸酸、片片；BAD EGGS：CHOCO、TALITA、POPONE、SANER、ZIKEE、JAYE、KATIE、羊儿、WHYWHY、VERNEY、AENNON、DEREK、SHUKI、PENG、7DONG、SHERRY、VIC、QZIKA、MAGGIE、博博、HUI、ATO、琴子、椰紫、根宝、SUNNY、ZILLA、文文、小蟒、橘子、小尤、彬彬、涛涛、小维、叶子、KEVIN、小文、紧张、DANNIE、康康、嘉怡";
+function loadAI(){ try{ var r=localStorage.getItem(AI_KEY); if(r){ var o=JSON.parse(r); if(o){ aiCfg.provider=o.provider||""; aiCfg.key=o.key||""; aiCfg.model=o.model||""; } } }catch(e){} }
+function saveAI(){ try{ localStorage.setItem(AI_KEY,JSON.stringify(aiCfg)); }catch(e){} }
+function aiReady(){ return !!(aiCfg.provider&&aiCfg.key); }
+function aiEndpoint(){
+  if(aiCfg.provider==="deepseek") return { url:"https://api.deepseek.com/chat/completions", model:(aiCfg.model||"deepseek-chat") };
+  if(aiCfg.provider==="doubao") return { url:"https://ark.cn-beijing.volces.com/api/v3/chat/completions", model:(aiCfg.model||"") };
+  return null;
+}
+function aiSystemPrompt(){
+  var now=new Date();
+  var wd=["日","一","二","三","四","五","六"][now.getDay()];
+  var known=knownTitles().join("、");
+  return "你是日程录入助手。请把用户说的一句话解析成严格 JSON，只输出 JSON，不要解释。\n"+
+   "输出格式：{\"day\":0-6或null,\"start\":\"HH:MM\"或null,\"end\":\"HH:MM\"或null,\"title\":\"机构+老师\",\"color\":\"blue|indigo|purple|teal|orange|green|rose\"}\n"+
+   "规则：\n"+
+   "1) day：周一=0、周二=1…周日=6；没提到就 null\n"+
+   "2) 时间没提到就 null；只说时段时：上午=09:00、中午=12:00、下午=14:00、傍晚=18:00、晚上=19:00；只说时长时按 09:00 开始\n"+
+   "3) title 只保留机构与老师/课程名，去掉\"我要上/颜色/时间/然后\"等词，且必须从下面的标准写法里选最接近的\n"+
+   "4) 颜色词映射：紫=purple、蓝=blue、深蓝=indigo、青=teal、绿=green、橙/黄=orange、红/粉=rose；没提到用 blue\n"+
+   "今天是周"+wd+"。\n标准名字列表："+known+"\n机构名单："+KNOWN_SHOPS+"\n老师名单："+KNOWN_TEACHERS;
+}
+function aiParseText(text){
+  var ep=aiEndpoint();
+  if(!ep||!aiCfg.key) return Promise.resolve(null);
+  var body={ model:ep.model, temperature:0, messages:[ {role:"system",content:aiSystemPrompt()}, {role:"user",content:String(text)} ] };
+  return fetch(ep.url,{ method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+aiCfg.key}, body:JSON.stringify(body) })
+   .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error("HTTP "+r.status+" "+String(t).slice(0,120)); }); return r.json(); })
+   .then(function(j){
+     var c=(j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";
+     c=String(c).replace(/```json/g,"").replace(/```/g,"").trim();
+     var o=JSON.parse(c);
+     return o;
+   });
+}
+function aiApplyResult(o){
+  if(!o) return false;
+  try{
+    if(o.day!==null&&o.day!==undefined&&!isNaN(o.day)){ var d=parseInt(o.day,10); if(d>=0&&d<=6){ day=d; var fd=$("#fDate"); if(fd) fd.textContent=dateStr(day); } }
+    if(o.start){ var m=parseMin(String(o.start)); if(!isNaN(m)){ var st=Math.max(DAY_START,Math.min(DAY_END-15,m)); $("#fStart").value=fmt(st); var en=m+60; if(o.end){ var m2=parseMin(String(o.end)); if(!isNaN(m2)) en=m2; } en=Math.min(DAY_END,Math.max(st+15,en)); $("#fEnd").value=fmt(en); } }
+    if(o.title){ $("#fTitle").value=snapToKnown(String(o.title).trim()); }
+    if(o.color){ swSel=o.color; sw.querySelectorAll(".sw").forEach(function(x){ x.classList.remove("sel"); }); var tb=sw.querySelector('[data-color="'+o.color+'"]'); if(tb) tb.classList.add("sel"); }
+    showToast("🤖 AI 解析："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+$("#fTitle").value);
+    return true;
+  }catch(e){ return false; }
+}
+function openAIDialog(){
+  var ov=$("#overlay"); ov.classList.remove("hidden");
+  var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>AI 智能解析（可选）</h3>"+
+   "<p class=\"dsub\">用大模型把你说的话解析成日程（识别更准）。不填就是只用本地解析。</p>"+
+   "<div class=\"field\"><label>服务商</label><select class=\"vsel\" id=\"aiProv\"><option value=\"\">关闭（只用本地解析）</option><option value=\"deepseek\">DeepSeek（推荐，便宜）</option><option value=\"doubao\">豆包 / 火山方舟</option></select></div>"+
+   "<div class=\"field\"><label>API Key</label><input type=\"password\" id=\"aiKey\" placeholder=\"sk-...\"></div>"+
+   "<div class=\"field\"><label>模型名 / 接入点 ID</label><input type=\"text\" id=\"aiModel\" placeholder=\"deepseek-chat 或 doubao 的接入点 ID\"></div>"+
+   "<div class=\"dnote\" id=\"aiNote\">DeepSeek：到 platform.deepseek.com 注册后创建 API Key，模型填 deepseek-chat。</div>"+
+   "<div class=\"dfoot\"><button class=\"btn\" id=\"aiTest\">测试</button><span class=\"grow\"></span><button class=\"btn\" id=\"aiCancel\">取消</button><button class=\"btn primary\" id=\"aiSave\">保存</button></div></div>";
+  ov.innerHTML=html;
+  $("#aiProv").value=aiCfg.provider||""; $("#aiKey").value=aiCfg.key||""; $("#aiModel").value=aiCfg.model||"";
+  function closeAI(){ ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){document.removeEventListener("keydown",curEsc); curEsc=null;} }
+  function readAI(){ aiCfg.provider=$("#aiProv").value; aiCfg.key=$("#aiKey").value.trim(); aiCfg.model=$("#aiModel").value.trim(); }
+  $("#aiSave").addEventListener("click",function(){ readAI(); saveAI(); closeAI(); showToast(aiCfg.provider?("✅ 已开启 AI 解析（"+aiCfg.provider+"）"):"已关闭 AI 解析"); });
+  $("#aiCancel").addEventListener("click",closeAI);
+  $("#aiTest").addEventListener("click",function(){
+    readAI(); saveAI();
+    $("#aiNote").textContent="测试中…";
+    aiParseText("周三下午三点到四点 小富 蓝色").then(function(o){ $("#aiNote").textContent="✅ 测试成功：" + JSON.stringify(o); })
+     .catch(function(e){ $("#aiNote").textContent="⚠️ 测试失败：" + e.message; });
+  });
+  var esc=function(e){ if(e.key==="Escape") closeAI(); };
+  curEsc=esc; document.addEventListener("keydown",esc);
+  attachOverlayClose(ov,closeAI);
 }function parseVoiceRange(text){
   var t=String(text||" ");
   var NUM="([0-9]+(?:\\.[0-9]+)?|[零〇一两二三四五六七八九十]+)";
@@ -1270,6 +1344,9 @@ function openDialog(mode,ev){
     }
     if(p.title){ p.title=snapToKnown(p.title); $("#fTitle").value=p.title; }
     if(showMsg) showToast("⚡ 已识别："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+p.title);
+    if(aiReady()&&String(txt).length>=4){
+      aiParseText(txt).then(function(o){ if(o) aiApplyResult(o); }).catch(function(e){ if(showMsg) showToast("🤖 AI 解析失败："+e.message); });
+    }
   }
   $("#fTitle").addEventListener("input",function(){ if(imeComposing) return; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },350); });
   $("#fTitle").addEventListener("change",function(){ doTitleParse(true); });
@@ -2454,6 +2531,7 @@ function bindUI(){
   $("#viewModeBtn").addEventListener("click",toggleViewMode);
   $("#voiceAddBtn").addEventListener("click",voiceQuickAdd);
   $("#aliasBtn").addEventListener("click",openAliasDialog);
+  $("#aiBtn").addEventListener("click",openAIDialog);
   $("#reloadBtn").addEventListener("click",function(){ try{ localStorage.setItem("myScheduleHintOff","1"); }catch(e){} location.replace(location.pathname + "?r=" + Date.now()); });
   $("#hideUndo").addEventListener("click",undoHide);
   $("#hideRestore").addEventListener("click",restoreWeekHidden);
@@ -2493,6 +2571,7 @@ loadHidden();
 loadCloudCfg();
 loadMobileOverride();
 loadAliases();
+loadAI();
 renderAll();
 bindUI();
 cloudReady=true;
