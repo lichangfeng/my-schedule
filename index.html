@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.22">
+<meta name="app-version" content="2026-10-12.24">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -184,6 +184,13 @@ select.vsel:focus{border-color:#4f6ef2;box-shadow:0 0 0 3px rgba(79,110,242,.15)
 body.hide-mode .ev{cursor:crosshair}
 body.hide-mode .ev .acts{display:none!important}
 body.hide-mode .ev:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
+body.del-mode .ev{cursor:pointer}
+body.del-mode .ev .acts{display:none!important}
+body.del-mode .ev:hover{outline:2px dashed #dc2626;outline-offset:-2px}
+body.del-mode .ev.del-sel{outline:3px solid #dc2626;outline-offset:-2px;filter:brightness(.78) saturate(1.15)}
+body.del-mode .ev.del-sel::after{content:"✓ 已选";position:absolute;top:2px;right:4px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:6px;z-index:5;pointer-events:none}
+#delBar{background:#991b1b}
+#delUndoBar{background:#1f2937}
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:130;background:#111827;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;box-shadow:0 10px 24px rgba(15,23,42,.35);opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 @media print{.hidebar,.toast{display:none!important}}body{-webkit-tap-highlight-color:transparent}
@@ -296,7 +303,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
   </div>
 
   <div class="hint no-print" id="hint">
-    <span>💡 <b>使用说明</b>：点空白处添加（从本周起每周重复）；修改/拖动/删除某周安排会询问同步到以后第几周。<br>📱 <b>手机上</b>：左右滑动查看整周，点卡片即可修改（手机上不会误拖动卡片）。<br>🔄 <b>换设备</b>：点右下角 ⚙️ →「导出数据」生成文件 → 发到手机 → 手机上点「导入数据」选择该文件，即可在手机上继续修改；改完再导出导回电脑。</span>
+    <span>💡 <b>使用说明</b>：点空白处添加（从本周起每周重复）；修改/拖动/删除某周安排会询问同步到以后第几周。<br>📱 <b>手机上</b>：左右滑动查看整周，点卡片即可修改（手机上不会误拖动卡片）。<br>🔄 <b>换设备</b>：点右下角 ⚙️ →「导出数据」生成文件 → 发到手机 → 手机上点「导入数据」选择该文件，即可在手机上继续修改；改完再导出导回电脑。<br>🗑 <b>批量删除</b>：右下角 ⚙️ →「批量删除卡片」→ 点卡片选中（可先「全选本周」）→「删除所选」→ 选范围；删错了点「↩ 撤销删除」。</span>
     <button class="close" id="hintClose" title="关闭">✕</button>
   </div>
 
@@ -314,6 +321,8 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
 </div>
 
 <div class="hidebar hidden" id="hideBar"><span id="hideTxt"></span><button class="btn" id="hideUndo">撤销上一张</button><button class="btn" id="hideRestore">恢复本周隐藏</button><button class="btn" id="hideDone">✔ 完成</button></div>
+<div class="hidebar hidden" id="delBar"><span id="delTxt"></span><button class="btn" id="delAll">全选本周</button><button class="btn" id="delNone">清空选择</button><button class="btn" id="delGo">🗑 删除所选</button><button class="btn" id="delDone">✔ 完成</button></div>
+<div class="hidebar hidden" id="delUndoBar"><span id="delUndoTxt"></span><button class="btn" id="delUndoBtn">↩ 撤销删除</button><button class="btn" id="delUndoClose">知道了</button></div>
   <div class="pastebar hidden" id="pasteBar"><span class="pb-dot" id="pbDot"></span><span class="pb-txt" id="pbTxt"></span><button class="btn" id="pbDone">✔ 完成</button></div>  <div class="floating no-print" id="floatWrap">
     <button class="float-toggle" id="voiceAddBtn" title="语音新增行程">🎤</button>
     <div class="float-panel" id="floatPanel">
@@ -325,6 +334,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
       <button class="btn" id="wxBtn">📋 复制图片（发微信）</button>
       <button class="btn" id="hideBtn">🙈 批量隐藏卡片</button>
       <button class="btn" id="unhideBtn">👁 恢复本周隐藏</button>
+      <button class="btn" id="delBtn">🗑 批量删除卡片</button>
       <button class="btn" id="dataOutBtn">⬇ 导出数据（换设备）</button>
       <button class="btn" id="dataInBtn">⬆ 导入数据（从手机/电脑）</button>
       <button class="btn" id="cloudBtn">☁️ 云同步（GitHub）</button>
@@ -559,6 +569,7 @@ function renderEvents(){
     var hgt=Math.max(20,(ev.end-ev.start)*PX/60-3);
     var el=document.createElement("div");
     el.className=(hgt>=54)?"ev big":"ev";
+    if(delMode&&delSel[ev.arrId]) el.className+=" del-sel";
     el.style.top=top+"px";
     el.style.height=hgt+"px";
     el.style.background=colColor(ev.color);
@@ -632,6 +643,7 @@ function renderAll(){
   renderWeekTitle(); renderHeader(); renderBody(); renderEvents(); renderLegend();
   document.body.classList.toggle("mobile-fit",isMobileView);
   updateHideBar();
+  updateDelBar();
   bindCols();
 }
 function bindEvent(el,ev){
@@ -639,7 +651,7 @@ function bindEvent(el,ev){
   el.addEventListener("pointerdown",function(e){
     if(e.button!==0) return;
     if(e.target.closest(".acts")) return;
-    if(hideMode) return;
+    if(hideMode||delMode) return;
     if(e.pointerType==="touch") return;
     started=true; moved=false; suppress=false;
     sx=e.clientX; sy=e.clientY; origDay=ev.day; origStart=ev.start;
@@ -676,6 +688,7 @@ function bindEvent(el,ev){
     if(suppress){ suppress=false; return; }
     if(e.target.closest(".acts")) return;
     if(hideMode){ hideCard(ev); return; }
+    if(delMode){ toggleDel(ev); return; }
     openDialog("edit",ev);
   });
   el.querySelector(".cp").addEventListener("click",function(e){
@@ -736,6 +749,75 @@ function restoreWeekHidden(){
   for(var k in hidden){ if(k.indexOf(key+"|")===0){ delete hidden[k]; n++; } }
   saveHidden(); renderAll(); showToast(n?("已恢复本周隐藏的 "+n+" 张卡片"):"本周没有隐藏的卡片");
 }
+/* ===== 批量删除卡片 ===== */
+let delMode=false, delSel={}, delUndo=null;
+function delSelIds(){ return Object.keys(delSel).filter(function(k){ return delSel[k]; }); }
+function updateDelBar(){
+  var bar=$("#delBar"); if(!bar) return;
+  if(delMode){
+    bar.classList.remove("hidden");
+    $("#delTxt").textContent="🗑 批量删除模式：点击卡片选中（已选 "+delSelIds().length+" 张）";
+  } else { bar.classList.add("hidden"); }
+}
+function setDelMode(on){
+  delMode=!!on;
+  document.body.classList.toggle("del-mode",delMode);
+  if(delMode){
+    if(pasteOn) cancelPaste();
+    if(hideMode) setHideMode(false);
+    var ub=$("#delUndoBar"); if(ub) ub.classList.add("hidden");
+  } else { delSel={}; }
+  updateDelBar(); renderAll();
+}
+function toggleDel(ev){
+  var id=ev.arrId;
+  if(delSel[id]) delete delSel[id]; else delSel[id]=true;
+  updateDelBar(); renderAll();
+}
+function clearDelSel(){ delSel={}; updateDelBar(); renderAll(); }
+function selectAllWeek(){
+  var key=weekKey(state.weekStart);
+  weekEvents(key).forEach(function(x){ if(!hidden[key+"|"+x.arrId]) delSel[x.arrId]=true; });
+  updateDelBar(); renderAll();
+  showToast("已选中本周 "+delSelIds().length+" 张卡片");
+}
+function doBatchDelete(){
+  var ids=delSelIds();
+  if(!ids.length){ showToast("还没选中卡片：先点卡片把它们选上"); return; }
+  var K=weekKey(state.weekStart);
+  var lookup={};
+  weekEvents(K).forEach(function(x){ lookup[x.arrId]=x; });
+  promptScope({
+    mode:"delete",K:K,defaultSel:"all",
+    title:"批量删除 "+ids.length+" 张卡片。请选择删除范围（之前的周不受影响）。",
+    onApply:function(toEx){
+      var snapshot=JSON.parse(JSON.stringify(state.arrs));
+      var n=0;
+      ids.forEach(function(id){
+        var arr=arrById(id), ev=lookup[id];
+        if(!arr||!ev) return;
+        applyChange(arr,K,{day:ev.day,start:ev.start,end:ev.end,title:ev.title,color:ev.color,note:ev.note},toEx,true);
+        n++;
+      });
+      delUndo={arrs:snapshot,n:n,at:Date.now()};
+      delSel={}; delMode=false; document.body.classList.remove("del-mode");
+      save(); renderAll(); updateDelBar();
+      var ub=$("#delUndoBar");
+      if(ub){ ub.classList.remove("hidden"); $("#delUndoTxt").textContent="🗑 已批量删除 "+n+" 张卡片"; }
+      showToast("🗑 已批量删除 "+n+" 张卡片，可点下方「撤销删除」恢复");
+    }
+  });
+}
+function undoBatchDelete(){
+  if(!delUndo){ showToast("没有可撤销的批量删除"); return; }
+  var now=Date.now();
+  delUndo.arrs.forEach(function(a){ a.updatedAt=now; });
+  state.arrs=delUndo.arrs; delUndo=null;
+  save(); renderAll();
+  var ub=$("#delUndoBar"); if(ub) ub.classList.add("hidden");
+  showToast("↩ 已撤销批量删除，卡片已恢复");
+}
+
 function showToast(msg){
   var d=document.createElement("div");
   d.className="toast"; d.textContent=msg;
@@ -888,12 +970,12 @@ var BUILTIN_ALIASES=[
   ["泽泽老师","HUK东 zeze"],["泽泽","HUK东 zeze"],["黑发","HIPHOP"],["黑怕","HIPHOP"],["嘻哈","HIPHOP"],["hip","HIPHOP"],
   ["hk世贸店","HUK东"],["huk世贸店","HUK东"],["世贸店","HUK东"],["世貿店","HUK东"],["hk世贸","HUK东"],["世贸","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],
   ["武蹈","舞蹈"],["舞導","舞蹈"],["街五","街舞"],
-  ["uk小付","HUK西 小富编舞"],["uk小富","HUK西 小富编舞"],["uk小腹","HUK西 小富编舞"],["uk小副","HUK西 小富编舞"],
-  ["hk小付","HUK西 小富编舞"],["hk小富","HUK西 小富编舞"],["hk小腹","HUK西 小富编舞"],["hk小副","HUK西 小富编舞"],
-  ["huk小付","HUK西 小富编舞"],["huk小富","HUK西 小富编舞"],["huk小腹","HUK西 小富编舞"],["huk小副","HUK西 小富编舞"],
-  ["k小付","HUK西 小富编舞"],["k小富","HUK西 小富编舞"],["k小腹","HUK西 小富编舞"],["k小副","HUK西 小富编舞"],
-  ["小付","HUK西 小富编舞"],["小腹","HUK西 小富编舞"],["小副","HUK西 小富编舞"],["小富","HUK西 小富编舞"],
-  ["哈克西","HUK西"],["哈克东","HUK东"]
+  ["哈克西","HUK西"],["哈克东","HUK东"],
+  ["huk小付","HUK西 小富"],["huk小富","HUK西 小富"],["huk小腹","HUK西 小富"],["huk小副","HUK西 小富"],
+  ["uk小付","HUK西 小富"],["uk小富","HUK西 小富"],["uk小腹","HUK西 小富"],["uk小副","HUK西 小富"],
+  ["hk小付","HUK西 小富"],["hk小富","HUK西 小富"],["hk小腹","HUK西 小富"],["hk小副","HUK西 小富"],
+  ["k小付","HUK西 小富"],["k小富","HUK西 小富"],["k小腹","HUK西 小富"],["k小副","HUK西 小富"],
+  ["小付","HUK西 小富"],["小腹","HUK西 小富"],["小副","HUK西 小富"],
 ];
 function applyAliases(s){
   var t=String(s||"");
@@ -935,10 +1017,10 @@ var BUILTIN_NAMES=[
  "HUK东 siri","HUK东 ad","HUK东 二毛","HUK东 小黑","HUK东 凡凡","HUK东 莉莉","HUK东 泰瑞阳","HUK东 晶晶",
  "HUK东 贝爷","HUK东 美七","HUK东 闫洋","HUK东 henry","HUK东 可欣","HUK东 贺贺","HUK东 一诺","HUK东 惠子",
  "HUK东 海涛","HUK东 艺艺","HUK东 依依","HUK东 josh","HUK东 谭老师","HUK东 金鸣","HUK东 娇子","HUK东 片片",
- "HUK西 小富编舞","HUK西 琳珑","HUK西 牛牛","HUK西 冰冰","HUK西 小秦","HUK西 十一","HUK西 阿卷","HUK西 饺子",
- "HUK西 五一","HUK西 兔子","HUK西 瑶瑶","HUK西 一诺","HUK西 海涛","HUK西 可欣","HUK西 小雪","HUK西 惠子",
- "HUK西 八一","HUK西 ZEZE","HUK西 汤汤","HUK西 小泰","HUK西 融融","HUK西 CC",
- "OD 鹏羽","OD ACE","OD Peng","AS","i5 私教","西美","洋湖实验","長郡外國語實驗","早功","练习","隊訓","meta"
+ "OD 鹏羽","OD ACE","OD Peng","AS","i5 私教","西美","洋湖实验","長郡外國語實驗","早功","练习","隊訓","meta",
+ "HUK西 小富","HUK西 瑶瑶","HUK西 小雪","HUK西 琳珑","HUK西 融融","HUK西 一诺","HUK西 子莉","HUK西 CC",
+ "HUK西 可欣","HUK西 饺子","HUK西 汤汤","HUK西 牛牛","HUK西 小秦","HUK西 八一","HUK西 冰冰","HUK西 五一",
+ "HUK西 惠子","HUK西 海涛","HUK西  zeze","HUK西 十一","HUK西 兔子","HUK西 阿卷",
 ];
 function isGoodName(t){
   t=String(t||"").trim();
@@ -963,8 +1045,9 @@ function knownTitles(){
   return Object.keys(map);
 }
 var SHOP_KEYS=[["hk世贸","HUK东"],["huk世贸","HUK东"],["世贸店","HUK东"],["世貿店","HUK东"],["世贸","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],["huk东","HUK东"],["huk西","HUK西"],["河西店","HUK西"],["河西","HUK西"],["od","OD"],["as","AS"],["i5","i5"],["西美","西美"],["洋湖","洋湖实验"],["长郡","長郡外國語實驗"],["長郡","長郡外國語實驗"]];
-var HUKDONG_T=["小y","lee","CC","斑斑","小秦","牛牛","甲甲","柚子","郭虎","一凡","zeze","阿九","椰子","优益c","融融","十一","咩咩","龙荔","treeya","minmi","siri","ad","二毛","小黑","凡凡","莉莉","泰瑞阳","晶晶","贝爷","美七","闫洋","henry","可欣","贺贺","一诺","惠子","海涛","艺艺","依依","josh","谭老师","金鸣","娇子","片片"];
-var HUKXI_T=["小富","琳珑","牛牛","冰冰","小秦","十一","阿卷","饺子","五一","兔子","瑶瑶","一诺","海涛","可欣","小雪","惠子","八一","zeze","汤汤","小泰","融融","CC"];
+var HUKDONG_T=["小y","lee","CC","斑斑","小秦","牛牛","甲甲","柚子","郭虎","一凡","zeze","阿九","椰子","优益c","融融","十一","咩咩","龙荔","treeya","minmi","siri","ad","二毛","小黑","小六","小富","凡凡","莉莉","泰瑞阳","晶晶","贝爷","美七","闫洋","henry","可欣","贺贺","一诺","惠子","海涛","艺艺","依依","josh","谭老师","金鸣","娇子","片片"];
+var HUKXI_PREF=["小富","瑶瑶","小雪","琳珑","子莉","饺子","汤汤","八一","冰冰","五一","阿卷","兔子"];
+var HUKXI_T=["小富","瑶瑶","小雪","琳珑","融融","一诺","子莉","CC","可欣","饺子","汤汤","牛牛","小秦","八一","冰冰","五一","惠子","海涛","zeze","十一","兔子","阿卷"];
 function findShop(txt){
   var n=String(txt).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
   for(var i=0;i<SHOP_KEYS.length;i++){
@@ -1009,7 +1092,7 @@ function extractTitle(txt){
     if(!teacher) teacher=findTeacher(txt,HUKXI_T);
   }
   if(teacher){
-    if(!shop) shop=(HUKXI_T.indexOf(teacher)>=0&&HUKDONG_T.indexOf(teacher)<0)?"HUK西":"HUK东";
+    if(!shop) shop=(HUKXI_PREF.indexOf(teacher)>=0)?"HUK西":((HUKXI_T.indexOf(teacher)>=0&&HUKDONG_T.indexOf(teacher)<0)?"HUK西":"HUK东");
     return shop+" "+teacher;
   }
   return null;
@@ -1096,7 +1179,7 @@ function snapToKnown(title){
 }var AI_KEY="myScheduleAI";
 var aiCfg={provider:"",key:"",model:""};
 var KNOWN_SHOPS="HUK 河西店(简称HUK西)、HUK 世茂店(简称HUK东)、BAD EGGS、O-DOG、i5、AS、西美、洋湖实验、長郡外國語實驗";
-var KNOWN_TEACHERS="HUK西：小富、琳珑、牛牛、冰冰、小秦、十一、阿卷、饺子、五一、兔子、瑶瑶、一诺、海涛、可欣、小雪、惠子、八一、ZEZE、汤汤、小泰、融融、CC；HUK东：小y、lee、优益c、柚子、甲甲、艺艺、椰子、zeze、凡凡、一凡、娇子、郭虎、小黑、莉莉、依依、闫津、josh、泰瑞阳、贺贺、闫洋、谭老师、henry、金鸣、阿九、咩咩、mimmi、二毛、小六、龙荔、斑斑、贝爷、酸酸、片片；BAD EGGS：CHOCO、TALITA、POPONE、SANER、ZIKEE、JAYE、KATIE、羊儿、WHYWHY、VERNEY、AENNON、DEREK、SHUKI、PENG、7DONG、SHERRY、VIC、QZIKA、MAGGIE、博博、HUI、ATO、琴子、椰紫、根宝、SUNNY、ZILLA、文文、小蟒、橘子、小尤、彬彬、涛涛、小维、叶子、KEVIN、小文、紧张、DANNIE、康康、嘉怡";
+var KNOWN_TEACHERS="HUK西：小富、瑶瑶、小雪、琳珑、融融、一诺、子莉、cc、可欣、饺子、汤汤、牛牛、小秦、八一、冰冰、五一、惠子、海涛、zeze、十一、兔子、阿卷；HUK东：小y、lee、优益c、柚子、甲甲、艺艺、椰子、zeze、凡凡、一凡、娇子、郭虎、小黑、小六、小富、莉莉、依依、闫津、josh、泰瑞阳、贺贺、闫洋、谭老师、henry、金鸣、阿九、咩咩、mimmi、二毛、小六、龙荔、斑斑、贝爷、酸酸、片片；BAD EGGS：CHOCO、TALITA、POPONE、SANER、ZIKEE、JAYE、KATIE、羊儿、WHYWHY、VERNEY、AENNON、DEREK、SHUKI、PENG、7DONG、SHERRY、VIC、QZIKA、MAGGIE、博博、HUI、ATO、琴子、椰紫、根宝、SUNNY、ZILLA、文文、小蟒、橘子、小尤、彬彬、涛涛、小维、叶子、KEVIN、小文、紧张、DANNIE、康康、嘉怡";
 function loadAI(){ try{ var r=localStorage.getItem(AI_KEY); if(r){ var o=JSON.parse(r); if(o){ aiCfg.provider=o.provider||""; aiCfg.key=o.key||""; aiCfg.model=o.model||""; } } }catch(e){} }
 function saveAI(){ try{ localStorage.setItem(AI_KEY,JSON.stringify(aiCfg)); }catch(e){} }
 function aiReady(){ return !!(aiCfg.provider&&aiCfg.key); }
@@ -2623,6 +2706,16 @@ function bindUI(){
   $("#hideUndo").addEventListener("click",undoHide);
   $("#hideRestore").addEventListener("click",restoreWeekHidden);
   $("#hideDone").addEventListener("click",function(){ setHideMode(false); });
+  $("#delBtn").addEventListener("click",function(){
+    if(delMode){ setDelMode(false); showToast("已退出批量删除模式"); }
+    else { setDelMode(true); showToast("🗑 已进入批量删除模式：点卡片选中，再点「删除所选」"); }
+  });
+  $("#delGo").addEventListener("click",doBatchDelete);
+  $("#delAll").addEventListener("click",selectAllWeek);
+  $("#delNone").addEventListener("click",clearDelSel);
+  $("#delDone").addEventListener("click",function(){ setDelMode(false); });
+  $("#delUndoBtn").addEventListener("click",undoBatchDelete);
+  $("#delUndoClose").addEventListener("click",function(){ $("#delUndoBar").classList.add("hidden"); });
   $("#viewBtn").addEventListener("click",openViewDialog);
   $("#bgBtn").addEventListener("click",openBgDialog);
   $("#printBtn").addEventListener("click",function(){ window.print(); });
@@ -2648,6 +2741,7 @@ function bindUI(){
   $("#pbDone").addEventListener("click",cancelPaste);
   document.addEventListener("keydown",function(e){
     if(e.key==="Escape"&&pasteOn&&$("#overlay").classList.contains("hidden")) cancelPaste();
+    if(e.key==="Escape"&&delMode&&$("#overlay").classList.contains("hidden")) setDelMode(false);
   });
 }
 load();
