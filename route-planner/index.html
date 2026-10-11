@@ -71,7 +71,7 @@ button,input,select{font:inherit}
     #dance-planner-root .v-odog { --venue-color:var(--viz-series-4); }
     #dance-planner-root .dp-route { padding:1rem; margin:0 0 1rem; }
     #dance-planner-root .dp-route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.65rem; }
-    #dance-planner-root .dp-route-stop { display:grid; grid-template-columns:minmax(150px,1fr) auto auto auto; align-items:center; gap:.5rem; margin-top:.5rem; }
+    #dance-planner-root .dp-route-stop { display:grid; grid-template-columns:minmax(150px,1fr) auto auto auto auto; align-items:center; gap:.5rem; margin-top:.5rem; }
     #dance-planner-root .dp-route-time-field { display:flex; align-items:center; gap:.3rem; color:var(--muted-foreground); white-space:nowrap; }
     #dance-planner-root .dp-route-time-field input { width:4.5rem; }
     #dance-planner-root .dp-route-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-top:.75rem; }
@@ -133,7 +133,11 @@ button,input,select{font:inherit}
   #dance-planner-root .dp-fold .dp-matrix { margin-top:.75rem; }
   #dance-planner-root .dp-day[aria-pressed="true"] { background:var(--primary); color:var(--primary-foreground); border-color:var(--primary); }
   /* COMPACT_CSS_END */
-    @media (max-width:620px) {
+    #dance-planner-root .dp-insert-btn{padding:.34rem .5rem;font-size:12px;white-space:nowrap;border-color:rgba(75,190,240,.55)}
+#dance-planner-root .dp-route-stop > .dp-insert-btn, #dance-planner-root .dp-route-stop > .dp-remove-btn{grid-column:auto}
+#dance-planner-root .dp-route-leg.is-waypoint{border-left-style:dashed}
+#dance-planner-root .dp-route-leg.is-waypoint > span:first-child{color:#0d9488;font-weight:600}
+@media (max-width:620px) {
       #dance-planner-root { max-width:100%; }
       #dance-planner-root .dp-controls { position:sticky; top:0; z-index:3; display:grid; grid-template-columns:repeat(4,1fr); gap:.4rem; padding:.45rem 0; background:var(--background); }
       #dance-planner-root .dp-controls .btn { width:100%; min-height:44px; padding:.35rem .2rem; }
@@ -413,13 +417,44 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     renderRouteStops();
   }
 
+  function isWaypoint(stop) { return !!stop && !stop.courseKey && (stop.kind === "waypoint" || !(Number(stop.classMin) > 0)); }
+  function stopTimeText(stop) {
+    const stay = Math.max(0, Number(stop.classMin) || 0), delay = Math.max(0, Number(stop.delayMin) || 0);
+    if (isWaypoint(stop)) return (stay + delay) ? ("停留 " + (stay + delay) + " 分") : "停留 0 分";
+    return "上課 " + stay + " 分" + (delay ? (" + 拖堂 " + delay + " 分") : "");
+  }
+  function waypointAnchor(index) {
+    for (let i = index - 1; i >= 0; i--) {
+      const v = routeStops[i].sortStart;
+      if (v !== null && v !== undefined && Number.isFinite(Number(v))) return Number(v) + 0.5;
+    }
+    for (let i = index; i < routeStops.length; i++) {
+      const v = routeStops[i].sortStart;
+      if (v !== null && v !== undefined && Number.isFinite(Number(v))) return Number(v) - 0.5;
+    }
+    return null;
+  }
+  function insertWaypoint(index) {
+    const at = Math.max(0, Math.min(routeStops.length, Number(index) || 0));
+    if (routeStops.length >= 14) { alert("停靠點太多了，請先移除一些。"); return; }
+    routeStops.splice(at, 0, {
+      courseKey:null, kind:"waypoint", location:"家", classMin:0, delayMin:0,
+      label:"中途回家", timeText:"自訂時間", color:"teal",
+      sortStart:waypointAnchor(at),
+      dateText:root.querySelector("#dp-work-date").value, day:selectedDay,
+      pickOrder:++routePickOrder
+    });
+    renderRouteStops();
+    renderDailySchedule();
+    renderSchedule();
+  }
   function renderRouteStops() {
     renderFixedWeek();
     renderOdogSchedule();
     renderBadEggsSpecialSchedule();
     const host = root.querySelector("#dp-route-stops");
     if (!routeStops.length) {
-      host.innerHTML = `<p class="text-small text-muted">點下方課程卡片，課程會依點擊順序加入為 B、C 等停靠點。</p>`;
+      host.innerHTML = `<p class="text-small text-muted">點下方課程卡片，課程會依點擊順序加入為 B、C 等停靠點。要在兩站之間回家，點那一站的「＋中途點」即可插入「家」，後面的停靠點會自動往後順延。</p>`;
       renderRoutePlan();
       return;
     }
@@ -428,9 +463,10 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
         <select class="form-select" data-route-stop="${index}" aria-label="停靠點 ${index + 1}">${locations.map(function (loc) {
           return `<option value="${esc(loc)}" ${loc === stop.location ? "selected" : ""}>${esc(loc)}</option>`;
         }).join("")}</select>
-        <label class="dp-route-time-field text-small">上課 <input class="form-control" type="number" min="0" max="300" step="5" value="${stop.classMin}" data-class-min="${index}" aria-label="第 ${index + 1} 站上課分鐘"> 分</label>
+        <label class="dp-route-time-field text-small">${isWaypoint(stop) ? "停留" : "上課"} <input class="form-control" type="number" min="0" max="300" step="5" value="${stop.classMin}" data-class-min="${index}" aria-label="第 ${index + 1} 站上課分鐘"> 分</label>
         <label class="dp-route-time-field text-small">拖堂 <input class="form-control" type="number" min="0" max="120" step="5" value="${stop.delayMin}" data-delay-min="${index}" aria-label="第 ${index + 1} 站拖堂分鐘"> 分</label>
-        <button type="button" class="btn" data-route-remove="${index}">移除</button>
+        <button type="button" class="btn dp-insert-btn" data-route-insert="${index}" title="在這一站之前插入一個中途點（預設「家」），後面的停靠點會自動往後順延">＋中途點</button>
+        <button type="button" class="btn dp-remove-btn" data-route-remove="${index}">移除</button>
       </div>`;
     }).join("");
     host.querySelectorAll("[data-route-stop]").forEach(function (select) {
@@ -460,6 +496,9 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
         routeStops.splice(Number(button.dataset.routeRemove), 1);
         renderRouteStops();
       });
+    });
+    host.querySelectorAll("[data-route-insert]").forEach(function (button) {
+      button.addEventListener("click", function () { insertWaypoint(Number(button.dataset.routeInsert)); });
     });
     root.querySelector("#dp-route-add").disabled = routeStops.length >= 8 || locations.every(function (loc) {
       return routeStops.some(function (stop) { return stop.location === loc; });
@@ -645,7 +684,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       cursor += effectiveClass;
       classMin += effectiveClass;
       legs.push({from:previous, to:stop.location, km:info.km, min:info.min});
-      timeline.push({type:"stop", location:stop.location, arrive:arrive, depart:cursor, travel:info.min, classMin:stop.classMin, delayMin:stop.delayMin});
+      timeline.push({type:"stop", location:stop.location, arrive:arrive, depart:cursor, travel:info.min, classMin:stop.classMin, delayMin:stop.delayMin, label:stop.label, waypoint:isWaypoint(stop)});
       previous = stop.location;
     });
 
@@ -671,6 +710,10 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     const stopRows = timeline.map(function (item) {
       if (item.type === "return") {
         return `<li class="dp-route-leg ${venueClass[item.location] || ""}"><span>${esc(item.location)}（返回）</span><span class="text-small text-muted">${formatClock(item.arrive)} · 移動 ${item.travel} 分</span></li>`;
+      }
+      if (item.waypoint) {
+        const stay = Math.max(0, Number(item.classMin) || 0) + Math.max(0, Number(item.delayMin) || 0);
+        return `<li class="dp-route-leg is-waypoint"><span>${esc(item.location)}${item.label ? "（" + esc(item.label) + "）" : ""}</span><span class="text-small text-muted">${formatClock(item.arrive)} 到達 · 移動 ${item.travel} 分 · 停留 ${stay} 分${stay ? " · " + formatClock(item.depart) + " 離開" : ""}</span></li>`;
       }
       return `<li class="dp-route-leg ${venueClass[item.location] || ""}"><span>${esc(item.location)}</span><span class="text-small text-muted">${formatClock(item.arrive)} 到達 · 上課 ${item.classMin} 分${item.delayMin ? ` + 拖堂 ${item.delayMin} 分` : ""} · ${formatClock(item.depart)} 離開</span></li>`;
     }).join("");
@@ -891,24 +934,31 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       host.innerHTML = `<p class="text-small text-muted">點擊上方工作日程或下方課程卡片，選取後會在這裡自動生成當天行程。</p>`;
       return;
     }
+    const startLoc = root.querySelector("#dp-route-start").value || "家";
     let previous = null;
+    let cursorLoc = startLoc;
+    let chainTravel = 0;
     host.innerHTML = items.map(function (item, index) {
-      const travel = previous ? routeInfo(previous.location, item.location) : null;
+      const travel = routeInfo(cursorLoc, item.location);
+      chainTravel += travel.min;
+      cursorLoc = item.location;
       let status = "";
-      if (previous && previous.sortStart != null && item.sortStart != null) {
-        const previousEnd = previous.sortStart + previous.classMin + (previous.delayMin || 0);
-        const gap = item.sortStart - previousEnd;
-        const needed = travel.min;
-        status = gap >= needed
-          ? `<div class="dp-daily-status is-ok text-small">前一站到本站轉場 ${travel.min} 分，間隔 ${gap} 分，來得及</div>`
-          : `<div class="dp-daily-status is-bad text-small">前一站到本站需 ${travel.min} 分，但只有 ${gap} 分，來不及</div>`;
+      const fromText = previous ? `從 ${previous.location} 出發` : `從 ${startLoc} 出發`;
+      if (!isWaypoint(item)) {
+        if (previous && previous.sortStart != null && item.sortStart != null) {
+          const previousEnd = previous.sortStart + previous.classMin + (previous.delayMin || 0);
+          const gap = item.sortStart - previousEnd;
+          status = gap >= chainTravel
+            ? `<div class="dp-daily-status is-ok text-small">${esc(previous.location)} → ${esc(item.location)} 轉場共 ${chainTravel} 分，間隔 ${gap} 分，來得及</div>`
+            : `<div class="dp-daily-status is-bad text-small">${esc(previous.location)} → ${esc(item.location)} 需要 ${chainTravel} 分，但只有 ${gap} 分，來不及</div>`;
+        }
+        previous = item;
+        chainTravel = 0;
       }
-      const fromText = previous ? `從 ${previous.location} 出發` : `從 ${root.querySelector("#dp-route-start").value} 出發`;
-      previous = item;
       return `<div class="dp-daily-item" style="border-left-color:${colorHex(item.color)}">
         <div class="dp-daily-title"><strong>${index + 1}. ${esc(item.label || item.location)}</strong><span class="text-small text-muted">${esc(item.timeText || "自訂時間")}</span></div>
-        <div class="text-small">${esc(item.location)} · 上課 ${item.classMin} 分${item.delayMin ? ` + 拖堂 ${item.delayMin} 分` : ""}</div>
-        ${travel ? `<div class="text-small text-muted">${esc(fromText)}，移動約 ${travel.min} 分（${travel.km.toFixed(1)} km）</div>` : ""}
+        <div class="text-small">${esc(item.location)} · ${stopTimeText(item)}</div>
+        <div class="text-small text-muted">${esc(fromText)}，移動約 ${travel.min} 分（${travel.km.toFixed(1)} km）</div>
         ${status}
       </div>`;
     }).join("");
@@ -962,7 +1012,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       ctx.fillText(item.timeText || "自訂時間",cardX+60,y+92);
       ctx.fillStyle="rgba(255,255,255,.82)";
       ctx.font="400 16px system-ui,\"Microsoft YaHei\",sans-serif";
-      let detail=item.location+" · 上課 "+item.classMin+" 分"+(item.delayMin ? " + 拖堂 "+item.delayMin+" 分" : "");
+      let detail=item.location+" · "+stopTimeText(item);
       if (previous) { const travel=routeInfo(previous.location,item.location); detail += " · 轉場約 "+travel.min+" 分"; }
       const detailLines=wrapCanvasText(ctx,detail,cardW-310).slice(0,2);
       detailLines.forEach(function (line,li) { ctx.fillText(line,cardX+270,y+39+li*21); });
@@ -980,7 +1030,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
     const items = dailyItems();
     const rows = items.map(function (item, index) {
-      return `<tr><td>${index + 1}</td><td>${esc(item.timeText || "")}</td><td>${esc(item.label || "")}</td><td>${esc(item.location)}</td><td>${item.classMin} 分${item.delayMin ? `＋拖堂 ${item.delayMin} 分` : ""}</td></tr>`;
+      return `<tr><td>${index + 1}</td><td>${esc(item.timeText || "")}</td><td>${esc(item.label || "")}</td><td>${esc(item.location)}</td><td>${stopTimeText(item)}</td></tr>`;
     }).join("");
     return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>當天行程 ${dateText}</title><style>body{font-family:system-ui,"Microsoft YaHei",sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:10px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>${dateText} 當天行程</h1><table><thead><tr><th>順序</th><th>時間</th><th>安排</th><th>地點</th><th>課堂時間</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
   }
