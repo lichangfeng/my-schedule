@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.3">
+<meta name="app-version" content="2026-10-12.4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -1032,7 +1032,7 @@ function openDialog(mode,ev){
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\">"+
     "<h3>"+(mode==="edit"?"编辑安排":"添加安排")+"</h3>"+
     "<p class=\"dsub\" id=\"fDate\">"+dateStr(day)+"</p>"+
-    "<div class=\"field\"><label>标题 <button type=\"button\" class=\"micbtn\" id=\"fMic\" title=\"语音输入\">🎤</button></label><input type=\"text\" id=\"fTitle\" maxlength=\"80\" placeholder=\"例如：深度工作 · 写周报\"></div>"+
+    "<div class=\"field\"><label>标题 <button type=\"button\" class=\"micbtn\" id=\"fMic\" title=\"语音输入\">🎤</button><button type=\"button\" class=\"micbtn\" id=\"fParse\" title=\"识别标题里的星期/时间/颜色\">⚡</button></label><input type=\"text\" id=\"fTitle\" maxlength=\"80\" placeholder=\"例如：深度工作 · 写周报\"></div>"+
     "<div class=\"field\"><label>时间</label><div class=\"times\">"+
       "<input type=\"time\" id=\"fStart\" value=\""+fmt(start)+"\">"+
       "<span class=\"sep\">至</span>"+
@@ -1096,41 +1096,38 @@ function openDialog(mode,ev){
     });
     sw.appendChild(b);
   });
-  var parseTimer=null;
-  $("#fTitle").addEventListener("input",function(){
-    clearTimeout(parseTimer);
-    parseTimer=setTimeout(function(){
-      var txt=$("#fTitle").value;
-      if(!txt||txt.length<2) return;
-      var p=parseVoiceFull(txt);
-      if(p.start===null&&p.day===null&&!p.colorMatched) return;
-      if(p.day!==null&&p.day!==undefined&&!isNaN(p.day)){ day=p.day; var fd=$("#fDate"); if(fd) fd.textContent=dateStr(day); }
-      if(p.start!==null){
-        var st=Math.max(DAY_START,Math.min(DAY_END-15,p.start));
-        var en=Math.min(DAY_END,Math.max(st+15,p.end));
-        $("#fStart").value=fmt(st); $("#fEnd").value=fmt(en);
-      }
-      if(p.colorMatched){
-        swSel=p.color;
-        sw.querySelectorAll(".sw").forEach(function(x){ x.classList.remove("sel"); });
-        var tb=sw.querySelector('[data-color="'+p.color+'"]');
-        if(tb) tb.classList.add("sel");
-      }
-      if(p.title) $("#fTitle").value=p.title;
-      showToast("⚡ 已识别："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+p.title);
-    },700);
-  });
+  var parseTimer=null, imeComposing=false;
+  function doTitleParse(showMsg){
+    var txt=$("#fTitle").value;
+    if(!txt||txt.length<2) return;
+    var p=parseVoiceFull(txt);
+    if(p.start===null&&p.day===null&&!p.colorMatched) return;
+    if(p.day!==null&&p.day!==undefined&&!isNaN(p.day)){ day=p.day; var fd=$("#fDate"); if(fd) fd.textContent=dateStr(day); }
+    if(p.start!==null){
+      var st=Math.max(DAY_START,Math.min(DAY_END-15,p.start));
+      var en=Math.min(DAY_END,Math.max(st+15,p.end));
+      $("#fStart").value=fmt(st); $("#fEnd").value=fmt(en);
+    }
+    if(p.colorMatched){
+      swSel=p.color;
+      sw.querySelectorAll(".sw").forEach(function(x){ x.classList.remove("sel"); });
+      var tb=sw.querySelector('[data-color="'+p.color+'"]');
+      if(tb) tb.classList.add("sel");
+    }
+    if(p.title) $("#fTitle").value=p.title;
+    if(showMsg) showToast("⚡ 已识别："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+p.title);
+  }
+  $("#fTitle").addEventListener("input",function(){ if(imeComposing) return; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },700); });
+  $("#fTitle").addEventListener("compositionstart",function(){ imeComposing=true; });
+  $("#fTitle").addEventListener("compositionend",function(){ imeComposing=false; clearTimeout(parseTimer); parseTimer=setTimeout(function(){ doTitleParse(true); },400); });
+  $("#fTitle").addEventListener("blur",function(){ clearTimeout(parseTimer); doTitleParse(false); });
+  (function(){ var fp=$("#fParse"); if(fp) fp.addEventListener("click",function(){ doTitleParse(true); }); })();
   function closeDialog(){
     ov.classList.add("hidden"); ov.innerHTML=""; editingEv=null;
     if(curEsc){ document.removeEventListener("keydown",curEsc); curEsc=null; }
   }
   function doSave(){
-    try{
-      var pv=parseVoiceFull($("#fTitle").value);
-      if(pv.start!==null){ var stv=Math.max(DAY_START,Math.min(DAY_END-15,pv.start)); $("#fStart").value=fmt(stv); $("#fEnd").value=fmt(Math.min(DAY_END,Math.max(stv+15,pv.end))); }
-      if(pv.colorMatched){ swSel=pv.color; sw.querySelectorAll(".sw").forEach(function(x){x.classList.remove("sel");}); var tb=sw.querySelector('[data-color="'+pv.color+'"]'); if(tb) tb.classList.add("sel"); }
-      if(pv.title) $("#fTitle").value=pv.title;
-    }catch(e){}
+    doTitleParse(false);
     var t=$("#fTitle").value.trim();
     var sRaw=parseMin($("#fStart").value), eRaw=parseMin($("#fEnd").value);
     if(!t) t="（未命名安排）";
