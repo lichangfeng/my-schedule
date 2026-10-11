@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.2">
+<meta name="app-version" content="2026-10-12.3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -932,10 +932,14 @@ function parseVoiceFull(text){
     }
   }
   var r=parseVoiceRange(t);
-  var title=String(r.rest||"")
-    .replace(/^\s*(帮我|请|麻烦|我要|我想要|添加|新增|安排|加|上|去)\s*/,"")
-    .replace(/\s*(的课|上课|的)\s*$/,"")
-    .replace(/\s+/g," ").trim();
+  var title=String(r.rest||"");
+  for(var kk=0;kk<4;kk++){
+    var before=title;
+    title=title.replace(/^\s*(我要|我想要|想要|帮我|帮忙|请|麻烦|安排一下|安排|添加|新增|加个|去|上|在)\s*/,"");
+    title=title.replace(/\s*(的课|上课|的|课|有课|的课程|课程)\s*$/,"");
+    if(title===before) break;
+  }
+  title=title.replace(/[，,。！!？?、]/g," ").replace(/\s+/g," ").trim();
   if(!title) title="新安排";
   return {day:day,start:r.start,end:r.end,title:title,color:color||"blue",colorMatched:!!color};
 }
