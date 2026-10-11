@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
+<meta name="app-version" content="2026-10-12.2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -907,6 +908,7 @@ function parseVoiceRange(text){
     if(dur&&dur>0) end=start+dur;
   }
   var ap=a.ap||"";
+  if(!ap&&start>=60&&start<=7*60) start+=12*60;
   if((ap==="下午"||ap==="傍晚"||ap==="晚上")&&start<12*60) start+=12*60;
   if(ap==="中午"&&start<12*60) start=12*60;
   if(ap==="凌晨"&&start>=12*60) start-=12*60;
@@ -1119,6 +1121,12 @@ function openDialog(mode,ev){
     if(curEsc){ document.removeEventListener("keydown",curEsc); curEsc=null; }
   }
   function doSave(){
+    try{
+      var pv=parseVoiceFull($("#fTitle").value);
+      if(pv.start!==null){ var stv=Math.max(DAY_START,Math.min(DAY_END-15,pv.start)); $("#fStart").value=fmt(stv); $("#fEnd").value=fmt(Math.min(DAY_END,Math.max(stv+15,pv.end))); }
+      if(pv.colorMatched){ swSel=pv.color; sw.querySelectorAll(".sw").forEach(function(x){x.classList.remove("sel");}); var tb=sw.querySelector('[data-color="'+pv.color+'"]'); if(tb) tb.classList.add("sel"); }
+      if(pv.title) $("#fTitle").value=pv.title;
+    }catch(e){}
     var t=$("#fTitle").value.trim();
     var sRaw=parseMin($("#fStart").value), eRaw=parseMin($("#fEnd").value);
     if(!t) t="（未命名安排）";
@@ -2333,6 +2341,23 @@ cloudAutoStart();
 if(cloudCfg.autoPull&&cloudConfigured()){ setTimeout(function(){ cloudPull(true).catch(function(){}); },700); }
 setInterval(updateNowLine,30000);
 window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.__mrt=setTimeout(function(){ renderAll(); },200); });
+function checkAppUpdate(){
+  try{
+    var cur=document.querySelector('meta[name="app-version"]');
+    if(!cur) return;
+    var curV=cur.getAttribute("content");
+    var url=location.pathname+"?_="+Date.now();
+    fetch(url,{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(txt){
+      var m=txt.match(/<meta name="app-version" content="([^"]+)"/);
+      if(!m||!curV||m[1]===curV) return;
+      var k="appUpdatedTo";
+      if(sessionStorage.getItem(k)===m[1]) return;
+      sessionStorage.setItem(k,m[1]);
+      location.replace(url);
+    }).catch(function(){});
+  }catch(e){}
+}
+window.addEventListener("load",function(){ setTimeout(checkAppUpdate,1500); });
 })();</script>
 </body>
 </html>
