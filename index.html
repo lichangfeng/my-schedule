@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.7">
+<meta name="app-version" content="2026-10-12.8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -329,6 +329,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
       <button class="btn" id="dataInBtn">⬆ 导入数据（从手机/电脑）</button>
       <button class="btn" id="cloudBtn">☁️ 云同步（GitHub）</button>
       <button class="btn" id="reloadBtn">🔄 刷新到最新版</button>
+      <button class="btn" id="aliasBtn">📝 名称纠正（识别修正）</button>
       <button class="btn" id="viewModeBtn">📱 手机视图</button>
       <button class="btn" id="printBtn">🖨 打印 / 导出 PDF</button>
       <button class="btn" id="helpBtn">❓ 使用说明</button>
@@ -874,7 +875,56 @@ function parseVoiceTime(text){
   return {title:t.replace(/\s+/g," ").trim(),start:start,end:end};
 }
 function voiceSupported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
-function parseVoiceRange(text){
+var ALIAS_KEY="myScheduleAliases";
+var aliases=[];
+function loadAliases(){ try{ var raw=localStorage.getItem(ALIAS_KEY); aliases=raw?(JSON.parse(raw)||[]):[]; }catch(e){ aliases=[]; } }
+function saveAliases(){ try{ localStorage.setItem(ALIAS_KEY,JSON.stringify(aliases)); }catch(e){} }
+function rxEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+function applyAliases(s){
+  var t=String(s||"");
+  for(var i=0;i<aliases.length;i++){
+    var f=aliases[i][0], to=aliases[i][1];
+    if(!f||!to) continue;
+    try{ t=t.replace(new RegExp(rxEsc(f),"gi"),to); }catch(e){ t=t.split(f).join(to); }
+  }
+  return t;
+}
+function openAliasDialog(){
+  var ov=$("#overlay"); ov.classList.remove("hidden");
+  var body=aliases.map(function(a){ return a[0]+"="+a[1]; }).join("\n");
+  var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>名称纠正（语音识别修正）</h3>"+
+    "<p class=\"dsub\">每行一条：识别错的词=正确写法。例如：<b>k小副=UK小付</b></p>"+
+    "<div class=\"field\"><textarea id=\"alText\" style=\"min-height:150px\" placeholder=\"k小副=UK小付\"></textarea></div>"+
+    "<div class=\"dnote\">识别到左边的词就自动换成右边（不区分大小写）。</div>"+
+    "<div class=\"dfoot\"><button class=\"btn\" id=\"alExtract\">从现有卡片提取名称</button><span class=\"grow\"></span>"+
+    "<button class=\"btn\" id=\"alCancel\">取消</button><button class=\"btn primary\" id=\"alSave\">保存</button></div></div>";
+  ov.innerHTML=html;
+  $("#alText").value=body;
+  function closeAl(){ ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){document.removeEventListener("keydown",curEsc); curEsc=null;} }
+  $("#alCancel").addEventListener("click",closeAl);
+  $("#alExtract").addEventListener("click",function(){
+    var names={};
+    for(var i=0;i<state.arrs.length;i++){ var vs=state.arrs[i].versions||[]; for(var j=0;j<vs.length;j++){ var ti=String(vs[j].title||"").trim(); if(ti) names[ti]=1; } }
+    var list=Object.keys(names).sort();
+    var cur=$("#alText").value;
+    var add=list.map(function(n){ return "="+n; }).join("\n");
+    $("#alText").value=(cur?cur+"\n":"")+add;
+  });
+  $("#alSave").addEventListener("click",function(){
+    var lines=$("#alText").value.split("\n"), out=[];
+    for(var i=0;i<lines.length;i++){
+      var ln=lines[i]; if(!ln) continue;
+      var idx=ln.indexOf("=");
+      if(idx<=0) continue;
+      var f=ln.substring(0,idx).trim(), to=ln.substring(idx+1).trim();
+      if(f&&to) out.push([f,to]);
+    }
+    aliases=out; saveAliases(); closeAl(); showToast("✅ 已保存 "+aliases.length+" 条纠正规则");
+  });
+  var esc=function(e){ if(e.key==="Escape") closeAl(); };
+  curEsc=esc; document.addEventListener("keydown",esc);
+  attachOverlayClose(ov,closeAl);
+}function parseVoiceRange(text){
   var t=String(text||" ");
   var NUM="([0-9]+(?:\\.[0-9]+)?|[零〇一两二三四五六七八九十]+)";
   var MIN="((?:[零〇一两二三四五六七八九十]+刻?)|半|[0-9]{1,2})";
@@ -958,7 +1008,7 @@ function parseVoiceRange(text){
   return {day:day,start:r.start,end:r.end,title:title,color:color||"blue",colorMatched:!!color};
 }
 function applyVoiceText(text){
-  var p=parseVoiceFull(text);
+  var p=parseVoiceFull(applyAliases(text));
   var day=(p.day!==null&&p.day!==undefined&&!isNaN(p.day))?p.day:((typeof mobileDay==="number"&&mobileDay!==null)?mobileDay:0);
   var st=(p.start===null)?DAY_START:p.start;
   var en=(p.end===null)?(st+60):p.end;
@@ -1112,7 +1162,7 @@ function openDialog(mode,ev){
   });
   var parseTimer=null, imeComposing=false;
   function doTitleParse(showMsg){
-    var txt=$("#fTitle").value;
+    var txt=applyAliases($("#fTitle").value);
     if(!txt||txt.length<2) return;
     var p=parseVoiceFull(txt);
     if(p.start===null&&p.day===null&&!p.colorMatched) return;
@@ -2311,6 +2361,7 @@ function bindUI(){
   $("#cloudBtn").addEventListener("click",openCloudDialog);
   $("#viewModeBtn").addEventListener("click",toggleViewMode);
   $("#voiceAddBtn").addEventListener("click",voiceQuickAdd);
+  $("#aliasBtn").addEventListener("click",openAliasDialog);
   $("#reloadBtn").addEventListener("click",function(){ try{ localStorage.setItem("myScheduleHintOff","1"); }catch(e){} location.replace(location.pathname + "?r=" + Date.now()); });
   $("#hideUndo").addEventListener("click",undoHide);
   $("#hideRestore").addEventListener("click",restoreWeekHidden);
@@ -2349,6 +2400,7 @@ applyView();
 loadHidden();
 loadCloudCfg();
 loadMobileOverride();
+loadAliases();
 renderAll();
 bindUI();
 cloudReady=true;
