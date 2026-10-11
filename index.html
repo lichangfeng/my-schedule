@@ -253,7 +253,7 @@ body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}.micbtn{border:1px solid 
 .micbtn:hover{border-color:#4f6ef2}
 .micbtn.rec{background:#ef4444;border-color:#ef4444;color:#fff;animation:micpulse 1s infinite}
 @keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}100%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}#voiceAddBtn{background:linear-gradient(135deg,#4f6ef2,#7c5cf5);color:#fff;border:none}
-.float-toggle.rec{background:#ef4444!important;color:#fff;animation:micpulse 1s infinite}</style>
+.float-toggle.rec{background:#ef4444!important;color:#fff;animation:micpulse 1s infinite}.float-toggle,.micbtn,#voiceAddBtn{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;pointer-events:auto}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -929,7 +929,7 @@ function voiceQuickAdd(){
   var btn=$("#voiceAddBtn");
   if(!SR){ showToast("此浏览器不支持语音输入，请用 Chrome/Edge 打开"); return; }
   if(window.__voiceRecOn){ try{ window.__voiceRec.stop(); }catch(e){} return; }
-  var rec=new SR(); rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
+  var rec=new SR(); rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=true; rec.maxAlternatives=1;
   window.__voiceRec=rec; window.__voiceRecOn=true;
   if(btn){ btn.classList.add("rec"); btn.textContent="⏹"; }
   var finalText="";
@@ -984,7 +984,7 @@ function voiceQuickAdd(){
     };
     var toggleMic=function(){
       if(recOn){ try{ rec.stop(); }catch(e){} return; }
-      rec=new SR(); rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
+      rec=new SR(); rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=true; rec.maxAlternatives=1;
       baseText=$("#fTitle").value?($("#fTitle").value.replace(/\s+$/,"")+" "):"";
       setRecUI(true);
       rec.onresult=function(e){
