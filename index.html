@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.16">
+<meta name="app-version" content="2026-10-12.17">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -882,6 +882,9 @@ function loadAliases(){ try{ var raw=localStorage.getItem(ALIAS_KEY); aliases=ra
 function saveAliases(){ try{ localStorage.setItem(ALIAS_KEY,JSON.stringify(aliases)); }catch(e){} }
 function rxEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
 var BUILTIN_ALIASES=[
+  ["世贸","HUK东"],["世茂","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["河西店","HUK西"],["河西","HUK西"],
+  ["小y编舞","HUK东 小y编舞"],["小Y编舞","HUK东 小y编舞"],
+  ["小y","HUK东 小y编舞"],["cc","HUK东 CC"],["斑斑","HUK东 斑斑"],["lee","HUK东 Lee编舞"],
   ["武蹈","舞蹈"],["舞導","舞蹈"],["街五","街舞"],
   ["uk小付","HUK西 小富编舞"],["uk小富","HUK西 小富编舞"],["uk小腹","HUK西 小富编舞"],["uk小副","HUK西 小富编舞"],
   ["hk小付","HUK西 小富编舞"],["hk小富","HUK西 小富编舞"],["hk小腹","HUK西 小富编舞"],["hk小副","HUK西 小富编舞"],
@@ -903,6 +906,8 @@ function applyAliases(s){
     if(t.indexOf(r)>=0) continue;
     try{ t=t.replace(new RegExp(rxEsc(w),"gi"),r); }catch(e){ t=t.split(w).join(r); }
   }
+  t=t.replace(/(^|[\s,，、])HUK(?=[\s,，、]|$)/gi," ");
+  t=t.replace(/HUK西\s*HUK西/g,"HUK西").replace(/HUK东\s*HUK东/g,"HUK东");
   return t;
 }
 function lcsLen(a,b){
@@ -921,6 +926,18 @@ function lcsLen(a,b){
   return best;
 }
 function zhOnly(s){ return String(s||"").replace(/[^\u4e00-\u9fa5]/g,""); }
+var BUILTIN_NAMES=[
+ "HUK东 小y编舞","HUK东 Lee编舞","HUK东 CC","HUK东 斑斑","HUK东 cc",
+ "HUK东 小秦","HUK东 牛牛","HUK东 甲甲","HUK东 柚子","HUK东 郭虎","HUK东 一凡","HUK东 zeze","HUK东 阿九",
+ "HUK东 椰子","HUK东 优益c","HUK东 融融","HUK东 十一","HUK东 咩咩","HUK东 龙荔","HUK东 treeya","HUK东 minmi",
+ "HUK东 siri","HUK东 ad","HUK东 二毛","HUK东 小黑","HUK东 凡凡","HUK东 莉莉","HUK东 泰瑞阳","HUK东 晶晶",
+ "HUK东 贝爷","HUK东 美七","HUK东 闫洋","HUK东 henry","HUK东 可欣","HUK东 贺贺","HUK东 一诺","HUK东 惠子",
+ "HUK东 海涛","HUK东 艺艺","HUK东 依依","HUK东 josh","HUK东 谭老师","HUK东 金鸣","HUK东 娇子","HUK东 片片",
+ "HUK西 小富编舞","HUK西 琳珑","HUK西 牛牛","HUK西 冰冰","HUK西 小秦","HUK西 十一","HUK西 阿卷","HUK西 饺子",
+ "HUK西 五一","HUK西 兔子","HUK西 瑶瑶","HUK西 一诺","HUK西 海涛","HUK西 可欣","HUK西 小雪","HUK西 惠子",
+ "HUK西 八一","HUK西 ZEZE","HUK西 汤汤","HUK西 小泰","HUK西 融融","HUK西 CC",
+ "OD 鹏羽","OD ACE","OD Peng","AS","i5 私教","西美","洋湖实验","長郡外國語實驗","早功","练习","隊訓","meta"
+];
 function isGoodName(t){
   t=String(t||"").trim();
   if(!t||t.length>14) return false;
@@ -940,6 +957,7 @@ function knownTitles(){
       if(ti&&isGoodName(ti)) map[ti]=1;
     }
   }
+  for(var b=0;b<BUILTIN_NAMES.length;b++){ map[BUILTIN_NAMES[b]]=1; }
   return Object.keys(map);
 }
 function zhSubs(s){ var out=[],n=String(s||"").length; for(var L=2;L<=3;L++){ for(var i=0;i+L<=n;i++){ out.push(String(s).substr(i,L)); } } return out; }
