@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.12">
+<meta name="app-version" content="2026-10-12.13">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -916,6 +916,8 @@ function knownTitles(){
   }
   return Object.keys(map);
 }
+function zhSubs(s){ var out=[],n=String(s||"").length; for(var L=2;L<=3;L++){ for(var i=0;i+L<=n;i++){ out.push(String(s).substr(i,L)); } } return out; }
+function nearMatch(a,b){ if(String(a).length!==String(b).length) return 99; var d=0; for(var i=0;i<a.length;i++){ if(a.charAt(i)!==b.charAt(i)) d++; if(d>1) return 99; } return d; }
 function snapToKnown(title){
   var list=knownTitles();
   if(!list.length||!title) return title;
@@ -926,6 +928,23 @@ function snapToKnown(title){
     if(_nk.length>=2&&_nz.indexOf(_nk)>=0&&_nk.length>_blLen){ _bl=list[_i]; _blLen=_nk.length; }
   }
   if(_bl) return _bl;
+  var _subsIn=zhSubs(rawZh);
+  if(_subsIn.length){
+    var _near=null,_nearScore=0;
+    for(var _a=0;_a<list.length;_a++){
+      var _zk=zhOnly(list[_a]);
+      var _subsK=zhSubs(_zk);
+      for(var _x=0;_x<_subsIn.length;_x++){
+        for(var _y=0;_y<_subsK.length;_y++){
+          if(_subsIn[_x].length===_subsK[_y].length&&nearMatch(_subsIn[_x],_subsK[_y])<=1){
+            var _sc=_subsIn[_x].length*10;
+            if(_sc>_nearScore){ _nearScore=_sc; _near=list[_a]; }
+          }
+        }
+      }
+    }
+    if(_near&&_nearScore>=20) return _near;
+  }
   var best=null,bestScore=0;
   for(var i=0;i<list.length;i++){
     var s=lcsLen(title,list[i])+2*lcsLen(zhOnly(title),zhOnly(list[i]));
