@@ -252,7 +252,8 @@ body.mobile-fit .day-body-row{grid-template-columns:24px repeat(7,1fr)}body.mobi
 body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}.micbtn{border:1px solid #d7dce6;background:#fff;border-radius:50%;width:30px;height:30px;font-size:15px;line-height:1;cursor:pointer;margin-left:8px;vertical-align:middle;padding:0}
 .micbtn:hover{border-color:#4f6ef2}
 .micbtn.rec{background:#ef4444;border-color:#ef4444;color:#fff;animation:micpulse 1s infinite}
-@keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}100%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}</style>
+@keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}100%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}#voiceAddBtn{background:linear-gradient(135deg,#4f6ef2,#7c5cf5);color:#fff;border:none}
+.float-toggle.rec{background:#ef4444!important;color:#fff;animation:micpulse 1s infinite}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -288,6 +289,7 @@ body.mobile-fit .ev .t{font-size:9.5px;line-height:1.2}.micbtn{border:1px solid 
 
 <div class="hidebar hidden" id="hideBar"><span id="hideTxt"></span><button class="btn" id="hideUndo">撤销上一张</button><button class="btn" id="hideRestore">恢复本周隐藏</button><button class="btn" id="hideDone">✔ 完成</button></div>
   <div class="pastebar hidden" id="pasteBar"><span class="pb-dot" id="pbDot"></span><span class="pb-txt" id="pbTxt"></span><button class="btn" id="pbDone">✔ 完成</button></div>  <div class="floating no-print" id="floatWrap">
+    <button class="float-toggle" id="voiceAddBtn" title="语音新增行程">🎤</button>
     <div class="float-panel" id="floatPanel">
       <button class="btn" id="todayBtn">📍 回到本周</button>
       <button class="btn" id="resetBtn">↺ 恢复示例</button>
@@ -844,7 +846,104 @@ function parseVoiceTime(text){
   }
   return {title:t.replace(/\s+/g," ").trim(),start:start,end:end};
 }
-function voiceSupported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }function openDialog(mode,ev){
+function voiceSupported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function parseVoiceRange(text){
+  var t=String(text||" ");
+  var NUM="([0-9]+(?:\\.[0-9]+)?|[零〇一两二三四五六七八九十]+)";
+  var MIN="((?:[零〇一两二三四五六七八九十]+刻?)|半|[0-9]{1,2})";
+  function one(str){
+    var m=str.match(new RegExp("(上午|早上|中午|下午|傍晚|晚上|凌晨)?\\s*"+NUM+"\\s*[点:：时]\\s*"+MIN+"?\\s*分?"));
+    if(!m) return null;
+    var h=cnNum(m[2]); if(isNaN(h)) h=0;
+    var mi=0;
+    if(m[3]){
+      if(m[3]==="半") mi=30;
+      else if(m[3]==="一刻") mi=15;
+      else if(m[3]==="三刻") mi=45;
+      else { mi=cnNum(m[3]); if(isNaN(mi)) mi=0; }
+    }
+    return {raw:m[0],minutes:h*60+mi,ap:(m[1]||"")};
+  }
+  var a=one(t);
+  if(!a) return {start:null,end:null,rest:t};
+  var rest=t.replace(a.raw," ");
+  var start=a.minutes, end=null;
+  var b=one(rest);
+  if(b){ rest=rest.replace(b.raw," "); end=b.minutes; }
+  else{
+    var mHalf=rest.match(new RegExp("("+NUM+")?\\s*个?\\s*半\\s*小时"));
+    var mH=rest.match(new RegExp(NUM+"\\s*个?\\s*小时"));
+    var mM=rest.match(new RegExp(NUM+"\\s*分钟"));
+    var dur=null;
+    if(mHalf){ var n0=cnNum(mHalf[1]); if(isNaN(n0)) n0=0; dur=n0*60+30; rest=rest.replace(mHalf[0]," "); }
+    else if(mH){ dur=cnNum(mH[1])*60; rest=rest.replace(mH[0]," "); }
+    else if(mM){ dur=cnNum(mM[1]); rest=rest.replace(mM[0]," "); }
+    if(dur&&dur>0) end=start+dur;
+  }
+  var ap=a.ap||"";
+  if((ap==="下午"||ap==="傍晚"||ap==="晚上")&&start<12*60) start+=12*60;
+  if(ap==="中午"&&start<12*60) start=12*60;
+  if(ap==="凌晨"&&start>=12*60) start-=12*60;
+  if(end!==null){
+    if(end<=start){
+      if(end+12*60>start) end+=12*60; else end=start+60;
+    }
+  } else { end=start+60; }
+  return {start:start,end:end,rest:rest};
+}
+function parseVoiceFull(text){
+  var t=String(text||"");
+  var day=null;
+  var mDay=t.match(/(周|星期|礼拜)([一二三四五六日天])/);
+  if(mDay){ var mp={"一":0,"二":1,"三":2,"四":3,"五":4,"六":5,"日":6,"天":6}; day=mp[mDay[2]]; t=t.replace(mDay[0]," "); }
+  var color=null;
+  var cList=[["purple",["紫色","紫"]],["indigo",["深蓝","靛蓝","藏青"]],["teal",["青色","青绿"]],["green",["绿色","绿"]],["orange",["橙色","橘色","黄色","橙","黄"]],["rose",["红色","粉色","粉红","红"]],["blue",["蓝色","蓝"]]];
+  for(var i=0;i<cList.length&&!color;i++){
+    for(var j=0;j<cList[i][1].length;j++){
+      if(t.indexOf(cList[i][1][j])>=0){ color=cList[i][0]; t=t.replace(cList[i][1][j]," "); break; }
+    }
+  }
+  var r=parseVoiceRange(t);
+  var title=String(r.rest||"")
+    .replace(/^\s*(帮我|请|麻烦|我要|我想要|添加|新增|安排|加|上|去)\s*/,"")
+    .replace(/\s*(的课|上课|的)\s*$/,"")
+    .replace(/\s+/g," ").trim();
+  if(!title) title="新安排";
+  return {day:day,start:r.start,end:r.end,title:title,color:color||"blue"};
+}
+function applyVoiceText(text){
+  var p=parseVoiceFull(text);
+  var day=(p.day!==null&&p.day!==undefined&&!isNaN(p.day))?p.day:((typeof mobileDay==="number"&&mobileDay!==null)?mobileDay:0);
+  var st=(p.start===null)?DAY_START:p.start;
+  var en=(p.end===null)?(st+60):p.end;
+  st=Math.max(DAY_START,Math.min(DAY_END-15,st));
+  en=Math.max(st+15,Math.min(DAY_END,en));
+  var K=weekKey(state.weekStart);
+  state.arrs.push({id:uid(),updatedAt:Date.now(),versions:[{from:K,to:null,day:day,start:st,end:en,title:p.title,color:p.color,note:"",deleted:false}]});
+  save(); renderAll();
+  var cname=""; for(var i=0;i<COLORS.length;i++){ if(COLORS[i].id===p.color) cname=COLORS[i].name; }
+  showToast("✅ 已添加："+WD[day]+" "+fmt(st)+"–"+fmt(en)+" "+p.title+(cname?("（"+cname+"）"):""));
+}
+function voiceQuickAdd(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var btn=$("#voiceAddBtn");
+  if(!SR){ showToast("此浏览器不支持语音输入，请用 Chrome/Edge 打开"); return; }
+  if(window.__voiceRecOn){ try{ window.__voiceRec.stop(); }catch(e){} return; }
+  var rec=new SR(); rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
+  window.__voiceRec=rec; window.__voiceRecOn=true;
+  if(btn){ btn.classList.add("rec"); btn.textContent="⏹"; }
+  var finalText="";
+  function stopUI(){ window.__voiceRecOn=false; if(btn){ btn.classList.remove("rec"); btn.textContent="🎤"; } }
+  rec.onresult=function(e){
+    var s="";
+    for(var i=0;i<e.results.length;i++){ if(e.results[i].isFinal) s+=e.results[i][0].transcript; }
+    if(s){ finalText=s; showToast("🎤 "+s); }
+  };
+  rec.onerror=function(e){ showToast("🎤 语音识别出错："+((e&&e.error)||"未知")); stopUI(); };
+  rec.onend=function(){ stopUI(); if(finalText.trim()){ applyVoiceText(finalText.trim()); } else { showToast("🎤 没有听清，请再说一次"); } };
+  try{ rec.start(); showToast("🎤 请说：周一晚上七点到八点半 林老师的课 紫色"); }
+  catch(err){ showToast("无法启动语音识别"); stopUI(); }
+}function openDialog(mode,ev){
   dialogMode=mode; editingEv=(mode==="edit")?ev:null;
   var day=ev.day;
   var start=ev.start, end=ev.end, title=(mode==="edit")?(ev.title||""):"";
@@ -1087,7 +1186,8 @@ let bgCur={type:"none",value:"",shade:0.35};   /* 表格背景 */
 let pgCur={type:"none",value:"",shade:0.35};   /* 网页背景 */
 function normBg(o){
   if(!o||typeof o!=="object") return {type:"none",value:"",shade:0.35};
-  return {type:(o.type==="url"?"url":(o.type==="color"?"color":"data")),value:o.value||"",shade:(typeof o.shade==="number"?o.shade:0.35)};
+  if(o.type==="none"||!o.value) return {type:"none",value:"",shade:(typeof o.shade==="number"?o.shade:0.35)};
+  return {type:(o.type==="url"?"url":(o.type==="color"?"color":"data")),value:o.value,shade:(typeof o.shade==="number"?o.shade:0.35)};
 }
 function loadBg(){
   try{
@@ -1792,7 +1892,7 @@ function applyImportedData(d,silent){
   try{ localStorage.setItem(LASTCHANGE_KEY,String(d.modifiedAt||Date.now())); }catch(e){}
   sanitizeData();
   if(d.view) vset=Object.assign({},vset,d.view);
-  if(d.bg){ bgCur=normBg(d.bg.t); pgCur=normBg(d.bg.p); }
+  if(d.bg){ var _bt=normBg(d.bg.t), _bp=normBg(d.bg.p); if(_bt.type!=="none") bgCur=_bt; if(_bp.type!=="none") pgCur=_bp; }
   hidden=d.hidden||{};
   if(d.title){ $("#mainTitle").textContent=d.title; try{ localStorage.setItem(TITLE_KEY,d.title); }catch(e){} }
   save(); saveView(); saveBg(); saveHidden();
@@ -2066,6 +2166,7 @@ function bindUI(){
   $("#dataInBtn").addEventListener("click",openImportDialog);
   $("#cloudBtn").addEventListener("click",openCloudDialog);
   $("#viewModeBtn").addEventListener("click",toggleViewMode);
+  $("#voiceAddBtn").addEventListener("click",voiceQuickAdd);
   $("#hideUndo").addEventListener("click",undoHide);
   $("#hideRestore").addEventListener("click",restoreWeekHidden);
   $("#hideDone").addEventListener("click",function(){ setHideMode(false); });
