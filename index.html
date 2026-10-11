@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.19">
+<meta name="app-version" content="2026-10-12.22">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -962,7 +962,58 @@ function knownTitles(){
   for(var b=0;b<BUILTIN_NAMES.length;b++){ map[BUILTIN_NAMES[b]]=1; }
   return Object.keys(map);
 }
-function zhSubs(s){ var out=[],n=String(s||"").length; for(var L=2;L<=3;L++){ for(var i=0;i+L<=n;i++){ out.push(String(s).substr(i,L)); } } return out; }
+var SHOP_KEYS=[["hk世贸","HUK东"],["huk世贸","HUK东"],["世贸店","HUK东"],["世貿店","HUK东"],["世贸","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],["huk东","HUK东"],["huk西","HUK西"],["河西店","HUK西"],["河西","HUK西"],["od","OD"],["as","AS"],["i5","i5"],["西美","西美"],["洋湖","洋湖实验"],["长郡","長郡外國語實驗"],["長郡","長郡外國語實驗"]];
+var HUKDONG_T=["小y","lee","CC","斑斑","小秦","牛牛","甲甲","柚子","郭虎","一凡","zeze","阿九","椰子","优益c","融融","十一","咩咩","龙荔","treeya","minmi","siri","ad","二毛","小黑","凡凡","莉莉","泰瑞阳","晶晶","贝爷","美七","闫洋","henry","可欣","贺贺","一诺","惠子","海涛","艺艺","依依","josh","谭老师","金鸣","娇子","片片"];
+var HUKXI_T=["小富","琳珑","牛牛","冰冰","小秦","十一","阿卷","饺子","五一","兔子","瑶瑶","一诺","海涛","可欣","小雪","惠子","八一","zeze","汤汤","小泰","融融","CC"];
+function findShop(txt){
+  var n=String(txt).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
+  for(var i=0;i<SHOP_KEYS.length;i++){
+    var k=String(SHOP_KEYS[i][0]).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
+    if(k&&n.indexOf(k)>=0) return SHOP_KEYS[i][1];
+  }
+  return null;
+}
+function findTeacher(txt,list){
+  var n=String(txt).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
+  var nz=zhOnly(n);
+  var best=null,bestScore=0;
+  for(var i=0;i<list.length;i++){
+    var t=String(list[i]).toLowerCase();
+    var tn=t.replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
+    if(tn&&n.indexOf(tn)>=0) return list[i];
+    var tz=zhOnly(t);
+    var sc=lcsLen(nz,tz)*3+ (nz.indexOf(tz)>=0&&tz.length>=2?6:0);
+    if(tz.length>=2){
+      var subs=zhSubs(tz);
+      for(var s=0;s<subs.length;s++){
+        if(subs[s].length>=2&&nz.indexOf(subs[s])>=0){ sc+=subs[s].length*2; }
+        else if(subs[s].length>=2&&nearMatch(subs[s],subs[s])<=1&&nz.indexOf(subs[s])<0){}
+      }
+      for(var s2=0;s2<subs.length;s2++){
+        var inS=zhSubs(nz);
+        for(var q=0;q<inS.length;q++){ if(inS[q].length===subs[s2].length&&nearMatch(inS[q],subs[s2])<=1){ sc+=subs[s2].length; } }
+      }
+    }
+    if(sc>bestScore){ bestScore=sc; best=list[i]; }
+  }
+  if(best&&bestScore>=6) return best;
+  return null;
+}
+function extractTitle(txt){
+  var shop=findShop(txt);
+  var teacher=null;
+  if(shop==="HUK西") teacher=findTeacher(txt,HUKXI_T);
+  else if(shop==="HUK东") teacher=findTeacher(txt,HUKDONG_T);
+  else {
+    teacher=findTeacher(txt,HUKDONG_T);
+    if(!teacher) teacher=findTeacher(txt,HUKXI_T);
+  }
+  if(teacher){
+    if(!shop) shop=(HUKXI_T.indexOf(teacher)>=0&&HUKDONG_T.indexOf(teacher)<0)?"HUK西":"HUK东";
+    return shop+" "+teacher;
+  }
+  return null;
+}function zhSubs(s){ var out=[],n=String(s||"").length; for(var L=2;L<=3;L++){ for(var i=0;i+L<=n;i++){ out.push(String(s).substr(i,L)); } } return out; }
 function nearMatch(a,b){ if(String(a).length!==String(b).length) return 99; var d=0; for(var i=0;i<a.length;i++){ if(a.charAt(i)!==b.charAt(i)) d++; if(d>1) return 99; } return d; }
 function snapToKnown(title){
   var list=knownTitles();
@@ -1200,7 +1251,7 @@ function openAIDialog(){
 }
 function applyVoiceText(text){
   var p=parseVoiceFull(applyAliases(text));
-  p.title=snapToKnown(p.title);
+  p.title=extractTitle(applyAliases(text))||snapToKnown(p.title);
   var day=(p.day!==null&&p.day!==undefined&&!isNaN(p.day))?p.day:((typeof mobileDay==="number"&&mobileDay!==null)?mobileDay:0);
   var st=(p.start===null)?DAY_START:p.start;
   var en=(p.end===null)?(st+60):p.end;
@@ -1370,7 +1421,11 @@ function openDialog(mode,ev){
       var tb=sw.querySelector('[data-color="'+p.color+'"]');
       if(tb) tb.classList.add("sel");
     }
-    if(p.title){ p.title=snapToKnown(p.title); $("#fTitle").value=p.title; }
+    if(p.title){
+      var _et=extractTitle(applyAliases(txt));
+      p.title=_et||snapToKnown(p.title);
+      $("#fTitle").value=p.title;
+    }
     if(showMsg) showToast("⚡ 已识别："+WD[day]+" "+$("#fStart").value+"–"+$("#fEnd").value+" "+p.title);
     if(aiReady()&&String(txt).length>=4){
       aiParseText(txt).then(function(o){ if(o) aiApplyResult(o); }).catch(function(e){ if(showMsg) showToast("🤖 AI 解析失败："+e.message); });
@@ -1761,7 +1816,7 @@ const VFONTS={
   kai:"'KaiTi','STKaiti','Kaiti SC',serif",
   dengxian:"'DengXian','Microsoft YaHei',sans-serif"
 };
-let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:9};function loadView(){
+let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:8};function loadView(){
   try{
     var raw=localStorage.getItem(VIEW_KEY);
     if(raw){
@@ -1941,7 +1996,7 @@ function openViewDialog(){
     });
   }
   buildRadios("vDateF",[{v:"cn",t:"9月7日"},{v:"num",t:"9/7"},{v:"full",t:"2026-9-7"}],cur.dateFmt,function(v){cur.dateFmt=v;});
-  buildRadios("vStart",[{v:"7",t:"07:00 开始"},{v:"8",t:"08:00 开始"},{v:"9",t:"09:00 开始"}],String(cur.dayStart||9),function(v){cur.dayStart=parseInt(v,10);});
+  buildRadios("vStart",[{v:"7",t:"07:00 开始"},{v:"8",t:"08:00 开始"},{v:"9",t:"09:00 开始"}],String(cur.dayStart||8),function(v){cur.dayStart=parseInt(v,10);});
   buildRadios("vTheme",[{v:"default",t:"默认（浅色）"},{v:"cyber",t:"赛博朋克（霓虹暗色）"}],cur.theme,function(v){cur.theme=v;});
   buildRadios("vTimeF",[{v:"1",t:"09:30（带前导 0）"},{v:"0",t:"9:30（不带 0）"}],cur.leadZero?1:0,function(v){cur.leadZero=(v==="1");});
   $("#vFont").addEventListener("change",function(){ cur.font=$("#vFont").value; paint(); });
@@ -1968,7 +2023,7 @@ function openViewDialog(){
   $("#vOk").addEventListener("click",okV);
   $("#vCancel").addEventListener("click",closeV);
   $("#vReset").addEventListener("click",function(){
-    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:9};
+    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:8};
     applyView(); saveView(); renderAll(); closeV();
   });
   var esc=function(e){
@@ -2610,6 +2665,25 @@ cloudReady=true;
 cloudAutoStart();
 if(cloudCfg.autoPull&&cloudConfigured()){ setTimeout(function(){ cloudPull(true).catch(function(){}); },700); }
 setInterval(updateNowLine,30000);
+if(location.search.indexOf("selftest")>=0){
+  try{
+    var _samples=[
+      "我要上周二泽泽老师的黑发提高课世贸世贸店上午8点~9点，颜色是红色",
+      "世茂 小秦 HIPHOP提高 周一两点 蓝色",
+      "周三 小富 URBAN 下午三点到四点 紫色",
+      "河西 小富 周四上午十点",
+      "周二 泽泽 黑怕 世贸店",
+      "HUK东 CC 周五晚上七点"
+    ];
+    var _o=[];
+    for(var _i=0;_i<_samples.length;_i++){
+      var _a=applyAliases(_samples[_i]);
+      var _p=parseVoiceFull(_a);
+      _o.push(_a+" || T="+extractTitle(_a)+" || "+_p.day+" "+_p.start+"-"+_p.end+" "+_p.color);
+    }
+    document.title="SELFTEST:: "+_o.join(" ;; ");
+  }catch(e){ document.title="SELFTEST ERROR: "+e.message; }
+}
 window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.__mrt=setTimeout(function(){ renderAll(); },200); });
 function checkAppUpdate(){
   try{
