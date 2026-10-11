@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.17">
+<meta name="app-version" content="2026-10-12.18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -344,7 +344,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
 const STORE_V3="myDailySchedule.v3";
 const STORE_V1="myDailySchedule.v1";
 const PX=64;
-const DAY_START=9*60;
+let DAY_START=9*60;
 const DAY_END=26*60;
 const WD=["周一","周二","周三","周四","周五","周六","周日"];
 const COLORS=[
@@ -885,6 +885,7 @@ var BUILTIN_ALIASES=[
   ["世贸","HUK东"],["世茂","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["河西店","HUK西"],["河西","HUK西"],
   ["小y编舞","HUK东 小y编舞"],["小Y编舞","HUK东 小y编舞"],
   ["小y","HUK东 小y编舞"],["cc","HUK东 CC"],["斑斑","HUK东 斑斑"],["lee","HUK东 Lee编舞"],
+  ["泽泽老师","HUK东 zeze"],["泽泽","HUK东 zeze"],["黑发","HIPHOP"],["黑怕","HIPHOP"],["嘻哈","HIPHOP"],
   ["武蹈","舞蹈"],["舞導","舞蹈"],["街五","街舞"],
   ["uk小付","HUK西 小富编舞"],["uk小富","HUK西 小富编舞"],["uk小腹","HUK西 小富编舞"],["uk小副","HUK西 小富编舞"],
   ["hk小付","HUK西 小富编舞"],["hk小富","HUK西 小富编舞"],["hk小腹","HUK西 小富编舞"],["hk小副","HUK西 小富编舞"],
@@ -971,7 +972,15 @@ function snapToKnown(title){
     var _nk=String(list[_i]).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
     if(_nk.length>=2&&_nz.indexOf(_nk)>=0&&_nk.length>_blLen){ _bl=list[_i]; _blLen=_nk.length; }
   }
-  if(_bl) return _bl;
+  if(_bl){
+    var _ck=["HIPHOP","JAZZ","URBAN","WAACKING","POPPING","LOCKING","KPOP","HEELS","SOUL","AFRO","HOUSE","BREAKING","编舞","基础","提高","中级","初级","入门","水系编舞"];
+    var _ex="";
+    for(var _ci=0;_ci<_ck.length;_ci++){
+      if(normName(_bl).indexOf(normName(_ck[_ci]))>=0) continue;
+      if(raw.indexOf(normName(_ck[_ci]))>=0){ _ex=(_ex?_ex+" ":"")+_ck[_ci]; }
+    }
+    return _ex?(_bl+" "+_ex):_bl;
+  }
   var _subsIn=zhSubs(rawZh);
   if(_subsIn.length){
     var _near=null,_nearScore=0;
@@ -1751,7 +1760,7 @@ const VFONTS={
   kai:"'KaiTi','STKaiti','Kaiti SC',serif",
   dengxian:"'DengXian','Microsoft YaHei',sans-serif"
 };
-let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default"};function loadView(){
+let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:9};function loadView(){
   try{
     var raw=localStorage.getItem(VIEW_KEY);
     if(raw){
@@ -1764,6 +1773,7 @@ let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inh
         if(typeof o.grid==="number")vset.grid=o.grid;
         vset.cardFont=o.cardFont||"inherit";
         vset.theme=o.theme||"default";
+        if(typeof o.dayStart==="number")vset.dayStart=o.dayStart;
         if(typeof o.tSize==="number")vset.tSize=o.tSize;
         if(typeof o.mSize==="number")vset.mSize=o.mSize;
         if(typeof o.tBold==="boolean")vset.tBold=o.tBold;
@@ -1807,6 +1817,7 @@ function applyView(){
   document.body.style.setProperty("--emul",vset.mUnder?"underline":"none");
   document.body.style.setProperty("--etsh",shadowVal(vset.tShadow));
   document.body.style.setProperty("--emsh",shadowVal(vset.mShadow));
+  DAY_START=(vset.dayStart||9)*60;
   document.body.classList.toggle("theme-cyber",vset.theme==="cyber");
 }
 function saveView(){
@@ -1839,7 +1850,7 @@ function alOptsHTML(){
   return "<option value=\"left\">靠左</option><option value=\"center\">居中</option><option value=\"right\">靠右</option>";
 }
 function openViewDialog(){
-  var cur={font:vset.font,size:vset.size,dateFmt:vset.dateFmt,leadZero:vset.leadZero,grid:vset.grid,cardFont:vset.cardFont,tSize:vset.tSize,mSize:vset.mSize,tBold:vset.tBold,mBold:vset.mBold,tColor:vset.tColor,mColor:vset.mColor,tAlign:vset.tAlign,mAlign:vset.mAlign,tItalic:vset.tItalic,mItalic:vset.mItalic,tUnder:vset.tUnder,mUnder:vset.mUnder,tShadow:vset.tShadow,mShadow:vset.mShadow,theme:vset.theme};
+  var cur={font:vset.font,size:vset.size,dateFmt:vset.dateFmt,leadZero:vset.leadZero,grid:vset.grid,cardFont:vset.cardFont,tSize:vset.tSize,mSize:vset.mSize,tBold:vset.tBold,mBold:vset.mBold,tColor:vset.tColor,mColor:vset.mColor,tAlign:vset.tAlign,mAlign:vset.mAlign,tItalic:vset.tItalic,mItalic:vset.mItalic,tUnder:vset.tUnder,mUnder:vset.mUnder,tShadow:vset.tShadow,mShadow:vset.mShadow,theme:vset.theme,dayStart:vset.dayStart};
   var ov=$("#overlay");
   ov.classList.remove("hidden");
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\">"+
@@ -1849,6 +1860,7 @@ function openViewDialog(){
     "<div class=\"field\"><label>页面字号 <span id=\"vSizeV\"></span>px</label>"+
       "<input type=\"range\" id=\"vSize\" min=\"10\" max=\"24\" step=\"1\"></div>"+
     "<div class=\"field\"><label>配色主题</label><div id=\"vTheme\"></div></div>"+
+    "<div class=\"field\"><label>时间轴起始</label><div id=\"vStart\"></div></div>"+
     "<div class=\"field\"><label>日期格式（表头）</label><div id=\"vDateF\"></div></div>"+
     "<div class=\"field\"><label>时间格式</label><div id=\"vTimeF\"></div></div>"+
     "<div class=\"field\"><label>网格线强度 <span id=\"vGridV\"></span>%</label>"+
@@ -1928,6 +1940,7 @@ function openViewDialog(){
     });
   }
   buildRadios("vDateF",[{v:"cn",t:"9月7日"},{v:"num",t:"9/7"},{v:"full",t:"2026-9-7"}],cur.dateFmt,function(v){cur.dateFmt=v;});
+  buildRadios("vStart",[{v:"7",t:"07:00 开始"},{v:"8",t:"08:00 开始"},{v:"9",t:"09:00 开始"}],String(cur.dayStart||9),function(v){cur.dayStart=parseInt(v,10);});
   buildRadios("vTheme",[{v:"default",t:"默认（浅色）"},{v:"cyber",t:"赛博朋克（霓虹暗色）"}],cur.theme,function(v){cur.theme=v;});
   buildRadios("vTimeF",[{v:"1",t:"09:30（带前导 0）"},{v:"0",t:"9:30（不带 0）"}],cur.leadZero?1:0,function(v){cur.leadZero=(v==="1");});
   $("#vFont").addEventListener("change",function(){ cur.font=$("#vFont").value; paint(); });
@@ -1954,7 +1967,7 @@ function openViewDialog(){
   $("#vOk").addEventListener("click",okV);
   $("#vCancel").addEventListener("click",closeV);
   $("#vReset").addEventListener("click",function(){
-    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default"};
+    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:9};
     applyView(); saveView(); renderAll(); closeV();
   });
   var esc=function(e){
