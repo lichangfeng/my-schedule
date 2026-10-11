@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.4">
+<meta name="app-version" content="2026-10-12.5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -879,7 +879,7 @@ function parseVoiceRange(text){
   var NUM="([0-9]+(?:\\.[0-9]+)?|[零〇一两二三四五六七八九十]+)";
   var MIN="((?:[零〇一两二三四五六七八九十]+刻?)|半|[0-9]{1,2})";
   function one(str){
-    var m=str.match(new RegExp("(上午|早上|中午|下午|傍晚|晚上|凌晨)?\\s*"+NUM+"\\s*[点:：时]\\s*"+MIN+"?\\s*分?"));
+    var m=str.match(new RegExp("(上午|早上|中午|下午|傍晚|晚上|夜里|凌晨)?\\s*"+NUM+"\\s*[点:：时]\\s*"+MIN+"?\\s*分?"));
     if(!m) return null;
     var h=cnNum(m[2]); if(isNaN(h)) h=0;
     var mi=0;
@@ -892,34 +892,42 @@ function parseVoiceRange(text){
     return {raw:m[0],minutes:h*60+mi,ap:(m[1]||"")};
   }
   var a=one(t);
-  if(!a) return {start:null,end:null,rest:t};
-  var rest=t.replace(a.raw," ");
-  var start=a.minutes, end=null;
-  var b=one(rest);
-  if(b){ rest=rest.replace(b.raw," "); end=b.minutes; }
+  var rest=t, start=null, end=null, ap="";
+  if(a){ ap=a.ap||""; start=a.minutes; rest=t.replace(a.raw," "); }
   else{
-    var mHalf=rest.match(new RegExp("("+NUM+")?\\s*个?\\s*半\\s*小时"));
-    var mH=rest.match(new RegExp(NUM+"\\s*个?\\s*小时"));
-    var mM=rest.match(new RegExp(NUM+"\\s*分钟"));
+    var pm=rest.match(/(一大早|清晨|早上|上午|中午|下午|傍晚|晚上|夜里|凌晨)/);
+    if(pm){
+      var map={"一大早":9*60,"清晨":9*60,"早上":9*60,"上午":9*60,"中午":12*60,"下午":14*60,"傍晚":18*60,"晚上":19*60,"夜里":20*60,"凌晨":1*60};
+      start=map[pm[1]]; rest=rest.replace(pm[1]," ");
+    }
+  }
+  var mHalf=rest.match(new RegExp("("+NUM+")?\\s*个?\\s*半\\s*小时"));
+  var mH=rest.match(new RegExp(NUM+"\\s*个?\\s*小时"));
+  var mM=rest.match(new RegExp(NUM+"\\s*分钟"));
+  if(start!==null){
+    var b=one(rest);
+    if(b){ rest=rest.replace(b.raw," "); end=b.minutes; }
+  }
+  if(end===null){
     var dur=null;
     if(mHalf){ var n0=cnNum(mHalf[1]); if(isNaN(n0)) n0=0; dur=n0*60+30; rest=rest.replace(mHalf[0]," "); }
     else if(mH){ dur=cnNum(mH[1])*60; rest=rest.replace(mH[0]," "); }
     else if(mM){ dur=cnNum(mM[1]); rest=rest.replace(mM[0]," "); }
-    if(dur&&dur>0) end=start+dur;
+    if(start===null) start=9*60;
+    end=start+((dur&&dur>0)?dur:60);
+  } else {
+    if(mHalf){ rest=rest.replace(mHalf[0]," "); }
+    else if(mH){ rest=rest.replace(mH[0]," "); }
+    else if(mM){ rest=rest.replace(mM[0]," "); }
+    if(end<=start){ end=(end+12*60>start)?(end+12*60):(start+60); }
   }
-  var ap=a.ap||"";
-  if(!ap&&start>=60&&start<=7*60) start+=12*60;
-  if((ap==="下午"||ap==="傍晚"||ap==="晚上")&&start<12*60) start+=12*60;
-  if(ap==="中午"&&start<12*60) start=12*60;
-  if(ap==="凌晨"&&start>=12*60) start-=12*60;
-  if(end!==null){
-    if(end<=start){
-      if(end+12*60>start) end+=12*60; else end=start+60;
-    }
-  } else { end=start+60; }
+  if(ap==="下午"||ap==="傍晚"||ap==="晚上"||ap==="夜里"){ if(start<12*60) start+=12*60; }
+  else if(ap==="中午"){ if(start<12*60) start=12*60; }
+  else if(ap==="凌晨"){ if(start>=12*60) start-=12*60; }
+  else if(!ap&&start>=60&&start<=7*60){ start+=12*60; }
+  if(end<=start) end=start+60;
   return {start:start,end:end,rest:rest};
-}
-function parseVoiceFull(text){
+}function parseVoiceFull(text){
   var t=String(text||"");
   var day=null;
   var mDay=t.match(/(周|星期|礼拜)([一二三四五六日天])/);
@@ -932,7 +940,7 @@ function parseVoiceFull(text){
     }
   }
   var r=parseVoiceRange(t);
-  var title=String(r.rest||"");
+  var title=String(r.rest||"").replace(/(颜色设置为|颜色设置成|颜色设为|颜色是|颜色|设置为|设置成|设为|设成|换成|改成|时间为|时间是|时间|时长|持续|然后)/g," ");
   for(var kk=0;kk<4;kk++){
     var before=title;
     title=title.replace(/^\s*(我要|我想要|想要|帮我|帮忙|请|麻烦|安排一下|安排|添加|新增|加个|去|上|在)\s*/,"");
