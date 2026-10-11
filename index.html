@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.11">
+<meta name="app-version" content="2026-10-12.12">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -919,6 +919,13 @@ function knownTitles(){
 function snapToKnown(title){
   var list=knownTitles();
   if(!list.length||!title) return title;
+  var _nz=String(title).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
+  var _bl=null,_blLen=0;
+  for(var _i=0;_i<list.length;_i++){
+    var _nk=String(list[_i]).toLowerCase().replace(/[^0-9a-z\u4e00-\u9fa5]+/g,"");
+    if(_nk.length>=2&&_nz.indexOf(_nk)>=0&&_nk.length>_blLen){ _bl=list[_i]; _blLen=_nk.length; }
+  }
+  if(_bl) return _bl;
   var best=null,bestScore=0;
   for(var i=0;i<list.length;i++){
     var s=lcsLen(title,list[i])+2*lcsLen(zhOnly(title),zhOnly(list[i]));
