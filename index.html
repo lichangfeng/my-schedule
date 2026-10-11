@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.18">
+<meta name="app-version" content="2026-10-12.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -885,7 +885,8 @@ var BUILTIN_ALIASES=[
   ["世贸","HUK东"],["世茂","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["河西店","HUK西"],["河西","HUK西"],
   ["小y编舞","HUK东 小y编舞"],["小Y编舞","HUK东 小y编舞"],
   ["小y","HUK东 小y编舞"],["cc","HUK东 CC"],["斑斑","HUK东 斑斑"],["lee","HUK东 Lee编舞"],
-  ["泽泽老师","HUK东 zeze"],["泽泽","HUK东 zeze"],["黑发","HIPHOP"],["黑怕","HIPHOP"],["嘻哈","HIPHOP"],
+  ["泽泽老师","HUK东 zeze"],["泽泽","HUK东 zeze"],["黑发","HIPHOP"],["黑怕","HIPHOP"],["嘻哈","HIPHOP"],["hip","HIPHOP"],
+  ["hk世贸店","HUK东"],["huk世贸店","HUK东"],["世贸店","HUK东"],["世貿店","HUK东"],["hk世贸","HUK东"],["世贸","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],
   ["武蹈","舞蹈"],["舞導","舞蹈"],["街五","街舞"],
   ["uk小付","HUK西 小富编舞"],["uk小富","HUK西 小富编舞"],["uk小腹","HUK西 小富编舞"],["uk小副","HUK西 小富编舞"],
   ["hk小付","HUK西 小富编舞"],["hk小富","HUK西 小富编舞"],["hk小腹","HUK西 小富编舞"],["hk小副","HUK西 小富编舞"],
@@ -908,7 +909,7 @@ function applyAliases(s){
     try{ t=t.replace(new RegExp(rxEsc(w),"gi"),r); }catch(e){ t=t.split(w).join(r); }
   }
   t=t.replace(/(^|[\s,，、])HUK(?=[\s,，、]|$)/gi," ");
-  t=t.replace(/HUK西\s*HUK西/g,"HUK西").replace(/HUK东\s*HUK东/g,"HUK东");
+  t=t.replace(/HUK西\s*HUK西/g,"HUK西").replace(/HUK东\s*HUK东/g,"HUK东").replace(/HUK东店/g,"HUK东").replace(/HUK西店/g,"HUK西").replace(/[（(]?机构是[）)]?/g," ").replace(/[（(]?地点是[）)]?/g," ").replace(/机构/g," ").replace(/地点/g," ");
   return t;
 }
 function lcsLen(a,b){
@@ -1186,7 +1187,7 @@ function openAIDialog(){
     }
   }
   var r=parseVoiceRange(t);
-  var title=String(r.rest||"").replace(/(颜色设置为|颜色设置成|颜色设为|颜色是|颜色|设置为|设置成|设为|设成|换成|改成|时间为|时间是|时长|持续|然后|我要|我想|想要|帮我|帮忙|麻烦|请|安排一下|安排|添加|新增|加个|那个|就是|还有|左右|嗯|呃|啊|哦|噢|诶|唉|喂|我|你|上|去|给|在|把|的|到|至)/g," ").replace(/[~～!！?？。，,、;；:："“”()（）【】\[\]]/g," ");
+  var title=String(r.rest||"").replace(/(颜色设置为|颜色设置成|颜色设为|颜色是|颜色|设置为|设置成|设为|设成|换成|改成|时间为|时间是|时长|持续|然后|我要|我想|想要|帮我|帮忙|麻烦|请|安排一下|安排|添加|新增|加个|那个|就是|还有|左右|嗯|呃|啊|哦|噢|诶|唉|喂|我|你|上|去|给|在|把|的|到|至|机构是|机构|地点是|地点|是)/g," ").replace(/[~～!！?？。，,、;；:："“”()（）【】\[\]]/g," ");
   for(var kk=0;kk<4;kk++){
     var before=title;
     title=title.replace(/^\s*(我要|我想要|想要|帮我|帮忙|请|麻烦|安排一下|安排|添加|新增|加个|去|上|在)\s*/,"");
