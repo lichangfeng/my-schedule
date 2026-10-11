@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.13">
+<meta name="app-version" content="2026-10-12.14">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -905,13 +905,21 @@ function lcsLen(a,b){
   return best;
 }
 function zhOnly(s){ return String(s||"").replace(/[^\u4e00-\u9fa5]/g,""); }
+function isGoodName(t){
+  t=String(t||"").trim();
+  if(!t||t.length>14) return false;
+  if(/^(~|-|新安排)/.test(t)) return false;
+  if(/(我要|我想|新安排|颜色|设置|时间|然后|一个半|半小时|的课|上课|下午|上午|中午|晚上|凌晨|周[一二三四五六日天])/.test(t)) return false;
+  if(/[\u4e00-\u9fa5]{0,}[点:：]/.test(t)) return false;
+  return true;
+}
 function knownTitles(){
   var map={};
   for(var i=0;i<state.arrs.length;i++){
     var vs=state.arrs[i].versions||[];
     for(var j=0;j<vs.length;j++){
       var ti=String(vs[j].title||"").trim();
-      if(ti) map[ti]=1;
+      if(ti&&isGoodName(ti)) map[ti]=1;
     }
   }
   return Object.keys(map);
