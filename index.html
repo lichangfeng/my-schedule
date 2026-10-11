@@ -278,7 +278,7 @@ body.theme-cyber .dialog h3,body.theme-cyber .dialog label,body.theme-cyber .dia
 body.theme-cyber .field input,body.theme-cyber .field textarea,body.theme-cyber select.vsel{background:rgba(8,18,32,.9);color:#edf9ff;border-color:rgba(83,210,255,.32)}
 body.theme-cyber .bgprev,body.theme-cyber #vpv{background-color:#050b14;border-color:rgba(83,210,255,.3)}
 body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
-@media print{body.theme-cyber{background:#fff!important;color:#111!important}body.theme-cyber .board-wrap,body.theme-cyber .daycol,body.theme-cyber .day-header-row,body.theme-cyber .gutter{background:#fff!important;color:#111!important}}</style>
+@media print{body.theme-cyber{background:#fff!important;color:#111!important}body.theme-cyber .board-wrap,body.theme-cyber .daycol,body.theme-cyber .day-header-row,body.theme-cyber .gutter{background:#fff!important;color:#111!important}}.voicebar{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:140;display:none;max-width:92vw;background:rgba(10,22,38,.96);color:#dff7ff;border:1px solid rgba(83,210,255,.35);border-radius:14px;padding:10px 14px;font-size:13px;line-height:1.5;box-shadow:0 12px 30px rgba(0,0,0,.4);text-align:center}</style>
 </head><body>
 <div id="bgShade"></div>
 <div class="app">
@@ -950,56 +950,71 @@ function applyVoiceText(text){
   var cname=""; for(var i=0;i<COLORS.length;i++){ if(COLORS[i].id===p.color) cname=COLORS[i].name; }
   showToast("✅ 已添加："+WD[day]+" "+fmt(st)+"–"+fmt(en)+" "+p.title+(cname?("（"+cname+"）"):""));
 }
+var voiceState={rec:null,active:false,text:"",interim:"",restarts:0,btn:null};
+function voiceUI(on){
+  var btn=$("#voiceAddBtn");
+  if(btn){ btn.classList.toggle("rec",on); btn.textContent=on?"⏹":"🎤"; }
+  var bar=$("#voiceBar");
+  if(on){
+    if(!bar){ bar=document.createElement("div"); bar.id="voiceBar"; bar.className="voicebar"; document.body.appendChild(bar); }
+    bar.style.display="flex";
+  } else if(bar){ bar.style.display="none"; }
+}
+function voiceBarText(t){
+  var bar=$("#voiceBar");
+  if(bar) bar.innerHTML="🎤 正在听…（不用一直点，说完再点一下🎤结束）<br><b>"+(t||"")+"</b>";
+}
+function voiceStartRec(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=new SR();
+  rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=true; rec.maxAlternatives=1;
+  voiceState.rec=rec;
+  rec.onresult=function(e){
+    voiceState.interim="";
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      var seg=e.results[i][0].transcript;
+      if(e.results[i].isFinal) voiceState.text+=seg; else voiceState.interim+=seg;
+    }
+    voiceBarText(voiceState.text+voiceState.interim);
+  };
+  rec.onerror=function(e){
+    var err=(e&&e.error)||"";
+    if(err==="not-allowed"||err==="service-not-allowed"){
+      showToast("🎤 需要允许麦克风权限（浏览器设置里开启）");
+      voiceStop(true);
+    }
+  };
+  rec.onend=function(){
+    if(!voiceState.active) return;
+    if(voiceState.restarts<200){
+      voiceState.restarts++;
+      setTimeout(function(){ if(voiceState.active){ try{ voiceStartRec(); }catch(err){} } },250);
+    } else { voiceStop(false); }
+  };
+  try{ rec.start(); }
+  catch(err){ setTimeout(function(){ if(voiceState.active){ try{ voiceStartRec(); }catch(e2){} } },500); }
+}
+function voiceStop(abort){
+  voiceState.active=false;
+  try{ if(voiceState.rec) voiceState.rec.stop(); }catch(e){}
+  voiceUI(false);
+  if(abort) return;
+  var txt=(voiceState.text||voiceState.interim||"").trim();
+  if(txt){ applyVoiceText(txt); } else { showToast("🎤 没有听清，再点一次🎤重说"); }
+}
 function voiceQuickAdd(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  var btn=$("#voiceAddBtn");
   if(!SR){ showToast("此浏览器不支持语音输入，请用 Chrome/Edge 打开"); return; }
-  if(window.__voiceRecOn){ try{ window.__voiceRec.stop(); }catch(e){} return; }
-  window.__voiceRecOn=true; window.__voiceRetry=0;
-  var finalText="", interimText="";
-  if(btn){ btn.classList.add("rec"); btn.textContent="⏹"; }
-  function stopUI(){ window.__voiceRecOn=false; if(btn){ btn.classList.remove("rec"); btn.textContent="🎤"; } }
-  function begin(){
-    var rec=new SR();
-    rec.lang="zh-CN"; rec.interimResults=true; rec.continuous=true; rec.maxAlternatives=1;
-    window.__voiceRec=rec;
-    rec.onresult=function(e){
-      interimText="";
-      for(var i=e.resultIndex;i<e.results.length;i++){
-        var seg=e.results[i][0].transcript;
-        if(e.results[i].isFinal) finalText+=seg; else interimText+=seg;
-      }
-      showToast("🎤 "+(finalText+interimText)+" —— 说完再点一下🎤");
-    };
-    rec.onerror=function(e){
-      var err=(e&&e.error)||"";
-      if((err==="no-speech"||err==="aborted")&&window.__voiceRetry<3&&window.__voiceRecOn){
-        window.__voiceRetry++;
-        showToast("🎤 没听清，请靠近手机再说一次…");
-        setTimeout(function(){ try{ rec.start(); }catch(x){} },400);
-        return;
-      }
-      showToast("🎤 语音识别出错："+(err||"未知"));
-    };
-    rec.onend=function(){
-      if(!window.__voiceRecOn) return;
-      stopUI();
-      var txt=(finalText||interimText).trim();
-      if(txt){ applyVoiceText(txt); } else { showToast("🎤 没有听清，再点一次🎤重说"); }
-    };
-    try{ rec.start(); showToast("🎤 正在听…说完再点一下🎤结束（不用一直点）"); }
-    catch(err){ showToast("无法启动语音识别，请用 Chrome/Edge"); stopUI(); }
-  }
+  if(voiceState.active){ voiceStop(false); return; }
+  voiceState.active=true; voiceState.text=""; voiceState.interim=""; voiceState.restarts=0;
+  voiceUI(true); voiceBarText("");
+  function go(){ if(voiceState.active) voiceStartRec(); }
   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-    showToast("🎤 正在获取麦克风权限…");
     navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
       try{ stream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }catch(e){}
-      begin();
-    }).catch(function(err){
-      showToast("🎤 需要允许麦克风权限（浏览器地址栏左侧设置里开启）");
-      stopUI();
-    });
-  } else { begin(); }
+      setTimeout(go,200);
+    }).catch(function(){ go(); });
+  } else { setTimeout(go,200); }
 }
 function openDialog(mode,ev){
   dialogMode=mode; editingEv=(mode==="edit")?ev:null;
