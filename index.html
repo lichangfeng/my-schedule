@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.25">
+<meta name="app-version" content="2026-10-12.26">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -89,6 +89,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .sw{width:30px;height:30px;border-radius:9px;cursor:pointer;border:2px solid transparent;transition:all .12s;display:inline-flex;align-items:flex-end;justify-content:flex-start;padding:2px 4px}
 .sw:hover{transform:scale(1.1)}
 .sw.sel{border-color:#1f2430;box-shadow:0 0 0 2px #fff inset}
+.schchips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.schchips .sc{padding:6px 11px;border:1px solid #d7dce6;border-radius:999px;background:#fff;font:inherit;font-size:12.5px;color:#3b4252;cursor:pointer}
+.schchips .sc.on{background:linear-gradient(135deg,#4f6ef2,#7c5cf5);color:#fff;border-color:transparent}
+.schlist{max-height:44vh;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #eef1f7;border-radius:12px;padding:2px 8px;margin-top:6px}
+.schrow{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px dashed #eef1f7}
+.schrow:last-child{border-bottom:none}
+.schrow .st{flex:0 0 86px;font-size:12.5px;color:#5b6272}
+.schrow .sn{flex:1;min-width:0;font-size:14px}
+.schrow .sn b{font-weight:700}
+.schrow .sn i{font-style:normal;color:#6b7280;font-size:12px;margin-left:7px}
+.schrow .add{flex:0 0 auto;padding:5px 10px;font-size:12.5px}
+.schrow.here{opacity:.5}
+body.theme-cyber .schchips .sc{background:rgba(4,13,25,.86);border-color:rgba(83,210,255,.28);color:#dff7ff}
+body.theme-cyber .schchips .sc.on{background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;border-color:transparent}
+body.theme-cyber .schlist{border-color:rgba(83,210,255,.2)}
+body.theme-cyber .schrow{border-bottom-color:rgba(83,210,255,.14)}
+body.theme-cyber .schrow .st{color:#9fd8ea}
+body.theme-cyber .schrow .sn i{color:#8fb8cc}
 .sw .nm{font-size:9px;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25);white-space:nowrap}
 .dnote{font-size:12px;color:#8a93a6;line-height:1.5;margin-top:4px}
 .dfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px}
@@ -303,7 +321,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
   </div>
 
   <div class="hint no-print" id="hint">
-    <span>💡 <b>使用说明</b>：点空白处添加（从本周起每周重复）；修改/拖动/删除某周安排会询问同步到以后第几周。<br>📱 <b>手机上</b>：左右滑动查看整周，点卡片即可修改（手机上不会误拖动卡片）。<br>🔄 <b>换设备</b>：点右下角 ⚙️ →「导出数据」生成文件 → 发到手机 → 手机上点「导入数据」选择该文件，即可在手机上继续修改；改完再导出导回电脑。<br>🗑 <b>批量删除</b>：右下角 ⚙️ →「批量删除卡片」→ 点卡片选中（可先「全选本周」）→「删除所选」→ 选范围；删错了点「↩ 撤销删除」。</span>
+    <span>💡 <b>使用说明</b>：点空白处添加（从本周起每周重复）；修改/拖动/删除某周安排会询问同步到以后第几周。<br>📱 <b>手机上</b>：左右滑动查看整周，点卡片即可修改（手机上不会误拖动卡片）。<br>🔄 <b>换设备</b>：点右下角 ⚙️ →「导出数据」生成文件 → 发到手机 → 手机上点「导入数据」选择该文件，即可在手机上继续修改；改完再导出导回电脑。<br>🗑 <b>批量删除</b>：右下角 ⚙️ →「批量删除卡片」→ 点卡片选中（可先「全选本周」）→「删除所选」→ 选范围；删错了点「↩ 撤销删除」。<br>📚 <b>機構課表</b>：右下角 ⚙️ →「機構課表」，可以看每家機構每天幾點是誰在上課；點「＋加入」就直接做成日程卡片。</span>
     <button class="close" id="hintClose" title="关闭">✕</button>
   </div>
 
@@ -335,6 +353,7 @@ body.theme-cyber .rad,body.theme-cyber .crow{color:#dff7ff}
       <button class="btn" id="hideBtn">🙈 批量隐藏卡片</button>
       <button class="btn" id="unhideBtn">👁 恢复本周隐藏</button>
       <button class="btn" id="delBtn">🗑 批量删除卡片</button>
+      <button class="btn" id="instBtn">📚 机构课表（谁在上课）</button>
       <button class="btn" id="dataOutBtn">⬇ 导出数据（换设备）</button>
       <button class="btn" id="dataInBtn">⬆ 导入数据（从手机/电脑）</button>
       <button class="btn" id="cloudBtn">☁️ 云同步（GitHub）</button>
@@ -1599,6 +1618,182 @@ function openDialog(mode,ev){
   document.addEventListener("keydown",esc);
   attachOverlayClose(ov,function(){ closeDialog(); });
 }
+/* ===== 機構課表（行政參考，不占自己的日程） ===== */
+const SCH_VENUES=["HUK 河西店","HUK 世茂店","BAD EGGS"];
+const SCH_PREFIX=["HUK西 ","HUK东 ",""];
+const SCH_COLOR=["indigo","purple","teal"];
+const INST_SCHEDULE=[
+    /* === HUK 河西店 === */
+    {"v":0,"d":0,"t":"10:00-11:30","c":[["小富","URBAN"]]},
+    {"v":0,"d":0,"t":"15:30-17:00","c":[["琳珑","JAZZ中级"]]},
+    {"v":0,"d":0,"t":"16:30-18:00","c":[["牛牛","HIPHOP基础"]]},
+    {"v":0,"d":0,"t":"18:20-19:50","c":[["冰冰","JAZZ基础"],["小秦","HIPHOP中级"]]},
+    {"v":0,"d":0,"t":"20:00-21:30","c":[["十一","WAACKING"],["阿卷","JAZZ"]]},
+    {"v":0,"d":1,"t":"10:00-11:30","c":[["小富","URBAN"]]},
+    {"v":0,"d":1,"t":"15:00-16:30","c":[["饺子","JAZZ基础"]]},
+    {"v":0,"d":1,"t":"16:30-18:00","c":[["牛牛","HIPHOP基础"]]},
+    {"v":0,"d":1,"t":"18:20-19:50","c":[["五一","HIPHOP基础"]]},
+    {"v":0,"d":1,"t":"19:50-21:20","c":[["兔子","K-POP"]]},
+    {"v":0,"d":1,"t":"20:00-21:30","c":[["阿卷","JAZZ基础"]]},
+    {"v":0,"d":2,"t":"10:00-11:30","c":[["瑶瑶","JAZZ基础"]]},
+    {"v":0,"d":2,"t":"14:00-15:30","c":[["一诺","JAZZ中级"]]},
+    {"v":0,"d":2,"t":"15:00-16:30","c":[["瑶瑶","JAZZ基础"]]},
+    {"v":0,"d":2,"t":"16:30-18:00","c":[["牛牛","HIPHOP基础"]]},
+    {"v":0,"d":2,"t":"18:20-19:50","c":[["冰冰","JAZZ基础"],["子莉","URBAN"]]},
+    {"v":0,"d":2,"t":"19:00-20:30","c":[["海涛","POPPING"]]},
+    {"v":0,"d":2,"t":"19:50-21:20","c":[["可欣","URBAN"]]},
+    {"v":0,"d":2,"t":"20:30-22:00","c":[["海涛","POPPING"]]},
+    {"v":0,"d":3,"t":"10:00-11:30","c":[["小雪","JAZZ中级"]]},
+    {"v":0,"d":3,"t":"14:00-15:30","c":[["子莉","URBAN"]]},
+    {"v":0,"d":3,"t":"18:20-19:50","c":[["惠子","HIPHOP基础"],["八一","LOCKING"]]},
+    {"v":0,"d":3,"t":"19:50-21:20","c":[["zeze","HIPHOP中级"],["兔子","K-POP"],["汤汤","JAZZ基础"]]},
+    {"v":0,"d":4,"t":"10:00-11:30","c":[["小雪","JAZZ中级"]]},
+    {"v":0,"d":4,"t":"15:00-16:30","c":[["可欣","URBAN"]]},
+    {"v":0,"d":4,"t":"15:30-17:00","c":[["汤汤","JAZZ基础"]]},
+    {"v":0,"d":4,"t":"16:30-18:00","c":[["小秦","HIPHOP中级"]]},
+    {"v":0,"d":4,"t":"19:00-20:30","c":[["海涛","POPPING"]]},
+    {"v":0,"d":4,"t":"20:30-22:00","c":[["海涛","POPPING"]]},
+    {"v":0,"d":5,"t":"12:00-13:30","c":[["融融","JAZZ提高"]]},
+    {"v":0,"d":5,"t":"14:00-15:30","c":[["CC","URBAN"]]},
+    {"v":0,"d":5,"t":"18:30-20:00","c":[["牛牛","HIPHOP基础"]]},
+    {"v":0,"d":5,"t":"19:30-21:00","c":[["瑶瑶","JAZZ基础"]]},
+    {"v":0,"d":5,"t":"20:00-21:30","c":[["海涛","POPPING"]]},
+    {"v":0,"d":6,"t":"10:00-11:30","c":[["琳珑","JAZZ中级"]]},
+    {"v":0,"d":6,"t":"12:00-13:30","c":[["融融","JAZZ提高"]]},
+    {"v":0,"d":6,"t":"16:30-18:00","c":[["八一","LOCKING"]]},
+    {"v":0,"d":6,"t":"18:00-19:30","c":[["惠子","HIPHOP基础"]]},
+    {"v":0,"d":6,"t":"18:30-20:00","c":[["瑶瑶","JAZZ基础"]]},
+    {"v":0,"d":6,"t":"19:50-21:20","c":[["五一","HIPHOP基础"]]},
+    /* === HUK 世茂店 === */
+    {"v":1,"d":0,"t":"14:00-15:30","c":[["小秦","HIPHOP提高"],["柚子","HIPHOP基础"],["优益c","JAZZ"],["lee","URBAN"]]},
+    {"v":1,"d":0,"t":"16:00-17:30","c":[["甲甲","HIPHOP提高"],["小富","URBAN"],["小黑","HIPHOP基础"],["椰子","JAZZ"]]},
+    {"v":1,"d":0,"t":"18:20-19:50","c":[["zeze","HIPHOP提高"],["美七","URBAN"],["凡凡","WAACKING"],["甲甲","HIPHOP基础"]]},
+    {"v":1,"d":0,"t":"20:00-21:30","c":[["惠子","HIPHOP基础"],["依依","URBAN"],["贝爷","JAZZ"],["娇子","JAZZ基础"]]},
+    {"v":1,"d":1,"t":"14:00-15:30","c":[["牛牛","HIPHOP基础"],["郭虎","HIPHOP提高"],["treeya","水系编舞"]]},
+    {"v":1,"d":1,"t":"16:00-17:30","c":[["甲甲","HIPHOP提高"],["ad","URBAN"],["小黑","HIPHOP基础"],["莉莉","JAZZ"]]},
+    {"v":1,"d":1,"t":"18:20-19:50","c":[["zeze","HIPHOP提高"],["闫洋","水系编舞"],["晶晶","JAZZ"],["惠子","HIPHOP基础"]]},
+    {"v":1,"d":1,"t":"20:00-21:30","c":[["海涛","POPPING"],["josh","URBAN"],["贝爷","JAZZ"],["娇子","JAZZ基础"]]},
+    {"v":1,"d":2,"t":"14:00-15:30","c":[["甲甲","HIPHOP基础"],["一凡","HIPHOP提高"],["融融","WAACKING"],["小富","URBAN"]]},
+    {"v":1,"d":2,"t":"16:00-17:30","c":[["小秦","HIPHOP基础"],["ad","URBAN"],["郭虎","HIPHOP提高"],["泰瑞阳","AFRO DANCE"]]},
+    {"v":1,"d":2,"t":"18:20-19:50","c":[["甲甲","HIPHOP提高"],["闫洋","水系编舞"],["贺贺","URBAN"],["惠子","HIPHOP基础"]]},
+    {"v":1,"d":2,"t":"20:00-21:30","c":[["zeze","HIPHOP提高"],["谭老师","URBAN"],["贝爷","JAZZ"],["郭虎","HIPHOP基础"]]},
+    {"v":1,"d":3,"t":"14:00-15:30","c":[["小秦","HIPHOP基础"],["zeze","HIPHOP提高"],["十一","WAACKING"],["cc","水系编舞"]]},
+    {"v":1,"d":3,"t":"16:00-17:30","c":[["郭虎","HIPHOP提高"],["小Y","URBAN"],["一凡","HIPHOP基础"],["晶晶","JAZZ"]]},
+    {"v":1,"d":3,"t":"18:20-19:50","c":[["甲甲","HIPHOP提高"],["henry","URBAN"],["一诺","JAZZ"],["海涛","POPPING"]]},
+    {"v":1,"d":3,"t":"20:00-21:30","c":[["金鸣","HIPHOP提高"],["可欣","URBAN"],["贝爷","JAZZ"],["艺艺","HIPHOP基础"]]},
+    {"v":1,"d":4,"t":"14:00-15:30","c":[["阿九","HIPHOP基础"],["一凡","HIPHOP提高"],["咩咩","JAZZ"],["minmi","URBAN"]]},
+    {"v":1,"d":4,"t":"16:00-17:30","c":[["小六","HIPHOP基础"],["二毛","URBAN"],["凡凡","SOUL DANCE"],["斑斑","JAZZ"]]},
+    {"v":1,"d":4,"t":"18:20-19:50","c":[["zeze","HIPHOP提高"],["椰子","URBAN"],["一诺","JAZZ"],["艺艺","HIPHOP基础"]]},
+    {"v":1,"d":4,"t":"20:00-21:30","c":[["金鸣","HIPHOP提高"],["椰子","URBAN"],["十一","WAACKING"],["小秦","HIPHOP基础"]]},
+    {"v":1,"d":5,"t":"14:00-15:30","c":[["阿九","HIPHOP基础"],["郭虎","HIPHOP提高"],["龙荔","HEELS高跟鞋"],["斑斑","URBAN"]]},
+    {"v":1,"d":5,"t":"16:00-17:30","c":[["zeze","HIPHOP提高"],["siri","URBAN"],["柚子","HIPHOP基础"],["贝爷","JAZZ"]]},
+    {"v":1,"d":5,"t":"18:20-19:50","c":[["zeze","HIPHOP提高"],["minmi","URBAN"],["融融","WAACKING"],["艺艺","HIPHOP基础"]]},
+    {"v":1,"d":5,"t":"20:00-21:30","c":[["金鸣","HIPHOP提高"],["cc","水系编舞"],["融融","JAZZ"],["惠子","HIPHOP基础"]]},
+    {"v":1,"d":6,"t":"14:00-15:30","c":[["阿九","HIPHOP基础"],["椰子","JAZZ"],["龙荔","HEELS高跟鞋"],["siri","URBAN"]]},
+    {"v":1,"d":6,"t":"16:00-17:30","c":[["甲甲","HIPHOP提高"],["lee","URBAN"],["小秦","HIPHOP基础"],["贝爷","JAZZ"]]},
+    {"v":1,"d":6,"t":"18:20-19:50","c":[["zeze","HIPHOP提高"],["可欣","URBAN"],["酸酸","JAZZ"],["艺艺","HIPHOP基础"]]},
+    {"v":1,"d":6,"t":"20:00-21:30","c":[["一凡","HIPHOP基础"],["minmi","URBAN"],["融融","JAZZ"],["片片","POPPING"]]},
+    /* === BAD EGGS === */
+    {"v":2,"d":1,"t":"12:30-14:00","c":[["文文","JAZZ 基础入门"]]},
+    {"v":2,"d":1,"t":"15:00-16:30","c":[["小蟒","HIPHOP"],["橘子","JAZZ基础强化"]]},
+    {"v":2,"d":1,"t":"17:00-18:30","c":[["小蟒","HIPHOP"],["小尤","JAZZ 基础入门 基础强化"]]},
+    {"v":2,"d":1,"t":"19:00-20:30","c":[["彬彬","JAZZ"],["涛涛","JAZZ 基础入门 基础强化"]]},
+    {"v":2,"d":2,"t":"12:30-14:00","c":[["文文","JAZZ 基础入门"]]},
+    {"v":2,"d":2,"t":"15:00-16:30","c":[["小蟒","HIPHOP"],["橘子","JAZZ基础强化"]]},
+    {"v":2,"d":2,"t":"17:00-18:30","c":[["小蟒","HIPHOP"],["小尤","JAZZ 基础入门 基础强化"]]},
+    {"v":2,"d":2,"t":"19:00-20:30","c":[["涛涛","JAZZ"],["彬彬","JAZZ 基础入门 基础强化"]]},
+    {"v":2,"d":3,"t":"12:30-14:00","c":[["小维","JAZZ 基础入门"]]},
+    {"v":2,"d":3,"t":"15:00-16:30","c":[["叶子","JAZZ"],["KEVIN","CHOREO 基础强化"]]},
+    {"v":2,"d":3,"t":"17:00-18:30","c":[["小文","JAZZ"],["KEVIN","CHOREO 基础入门"]]},
+    {"v":2,"d":3,"t":"19:00-20:30","c":[["小蟒","HIPHOP"],["紧张","JAZZ 基础入门 特训班"]]},
+    {"v":2,"d":4,"t":"12:30-14:00","c":[["小维","JAZZ 基础入门"]]},
+    {"v":2,"d":4,"t":"15:00-16:30","c":[["KEVIN","CHOREO"],["叶子","JAZZ 基础强化"]]},
+    {"v":2,"d":4,"t":"17:00-18:30","c":[["小文","JAZZ"],["KEVIN","CHOREO 基础入门"]]},
+    {"v":2,"d":4,"t":"19:00-20:30","c":[["小蟒","HIPHOP"],["紧张","JAZZ 特训班 基础入门"]]},
+    {"v":2,"d":5,"t":"15:00-16:30","c":[["濤濤","JAZZ入門"],["彬彬","JAZZ強化"],["DANNIE","編舞進階"]]},
+    {"v":2,"d":5,"t":"17:00-18:30","c":[["彬彬","JAZZ入門"],["緊張","JAZZ進階"],["康康","編舞進階"]]},
+    {"v":2,"d":5,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]},
+    {"v":2,"d":6,"t":"15:00-16:30","c":[["濤濤","JAZZ入門"],["彬彬","JAZZ強化"],["DANNIE","編舞進階"]]},
+    {"v":2,"d":6,"t":"17:00-18:30","c":[["彬彬","JAZZ入門"],["緊張","JAZZ進階"],["康康","編舞進階"]]},
+    {"v":2,"d":6,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]}
+];
+var schV=0, schD=null;
+function escH(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]; }); }
+function schTitle(vi,teacher){ return (SCH_PREFIX[vi]||"")+teacher; }
+function schSpan(t){
+  var m=String(t||"").match(/(\d{1,2}):(\d{2})[^\d]+(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  var toSt=function(v){ return v<DAY_START ? v+1440 : v; };
+  var s=toSt(Number(m[1])*60+Number(m[2]));
+  var e=toSt(Number(m[3])*60+Number(m[4]));
+  if(e<=s) e=s+60;
+  s=Math.max(DAY_START,Math.min(DAY_END-15,s));
+  e=Math.max(s+15,Math.min(DAY_END,e));
+  return [s,e];
+}
+function schExists(d,s,e,title){
+  var list=weekEvents(weekKey(state.weekStart));
+  for(var i=0;i<list.length;i++){
+    var x=list[i];
+    if(x.day===d&&x.start===s&&x.end===e&&String(x.title||"")===String(title||"")) return true;
+  }
+  return false;
+}
+function closeSch(){ var ov=$("#overlay"); ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){ document.removeEventListener("keydown",curEsc); curEsc=null; } }
+function renderSchChips(){
+  var vh=$("#schV"), dh=$("#schD"); if(!vh||!dh) return;
+  vh.innerHTML=SCH_VENUES.map(function(v,i){ return "<button type=\"button\" class=\"sc"+(i===schV?" on":"")+"\" data-sv=\""+i+"\">"+escH(v)+"</button>"; }).join("");
+  dh.innerHTML=WD.map(function(w,i){ return "<button type=\"button\" class=\"sc"+(i===schD?" on":"")+"\" data-sd=\""+i+"\">"+w+"</button>"; }).join("");
+  vh.querySelectorAll("[data-sv]").forEach(function(b){ b.addEventListener("click",function(){ schV=Number(b.dataset.sv); renderSchChips(); renderSchList(); }); });
+  dh.querySelectorAll("[data-sd]").forEach(function(b){ b.addEventListener("click",function(){ schD=Number(b.dataset.sd); renderSchChips(); renderSchList(); }); });
+}
+function renderSchList(){
+  var host=$("#schL"); if(!host) return;
+  var rows=[];
+  for(var i=0;i<INST_SCHEDULE.length;i++){
+    var it=INST_SCHEDULE[i];
+    if(it.v!==schV||it.d!==schD) continue;
+    for(var j=0;j<it.c.length;j++) rows.push({t:it.t,teacher:it.c[j][0],cls:it.c[j][1]||""});
+  }
+  if(!rows.length){ host.innerHTML="<p class=\"dsub\" style=\"padding:12px 6px\">這一天這家機構沒有課。</p>"; return; }
+  host.innerHTML=rows.map(function(r){
+    var sp=schSpan(r.t);
+    var title=schTitle(schV,r.teacher);
+    var here=sp?schExists(schD,sp[0],sp[1],title):false;
+    return "<div class=\"schrow"+(here?" here":"")+"\"><span class=\"st\">"+escH(r.t)+"</span>"+
+      "<span class=\"sn\"><b>"+escH(r.teacher)+"</b><i>"+escH(r.cls)+"</i>"+(here?" · 已在日程":"")+"</span>"+
+      "<button type=\"button\" class=\"btn add\" data-add=\""+schV+"|"+schD+"|"+escH(r.t)+"|"+escH(r.teacher)+"|"+escH(r.cls)+"\">＋加入</button></div>";
+  }).join("");
+  host.querySelectorAll("[data-add]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var p=b.dataset.add.split("|");
+      addFromInst(Number(p[0]),Number(p[1]),p[2],p[3],p[4]);
+    });
+  });
+}
+function addFromInst(vi,d,t,teacher,cls){
+  var sp=schSpan(t); if(!sp) return;
+  closeSch();
+  openDialog("create",{day:d,start:sp[0],end:sp[1],title:"",color:SCH_COLOR[vi]||"indigo"});
+  var ti=$("#fTitle"); if(ti) ti.value=schTitle(vi,teacher);
+  var no=$("#fNote"); if(no) no.value=(SCH_VENUES[vi]||"")+(cls?(" · "+cls):"");
+  var fe=$("#fErr"); if(fe) fe.textContent="";
+}
+function openInstSchedule(){
+  if(schD===null||schD===undefined){ var nd=new Date(); schD=isCurrentWeek()?((nd.getDay()+6)%7):0; }
+  var ov=$("#overlay"); ov.classList.remove("hidden");
+  ov.innerHTML="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>機構課表 · 每天誰在上課</h3>"+
+    "<p class=\"dsub\">這裡只是給你查的參考表，不會占你的日程。看中哪一節，點右邊「＋加入」，就會用那一天的時段幫你開好日程卡片（保存時會問你要同步到第幾周）。</p>"+
+    "<div class=\"schchips\" id=\"schV\"></div><div class=\"schchips\" id=\"schD\"></div>"+
+    "<div class=\"schlist\" id=\"schL\"></div>"+
+    "<div class=\"dfoot\"><button class=\"btn\" id=\"schClose\">關閉</button></div></div>";
+  renderSchChips(); renderSchList();
+  $("#schClose").addEventListener("click",closeSch);
+  var esc=function(e){ if(e.key==="Escape") closeSch(); };
+  curEsc=esc; document.addEventListener("keydown",esc);
+  attachOverlayClose(ov,closeSch);
+}
+
 function promptScope(cfg){
   var K=cfg.K, mode=cfg.mode||"edit";
   var ov=$("#overlay");
@@ -2732,6 +2927,7 @@ function bindUI(){
   $("#delDone").addEventListener("click",function(){ setDelMode(false); });
   $("#delUndoBtn").addEventListener("click",undoBatchDelete);
   $("#delUndoClose").addEventListener("click",function(){ $("#delUndoBar").classList.add("hidden"); });
+  $("#instBtn").addEventListener("click",openInstSchedule);
   $("#viewBtn").addEventListener("click",openViewDialog);
   $("#bgBtn").addEventListener("click",openBgDialog);
   $("#printBtn").addEventListener("click",function(){ window.print(); });
