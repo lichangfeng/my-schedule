@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="./manifest.json?v=14">
+<link rel="manifest" href="./manifest.json?v=15">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="referrer" content="no-referrer">
@@ -132,6 +132,18 @@ button,input,select{font:inherit}
   #dance-planner-root .dp-fold .dp-venues { margin:.65rem 0; }
   #dance-planner-root .dp-fold .dp-matrix { margin-top:.75rem; }
   #dance-planner-root .dp-day[aria-pressed="true"] { background:var(--primary); color:var(--primary-foreground); border-color:var(--primary); }
+  /* CYBER_CSS_START */
+  #dance-planner-root.theme-cyber { color-scheme:dark; --background:#050b14; --foreground:#edf9ff; --card:rgba(10,22,38,.96); --card-foreground:#edf9ff; --muted:rgba(13,29,49,.90); --muted-foreground:#87a7bd; --primary:#22d3ee; --primary-foreground:#04121c; --secondary:rgba(13,29,49,.92); --secondary-foreground:#dff7ff; --accent:rgba(34,211,238,.16); --accent-foreground:#dff7ff; --border:rgba(83,210,255,.28); --input:rgba(83,210,255,.32); --ring:rgba(34,211,238,.70); --green:#4ade80; --orange:#fb923c; --red:#fb7185; background:repeating-linear-gradient(0deg,rgba(34,211,238,.05) 0 1px,transparent 1px 44px),repeating-linear-gradient(90deg,rgba(129,140,248,.05) 0 1px,transparent 1px 44px),radial-gradient(circle at 8% 0%,rgba(34,211,238,.18),transparent 34%),radial-gradient(circle at 92% 8%,rgba(129,140,248,.16),transparent 34%),radial-gradient(circle at 50% 100%,rgba(236,72,153,.10),transparent 42%),#050b14; background-attachment:fixed; color:var(--foreground); }
+  body.dance-cyber { background:#050b14; color:#edf9ff; }
+  #dance-planner-root.theme-cyber .card, #dance-planner-root.theme-cyber .dp-fold { background:rgba(10,22,38,.95); border-color:rgba(83,210,255,.28); }
+  #dance-planner-root.theme-cyber .dp-fixed-week { background:rgba(13,29,49,.82); border-color:rgba(251,146,60,.55); }
+  #dance-planner-root.theme-cyber .dp-map-toolbar { background:rgba(10,22,38,.82); }
+  #dance-planner-root.theme-cyber .dp-route-map { background:#081222; }
+  #dance-planner-root.theme-cyber .dp-kicker { color:#9fd8ea; }
+  #dance-planner-root .dp-theme-bar { display:flex; justify-content:flex-end; }
+  #dance-planner-root .dp-manual-stop { display:grid; grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) auto auto; gap:.5rem; align-items:end; margin-top:.75rem; }
+  #dance-planner-root .dp-manual-stop .form-label { margin-bottom:.2rem; }
+  /* CYBER_CSS_END */
   /* COMPACT_CSS_END */
     @media (max-width:620px) {
       #dance-planner-root { max-width:100%; }
@@ -145,6 +157,8 @@ button,input,select{font:inherit}
       #dance-planner-root .dp-daily-head { grid-template-columns:repeat(3,minmax(0,1fr)); gap:.35rem; }
       #dance-planner-root .dp-daily-head h3 { grid-column:1 / -1; }
       #dance-planner-root .dp-daily-head .btn { width:100%; min-width:0; padding:.45rem .2rem; font-size:.78rem; }
+      #dance-planner-root .dp-manual-stop { grid-template-columns:1fr 1fr; }
+      #dance-planner-root .dp-manual-stop > button { width:100%; }
       #dance-planner-root .dp-route { padding:.85rem; }
       #dance-planner-root .dp-route-stop { grid-template-columns:1fr 1fr; gap:.55rem; padding:.65rem 0; border-top:1px solid var(--border); }
       #dance-planner-root .dp-route-stop > select { grid-column:1 / -1; }
@@ -168,6 +182,7 @@ button,input,select{font:inherit}
   <div class="dp-hero">
     <div class="dp-kicker">起點：廣廈新村 C 片 · 電動車最高時速 20 km/h · 通勤時間已含約 4 分鐘停車找教室</div>
     <div class="dp-controls" role="group" aria-label="選擇星期"></div>
+    <div class="dp-theme-bar"><button id="dp-theme-toggle" type="button" class="btn">切換賽博朋克</button></div>
   </div>
 
   <!-- COMPACT_SCHEDULE_START -->
@@ -199,8 +214,13 @@ button,input,select{font:inherit}
       </div>
     </div>
     <div id="dp-route-stops"></div>
+    <div class="dp-manual-stop">
+      <div><label class="form-label" for="dp-manual-stop-location">手動停靠點</label><select id="dp-manual-stop-location" class="form-select"></select></div>
+      <div><label class="form-label" for="dp-manual-stop-position">插入位置</label><select id="dp-manual-stop-position" class="form-select"></select></div>
+      <button id="dp-route-add" type="button" class="btn">加入停靠點</button>
+      <button id="dp-route-insert-home" type="button" class="btn">途中回家</button>
+    </div>
     <div class="dp-route-actions">
-      <button id="dp-route-add" type="button" class="btn">新增停靠點</button>
       <button id="dp-route-clear" type="button" class="btn">清空軌跡</button>
       <label class="form-check"><input id="dp-route-return" class="form-check-input" type="checkbox" checked><span class="form-check-label">最後返回起點</span></label>
     </div>
@@ -284,6 +304,38 @@ button,input,select{font:inherit}
 <script>
 (function () {
   const root = document.getElementById("dance-planner-root");
+  const SCHEDULE_THEME_STORAGE_KEY = "myScheduleView";
+  const ROUTE_THEME_STORAGE_KEY = "myRoutePlannerTheme";
+  function readRouteTheme() {
+    try { return localStorage.getItem(ROUTE_THEME_STORAGE_KEY) || ""; } catch (error) { return ""; }
+  }
+  function readScheduleTheme() {
+    try {
+      const raw = localStorage.getItem(SCHEDULE_THEME_STORAGE_KEY);
+      if (!raw) return "";
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.theme ? String(parsed.theme) : "";
+    } catch (error) { return ""; }
+  }
+  function applyVisualTheme(theme) {
+    const cyber = theme === "cyber";
+    root.classList.toggle("theme-cyber", cyber);
+    document.body.classList.toggle("dance-cyber", cyber);
+    const button = root.querySelector("#dp-theme-toggle");
+    if (button) button.textContent = cyber ? "切換淺色模式" : "切換賽博朋克";
+  }
+  const urlTheme = new URLSearchParams(window.location.search).get("theme") || "";
+  applyVisualTheme(urlTheme || readRouteTheme() || readScheduleTheme() || "default");
+  const themeToggle = root.querySelector("#dp-theme-toggle");
+  if (themeToggle) themeToggle.addEventListener("click", function () {
+    const next = root.classList.contains("theme-cyber") ? "default" : "cyber";
+    applyVisualTheme(next);
+    try { localStorage.setItem(ROUTE_THEME_STORAGE_KEY, next); } catch (error) {}
+  });
+  window.addEventListener("storage", function (event) {
+    if (event.key === SCHEDULE_THEME_STORAGE_KEY && !readRouteTheme()) applyVisualTheme(readScheduleTheme() || "default");
+  });
+
   // FIXED_WEEK_DATA_START
   const fixedWeekRange = {"from":"2026-09-28","to":"2026-10-04"};
   const fixedWeekEvents = [{"date":"2026-09-28","day":"周一","start":960,"end":1050,"time":"16:00-17:30","title":"長郡外國語實驗","location":"長郡外國語實驗"},{"date":"2026-09-28","day":"周一","start":1350,"end":1470,"time":"22:30-24:30","title":"隊訓","location":"隊訓"},{"date":"2026-09-29","day":"周二","start":1000,"end":1085,"time":"16:40-18:05","title":"洋湖实验","location":"洋湖實驗"},{"date":"2026-09-29","day":"周二","start":1200,"end":1280,"time":"20:00-21:20","title":"meta","location":"meta"},{"date":"2026-09-30","day":"周三","start":1140,"end":1230,"time":"19:00-20:30","title":"AS","location":"AS"},{"date":"2026-10-01","day":"周四","start":1140,"end":1200,"time":"19:00-20:00","title":"i5私教","location":"i5私教"},{"date":"2026-10-02","day":"周五","start":1150,"end":1240,"time":"19:10-20:40","title":"西美","location":"西美"},{"date":"2026-10-04","day":"周日","start":630,"end":720,"time":"10:30-12:00","title":"西美","location":"西美"},{"date":"2026-10-04","day":"周日","start":870,"end":960,"time":"14:30-16:00","title":"AS","location":"AS"},{"date":"2026-10-04","day":"周日","start":1050,"end":1110,"time":"17:30-18:30","title":"i5私教","location":"i5私教"}];
@@ -373,6 +425,11 @@ button,input,select{font:inherit}
     start.innerHTML = locations.map(function (loc) { return `<option value="${esc(loc)}">${esc(loc)}</option>`; }).join("");
     start.value = "家";
     start.addEventListener("change", renderRoutePlan);
+    const manualLocation = root.querySelector("#dp-manual-stop-location");
+    if (manualLocation) {
+      manualLocation.innerHTML = locations.map(function (loc) { return `<option value="${esc(loc)}">${esc(loc)}</option>`; }).join("");
+      manualLocation.value = "家";
+    }
     root.querySelector("#dp-route-start-time").addEventListener("input", renderRoutePlan);
     root.querySelector("#dp-route-deadline").addEventListener("input", renderRoutePlan);
     root.querySelector("#dp-route-return").addEventListener("change", renderRoutePlan);
@@ -381,19 +438,51 @@ button,input,select{font:inherit}
       renderRouteStops();
       refreshRouteCardStates();
     });
-    root.querySelector("#dp-route-add").addEventListener("click", function () {
-      const used = routeStops.map(function (stop) { return stop.location; });
-      const unused = locations.find(function (loc) { return !used.includes(loc); });
-      if (unused && routeStops.length < 8) {
-        routeStops.push({courseKey:null, location:unused, classMin:60, delayMin:0, label:"手動停靠點", timeText:"自訂時間", sortStart:null, dateText:root.querySelector("#dp-work-date").value, day:selectedDay, pickOrder:++routePickOrder});
-        renderRouteStops();
-        renderDailySchedule();
-      }
+    function addManualStop(location) {
+      if (!location || routeStops.length >= 8) return;
+      const positionSelect = root.querySelector("#dp-manual-stop-position");
+      const position = positionSelect ? positionSelect.value : "last";
+      let index = routeStops.length;
+      if (position !== "last") index = Number(position) + 1;
+      index = Math.max(0, Math.min(index, routeStops.length));
+      const isHome = location === "家";
+      routeStops.splice(index, 0, {
+        courseKey:null, location:location, classMin:0, delayMin:0,
+        label:isHome ? "回家" : "手動停靠點",
+        timeText:isHome ? "回家" : "自訂時間",
+        sortStart:null, dateText:root.querySelector("#dp-work-date").value,
+        day:selectedDay, pickOrder:++routePickOrder, manual:true
+      });
+      renderRouteStops();
+      refreshRouteCardStates();
+    }
+    const manualAdd = root.querySelector("#dp-route-add");
+    if (manualAdd) manualAdd.addEventListener("click", function () {
+      addManualStop(root.querySelector("#dp-manual-stop-location")?.value || "");
+    });
+    const homeAdd = root.querySelector("#dp-route-insert-home");
+    if (homeAdd) homeAdd.addEventListener("click", function () {
+      const manualLocation = root.querySelector("#dp-manual-stop-location");
+      if (manualLocation) manualLocation.value = "家";
+      addManualStop("家");
     });
     renderRouteStops();
   }
 
+  function refreshManualStopPositions() {
+    const select = root.querySelector("#dp-manual-stop-position");
+    if (!select) return;
+    const previous = select.value || "last";
+    const options = ['<option value="last">最後</option>'];
+    routeStops.forEach(function (stop, index) {
+      options.push(`<option value="${index}">第 ${index + 1} 站後（${esc(stop.label || stop.location)}）</option>`);
+    });
+    select.innerHTML = options.join("");
+    select.value = Array.from(select.options).some(function (option) { return option.value === previous; }) ? previous : "last";
+  }
+
   function renderRouteStops() {
+    refreshManualStopPositions();
     renderFixedWeek();
     renderOdogSchedule();
     renderBadEggsSpecialSchedule();
@@ -443,9 +532,10 @@ button,input,select{font:inherit}
         refreshRouteCardStates();
       });
     });
-    root.querySelector("#dp-route-add").disabled = routeStops.length >= 8 || locations.every(function (loc) {
-      return routeStops.some(function (stop) { return stop.location === loc; });
-    });
+    const manualAddButton = root.querySelector("#dp-route-add");
+    if (manualAddButton) manualAddButton.disabled = routeStops.length >= 8;
+    const homeAddButton = root.querySelector("#dp-route-insert-home");
+    if (homeAddButton) homeAddButton.disabled = routeStops.length >= 8;
     renderRoutePlan();
   }
 
@@ -737,11 +827,15 @@ button,input,select{font:inherit}
       day:cell.day || selectedDay,
       pickOrder:++routePickOrder, color:cell.color || "blue"
     };
-    routeStops.push(metadata);
-    routeStops.sort(function (a,b) {
-      const timeDiff = (a.sortStart ?? 9999) - (b.sortStart ?? 9999);
-      return timeDiff || (a.pickOrder || 0) - (b.pickOrder || 0);
-    });
+    let insertAt = routeStops.length;
+    for (let i = 0; i < routeStops.length; i++) {
+      const current = routeStops[i];
+      if (current.sortStart != null && metadata.sortStart != null && current.sortStart > metadata.sortStart) {
+        insertAt = i;
+        break;
+      }
+    }
+    routeStops.splice(insertAt, 0, metadata);
     renderRouteStops();
     refreshRouteCardStates();
   }
@@ -1283,7 +1377,7 @@ button,input,select{font:inherit}
     var jobs=[];
     if('serviceWorker' in navigator){jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(reg){return reg.unregister();}));}));}
     if(window.caches){jobs.push(caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key);}));}));}
-    Promise.all(jobs).catch(function(){}).then(function(){location.replace(location.pathname+'?v=14&refresh='+Date.now());});
+    Promise.all(jobs).catch(function(){}).then(function(){location.replace(location.pathname+'?v=15&refresh='+Date.now());});
   });
   var promptEvent=null;
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
@@ -1291,7 +1385,7 @@ button,input,select{font:inherit}
   window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
   if('serviceWorker' in navigator){
     window.addEventListener('load',function(){
-      navigator.serviceWorker.register('./service-worker.js?v=14').then(function(reg){
+      navigator.serviceWorker.register('./service-worker.js?v=15').then(function(reg){
         reg.update();
         reg.addEventListener('updatefound',function(){reg.update();});
       }).catch(function(){});
