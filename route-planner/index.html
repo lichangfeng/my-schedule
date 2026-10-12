@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#22d3ee">
+<meta name="theme-color" content="#2563eb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="./manifest.json?v=13">
+<link rel="manifest" href="./manifest.json?v=14">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="referrer" content="no-referrer">
@@ -71,7 +71,7 @@ button,input,select{font:inherit}
     #dance-planner-root .v-odog { --venue-color:var(--viz-series-4); }
     #dance-planner-root .dp-route { padding:1rem; margin:0 0 1rem; }
     #dance-planner-root .dp-route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.65rem; }
-    #dance-planner-root .dp-route-stop { display:grid; grid-template-columns:minmax(150px,1fr) auto auto auto auto; align-items:center; gap:.5rem; margin-top:.5rem; }
+    #dance-planner-root .dp-route-stop { display:grid; grid-template-columns:minmax(150px,1fr) auto auto auto; align-items:center; gap:.5rem; margin-top:.5rem; }
     #dance-planner-root .dp-route-time-field { display:flex; align-items:center; gap:.3rem; color:var(--muted-foreground); white-space:nowrap; }
     #dance-planner-root .dp-route-time-field input { width:4.5rem; }
     #dance-planner-root .dp-route-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-top:.75rem; }
@@ -133,11 +133,7 @@ button,input,select{font:inherit}
   #dance-planner-root .dp-fold .dp-matrix { margin-top:.75rem; }
   #dance-planner-root .dp-day[aria-pressed="true"] { background:var(--primary); color:var(--primary-foreground); border-color:var(--primary); }
   /* COMPACT_CSS_END */
-    #dance-planner-root .dp-insert-btn{padding:.34rem .5rem;font-size:12px;white-space:nowrap;border-color:rgba(75,190,240,.55)}
-#dance-planner-root .dp-route-stop > .dp-insert-btn, #dance-planner-root .dp-route-stop > .dp-remove-btn{grid-column:auto}
-#dance-planner-root .dp-route-leg.is-waypoint{border-left-style:dashed}
-#dance-planner-root .dp-route-leg.is-waypoint > span:first-child{color:#0d9488;font-weight:600}
-@media (max-width:620px) {
+    @media (max-width:620px) {
       #dance-planner-root { max-width:100%; }
       #dance-planner-root .dp-controls { position:sticky; top:0; z-index:3; display:grid; grid-template-columns:repeat(4,1fr); gap:.4rem; padding:.45rem 0; background:var(--background); }
       #dance-planner-root .dp-controls .btn { width:100%; min-height:44px; padding:.35rem .2rem; }
@@ -167,30 +163,11 @@ button,input,select{font:inherit}
       #dance-planner-root .dp-map-fallback svg { min-width:560px; }
       #dance-planner-root .dp-matrix .table { min-width:520px; }
     }
-  /* TECH_THEME_START */
-:root{color-scheme:dark;--background:#050b14;--foreground:#edf9ff;--card:rgba(10,22,38,.94);--card-foreground:#edf9ff;--muted:rgba(12,29,49,.88);--muted-foreground:#8fb2c8;--primary:#22d3ee;--primary-foreground:#04111c;--secondary:rgba(14,31,51,.9);--secondary-foreground:#dff7ff;--accent:rgba(34,211,238,.13);--accent-foreground:#67e8f9;--border:rgba(83,210,255,.22);--input:rgba(83,190,235,.28);--ring:#22d3ee;--green:#34d399;--orange:#fbbf24;--red:#fb7185;--viz-series-1:#22d3ee;--viz-series-2:#34d399;--viz-series-3:#a78bfa;--viz-series-4:#fb7185;--viz-series-5:#38bdf8;--viz-series-6:#facc15}
-html,body{background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.16),transparent 32%),radial-gradient(circle at 92% 8%,rgba(129,140,248,.15),transparent 32%),radial-gradient(circle at 52% 100%,rgba(236,72,153,.08),transparent 42%),#050b14;background-attachment:fixed;color:var(--foreground)}
-body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.2;background-image:linear-gradient(rgba(62,189,248,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(62,189,248,.1) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 90%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 90%)}
-#dance-planner-root{position:relative;z-index:1}
-.dp-hero{padding:1rem;border:1px solid rgba(75,190,240,.24);border-radius:16px;background:linear-gradient(145deg,rgba(13,28,48,.95),rgba(7,17,31,.95));box-shadow:0 18px 50px rgba(0,0,0,.4),0 0 28px rgba(34,211,238,.06)}
-.dp-kicker{color:#9fc2d6}
-.card,.dp-fold,.dp-daily-item,.dp-route-map{background:linear-gradient(145deg,rgba(13,28,48,.95),rgba(7,17,31,.95));border-color:rgba(75,190,240,.24);color:var(--foreground);box-shadow:0 18px 50px rgba(0,0,0,.38),0 0 28px rgba(34,211,238,.05)}
-.btn,.dp-controls .btn{background:rgba(14,31,51,.9);border-color:rgba(91,194,235,.28);color:#dff7ff}.btn:hover{background:rgba(27,52,78,.94);border-color:#22d3ee}.btn-primary{background:linear-gradient(135deg,#0891b2,#4f46e5 60%,#9333ea);border:none;color:#fff;box-shadow:0 8px 24px rgba(34,211,238,.2)}
-.form-label,.text-muted,.dp-route-time-field,.dp-odog-status{color:var(--muted-foreground)}.form-select,.form-control,input,select,textarea{background:rgba(4,13,25,.86);border-color:rgba(83,190,235,.28);color:#f0fbff;color-scheme:dark}input:focus,select:focus,textarea:focus{border-color:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.15),0 0 20px rgba(34,211,238,.08)}option{background:#0b1828;color:#eefaff}
-.dp-course{background:linear-gradient(145deg,rgba(14,32,54,.95),rgba(7,18,33,.95));border-color:rgba(83,210,255,.22);color:#edf9ff;box-shadow:0 8px 22px rgba(0,0,0,.25)}.dp-course:hover{border-color:rgba(34,211,238,.6);box-shadow:0 10px 26px rgba(0,0,0,.35),0 0 20px rgba(34,211,238,.12)}.dp-course[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ring),0 0 24px rgba(34,211,238,.2)}
-.dp-fold>summary{background:linear-gradient(110deg,rgba(21,43,69,.96),rgba(10,25,44,.96));color:#edfaff}.dp-fold>summary::after{color:#83a8bd}.dp-fold-body{border-color:rgba(83,210,255,.16)}
-.dp-route-map{background:rgba(5,14,26,.72)}.dp-map-baidu{background:#071322}.dp-map-toolbar,.dp-map-steps,.dp-map-all,.dp-map-fallback{border-color:rgba(83,210,255,.18)}.dp-route-leg{border-color:rgba(83,210,255,.18);background:rgba(8,20,36,.56)}
-.table{color:#eaf8ff}.table th{background:rgba(18,38,62,.96);color:#9fd8eb}.table th,.table td{border-color:rgba(83,210,255,.15)}.table tbody tr:hover{background:rgba(34,211,238,.05)}
-.v-must{border-color:#fbbf24!important}.v-work{border-color:#38bdf8!important}.dp-route-status.is-ok{color:#34d399}.dp-route-status.is-warn{color:#fbbf24}.dp-route-status.is-bad{color:#fb7185}
-.dp-odog-section{border-color:rgba(83,210,255,.2)}.dp-daily-status.is-ok{color:#34d399}.dp-daily-status.is-bad{color:#fb7185}
-@media print{body{background:#fff!important;color:#000!important}.card,.dp-fold,.dp-daily-item,.dp-route-map,.dp-route-leg{background:#fff!important;color:#000!important;box-shadow:none!important}.table th,.table td{border-color:#bbb!important}}
-#pwa-update-button{display:none!important}
-/* TECH_THEME_END */</style>
+  </style>
 
   <div class="dp-hero">
     <div class="dp-kicker">起點：廣廈新村 C 片 · 電動車最高時速 20 km/h · 通勤時間已含約 4 分鐘停車找教室</div>
     <div class="dp-controls" role="group" aria-label="選擇星期"></div>
-  <a class="btn" href="../ledger/" style="margin:-.5rem 0 1rem">上課紀錄與薪資統計（按機構匯出）</a>
   </div>
 
   <!-- COMPACT_SCHEDULE_START -->
@@ -311,12 +288,12 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
   const fixedWeekRange = {"from":"2026-09-28","to":"2026-10-04"};
   const fixedWeekEvents = [{"date":"2026-09-28","day":"周一","start":960,"end":1050,"time":"16:00-17:30","title":"長郡外國語實驗","location":"長郡外國語實驗"},{"date":"2026-09-28","day":"周一","start":1350,"end":1470,"time":"22:30-24:30","title":"隊訓","location":"隊訓"},{"date":"2026-09-29","day":"周二","start":1000,"end":1085,"time":"16:40-18:05","title":"洋湖实验","location":"洋湖實驗"},{"date":"2026-09-29","day":"周二","start":1200,"end":1280,"time":"20:00-21:20","title":"meta","location":"meta"},{"date":"2026-09-30","day":"周三","start":1140,"end":1230,"time":"19:00-20:30","title":"AS","location":"AS"},{"date":"2026-10-01","day":"周四","start":1140,"end":1200,"time":"19:00-20:00","title":"i5私教","location":"i5私教"},{"date":"2026-10-02","day":"周五","start":1150,"end":1240,"time":"19:10-20:40","title":"西美","location":"西美"},{"date":"2026-10-04","day":"周日","start":630,"end":720,"time":"10:30-12:00","title":"西美","location":"西美"},{"date":"2026-10-04","day":"周日","start":870,"end":960,"time":"14:30-16:00","title":"AS","location":"AS"},{"date":"2026-10-04","day":"周日","start":1050,"end":1110,"time":"17:30-18:30","title":"i5私教","location":"i5私教"}];
   // FIXED_WEEK_DATA_END
-  const weekly = [{"venue":"HUK 河西店","day":"周一","time":"10:00-11:30","classes":[{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周一","time":"15:30-17:00","classes":[{"teacher":"琳珑","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周一","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周一","time":"18:20-19:50","classes":[{"teacher":"冰冰","class":"JAZZ基础"},{"teacher":"小秦","class":"HIPHOP中级"}]},{"venue":"HUK 河西店","day":"周一","time":"20:00-21:30","classes":[{"teacher":"十一","class":"WAACKING"},{"teacher":"阿卷","class":"JAZZ"}]},{"venue":"HUK 河西店","day":"周二","time":"10:00-11:30","classes":[{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周二","time":"15:00-16:30","classes":[{"teacher":"饺子","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周二","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周二","time":"18:20-19:50","classes":[{"teacher":"五一","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周二","time":"19:50-21:20","classes":[{"teacher":"兔子","class":"K-POP"}]},{"venue":"HUK 河西店","day":"周二","time":"20:00-21:30","classes":[{"teacher":"阿卷","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周三","time":"10:00-11:30","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周三","time":"14:00-15:30","classes":[{"teacher":"一诺","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周三","time":"15:00-16:30","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周三","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周三","time":"18:20-19:50","classes":[{"teacher":"冰冰","class":"JAZZ基础"},{"teacher":"子莉","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周三","time":"19:00-20:30","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周三","time":"19:50-21:20","classes":[{"teacher":"可欣","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周三","time":"20:30-22:00","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周四","time":"10:00-11:30","classes":[{"teacher":"小雪","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周四","time":"14:00-15:30","classes":[{"teacher":"子莉","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周四","time":"18:20-19:50","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"八一","class":"LOCKING"}]},{"venue":"HUK 河西店","day":"周四","time":"19:50-21:20","classes":[{"teacher":"zeze","class":"HIPHOP中级"},{"teacher":"兔子","class":"K-POP"},{"teacher":"汤汤","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周五","time":"10:00-11:30","classes":[{"teacher":"小雪","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周五","time":"15:00-16:30","classes":[{"teacher":"可欣","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周五","time":"15:30-17:00","classes":[{"teacher":"汤汤","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周五","time":"16:30-18:00","classes":[{"teacher":"小秦","class":"HIPHOP中级"}]},{"venue":"HUK 河西店","day":"周五","time":"19:00-20:30","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周五","time":"20:30-22:00","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周六","time":"12:00-13:30","classes":[{"teacher":"融融","class":"JAZZ提高"}]},{"venue":"HUK 河西店","day":"周六","time":"14:00-15:30","classes":[{"teacher":"cc","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周六","time":"18:30-20:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周六","time":"19:30-21:00","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周六","time":"20:00-21:30","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周日","time":"10:00-11:30","classes":[{"teacher":"琳珑","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周日","time":"12:00-13:30","classes":[{"teacher":"融融","class":"JAZZ提高"}]},{"venue":"HUK 河西店","day":"周日","time":"16:30-18:00","classes":[{"teacher":"八一","class":"LOCKING"}]},{"venue":"HUK 河西店","day":"周日","time":"18:00-19:30","classes":[{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周日","time":"18:30-20:00","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周日","time":"19:50-21:20","classes":[{"teacher":"五一","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"14:00-15:30","classes":[{"teacher":"小秦","class":"HIPHOP提高"},{"teacher":"柚子","class":"HIPHOP基础"},{"teacher":"优益c","class":"JAZZ"},{"teacher":"lee","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周一","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"小富","class":"URBAN"},{"teacher":"小黑","class":"HIPHOP基础"},{"teacher":"椰子","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周一","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"美七","class":"URBAN"},{"teacher":"凡凡","class":"WAACKING"},{"teacher":"甲甲","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"20:00-21:30","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"依依","class":"URBAN"},{"teacher":"贝爷","class":"JAZZ"},{"teacher":"娇子","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"14:00-15:30","classes":[{"teacher":"牛牛","class":"HIPHOP基础"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"treeya","class":"水系编舞"}]},{"venue":"HUK 世茂店","day":"周二","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"ad","class":"URBAN"},{"teacher":"小黑","class":"HIPHOP基础"},{"teacher":"莉莉","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周二","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"闫洋","class":"水系编舞"},{"teacher":"晶晶","class":"JAZZ"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"20:00-21:30","classes":[{"teacher":"海涛","class":"POPPING"},{"teacher":"josh","class":"URBAN"},{"teacher":"贝爷","class":"JAZZ"},{"teacher":"娇子","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周三","time":"14:00-15:30","classes":[{"teacher":"甲甲","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"},{"teacher":"融融","class":"WAACKING"},{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周三","time":"16:00-17:30","classes":[{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"ad","class":"URBAN"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"泰瑞阳","class":"AFRO DANCE"}]},{"venue":"HUK 世茂店","day":"周三","time":"18:20-19:50","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"闫洋","class":"水系编舞"},{"teacher":"贺贺","class":"URBAN"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周三","time":"20:00-21:30","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"谭老师","class":"URBAN"},{"teacher":"贝爷","class":"JAZZ"},{"teacher":"郭虎","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周四","time":"14:00-15:30","classes":[{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"十一","class":"WAACKING"},{"teacher":"cc","class":"水系编舞"}]},{"venue":"HUK 世茂店","day":"周四","time":"16:00-17:30","classes":[{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"小Y","class":"URBAN"},{"teacher":"一凡","class":"HIPHOP基础"},{"teacher":"晶晶","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周四","time":"18:20-19:50","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"henry","class":"URBAN"},{"teacher":"一诺","class":"JAZZ"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 世茂店","day":"周四","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"可欣","class":"URBAN"},{"teacher":"贝爷","class":"JAZZ"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周五","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"},{"teacher":"咩咩","class":"JAZZ"},{"teacher":"minmi","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周五","time":"16:00-17:30","classes":[{"teacher":"小六","class":"HIPHOP基础"},{"teacher":"二毛","class":"URBAN"},{"teacher":"凡凡","class":"SOUL DANCE"},{"teacher":"斑斑","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周五","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"椰子","class":"URBAN"},{"teacher":"一诺","class":"JAZZ"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周五","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"椰子","class":"URBAN"},{"teacher":"十一","class":"WAACKING"},{"teacher":"小秦","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周六","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"龙荔","class":"HEELS高跟鞋"},{"teacher":"斑斑","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周六","time":"16:00-17:30","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"siri","class":"URBAN"},{"teacher":"柚子","class":"HIPHOP基础"},{"teacher":"贝爷","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周六","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"minmi","class":"URBAN"},{"teacher":"融融","class":"WAACKING"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周六","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"cc","class":"水系编舞"},{"teacher":"融融","class":"JAZZ"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周日","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"椰子","class":"JAZZ"},{"teacher":"龙荔","class":"HEELS高跟鞋"},{"teacher":"siri","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周日","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"lee","class":"URBAN"},{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"贝爷","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周日","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"可欣","class":"URBAN"},{"teacher":"酸酸","class":"JAZZ"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周日","time":"20:00-21:30","classes":[{"teacher":"一凡","class":"HIPHOP基础"},{"teacher":"minmi","class":"URBAN"},{"teacher":"融融","class":"JAZZ"},{"teacher":"片片","class":"POPPING"}]},{"venue":"BAD EGGS","day":"周二","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周二","time":"15:00-16:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"橘子","class":"JAZZ基础强化"}]},{"venue":"BAD EGGS","day":"周二","time":"17:00-18:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"小尤","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周二","time":"19:00-20:30","classes":[{"teacher":"彬彬","class":"JAZZ"},{"teacher":"涛涛","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周三","time":"15:00-16:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"橘子","class":"JAZZ基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"17:00-18:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"小尤","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"19:00-20:30","classes":[{"teacher":"涛涛","class":"JAZZ"},{"teacher":"彬彬","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周四","time":"12:30-14:00","classes":[{"teacher":"小维","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周四","time":"15:00-16:30","classes":[{"teacher":"叶子","class":"JAZZ"},{"teacher":"KEVIN","class":"CHOREO 基础强化"}]},{"venue":"BAD EGGS","day":"周四","time":"17:00-18:30","classes":[{"teacher":"小文","class":"JAZZ"},{"teacher":"KEVIN","class":"CHOREO 基础入门"}]},{"venue":"BAD EGGS","day":"周四","time":"19:00-20:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"紧张","class":"JAZZ 基础入门 特训班"}]},{"venue":"BAD EGGS","day":"周五","time":"12:30-14:00","classes":[{"teacher":"小维","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周五","time":"15:00-16:30","classes":[{"teacher":"KEVIN","class":"CHOREO"},{"teacher":"叶子","class":"JAZZ 基础强化"}]},{"venue":"BAD EGGS","day":"周五","time":"17:00-18:30","classes":[{"teacher":"小文","class":"JAZZ"},{"teacher":"KEVIN","class":"CHOREO 基础入门"}]},{"venue":"BAD EGGS","day":"周五","time":"19:00-20:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"紧张","class":"JAZZ 特训班 基础入门"}]},{"venue":"BAD EGGS","day":"周六","time":"15:00-16:30","classes":[{"teacher":"濤濤","class":"JAZZ入門"},{"teacher":"彬彬","class":"JAZZ強化"},{"teacher":"DANNIE","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周六","time":"17:00-18:30","classes":[{"teacher":"彬彬","class":"JAZZ入門"},{"teacher":"緊張","class":"JAZZ進階"},{"teacher":"康康","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周六","time":"19:00-20:30","classes":[{"teacher":"濤濤","class":"JAZZ強化"},{"teacher":"康康","class":"編舞入門"},{"teacher":"嘉怡","class":"JAZZ入門"}]},{"venue":"BAD EGGS","day":"周日","time":"15:00-16:30","classes":[{"teacher":"濤濤","class":"JAZZ入門"},{"teacher":"彬彬","class":"JAZZ強化"},{"teacher":"DANNIE","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周日","time":"17:00-18:30","classes":[{"teacher":"彬彬","class":"JAZZ入門"},{"teacher":"緊張","class":"JAZZ進階"},{"teacher":"康康","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周日","time":"19:00-20:30","classes":[{"teacher":"濤濤","class":"JAZZ強化"},{"teacher":"康康","class":"編舞入門"},{"teacher":"嘉怡","class":"JAZZ入門"}]}];
+  const weekly = [{"venue":"HUK 河西店","day":"周一","time":"10:00-11:30","classes":[{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周一","time":"15:00-16:30","classes":[{"teacher":"琳珑","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周一","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周一","time":"18:20-19:50","classes":[{"teacher":"冰冰","class":"JAZZ基础"},{"teacher":"小秦","class":"HIPHOP中级"}]},{"venue":"HUK 河西店","day":"周一","time":"19:50-21:20","classes":[{"teacher":"十一","class":"WAACKING"},{"teacher":"阿卷","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周二","time":"10:00-11:30","classes":[{"teacher":"小富","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周二","time":"15:00-16:30","classes":[{"teacher":"饺子","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周二","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周二","time":"18:20-19:50","classes":[{"teacher":"五一","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周二","time":"19:50-21:20","classes":[{"teacher":"兔子","class":"KPOP"},{"teacher":"阿卷","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周三","time":"10:00-11:30","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周三","time":"14:00-15:30","classes":[{"teacher":"一诺","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周三","time":"15:00-16:30","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周三","time":"16:30-18:00","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周三","time":"18:20-19:50","classes":[{"teacher":"冰冰","class":"JAZZ基础"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周三","time":"19:50-21:20","classes":[{"teacher":"可欣","class":"URBAN"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周四","time":"10:00-11:30","classes":[{"teacher":"小雪","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周四","time":"18:20-19:50","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"八一","class":"LOCKING"}]},{"venue":"HUK 河西店","day":"周四","time":"19:50-21:20","classes":[{"teacher":"ZEZE","class":"HIPHOP中级"},{"teacher":"兔子","class":"KPOP"},{"teacher":"汤汤","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周五","time":"10:00-11:30","classes":[{"teacher":"小雪","class":"JAZZ中级"},{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周五","time":"15:00-16:30","classes":[{"teacher":"汤汤","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周五","time":"16:30-18:00","classes":[{"teacher":"小泰","class":"HIPHOP中级"}]},{"venue":"HUK 河西店","day":"周五","time":"18:20-19:50","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周五","time":"19:50-21:20","classes":[{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周六","time":"14:00-15:30","classes":[{"teacher":"CC","class":"URBAN"}]},{"venue":"HUK 河西店","day":"周六","time":"18:20-19:50","classes":[{"teacher":"牛牛","class":"HIPHOP基础"}]},{"venue":"HUK 河西店","day":"周六","time":"19:50-21:20","classes":[{"teacher":"瑶瑶","class":"JAZZ基础"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 河西店","day":"周日","time":"10:00-11:30","classes":[{"teacher":"琳珑","class":"JAZZ中级"}]},{"venue":"HUK 河西店","day":"周日","time":"16:30-18:00","classes":[{"teacher":"八一","class":"LOCKING"}]},{"venue":"HUK 河西店","day":"周日","time":"18:20-19:50","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"瑶瑶","class":"JAZZ基础"}]},{"venue":"HUK 河西店","day":"周日","time":"19:50-21:20","classes":[{"teacher":"五一","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"14:00-15:30","classes":[{"teacher":"小秦","class":"HIPHOP提高"},{"teacher":"lee","class":"URBAN"},{"teacher":"优益c","class":"JAZZ"},{"teacher":"柚子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"艺艺","class":"HIPHOP基础"},{"teacher":"椰子","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周一","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"小y","class":"URBAN"},{"teacher":"凡凡","class":"WAACKING"},{"teacher":"甲甲","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周一","time":"20:00-21:30","classes":[{"teacher":"惠子","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"},{"teacher":"娇子","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"14:00-15:30","classes":[{"teacher":"牛牛","class":"HIPHOP基础"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"十一","class":"WAACKING"}]},{"venue":"HUK 世茂店","day":"周二","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"小黑","class":"HIPHOP基础"},{"teacher":"莉莉","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"依依","class":"URBAN"},{"teacher":"闫津","class":"水系编舞"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周二","time":"20:00-21:30","classes":[{"teacher":"josh","class":"URBAN"},{"teacher":"海涛","class":"POPPING"},{"teacher":"娇子","class":"JAZZ基础"}]},{"venue":"HUK 世茂店","day":"周三","time":"14:00-15:30","classes":[{"teacher":"甲甲","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"}]},{"venue":"HUK 世茂店","day":"周三","time":"16:00-17:30","classes":[{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"泰瑞阳","class":"AFRODANCE"},{"teacher":"郭虎","class":"HIPHOP提高"}]},{"venue":"HUK 世茂店","day":"周三","time":"18:20-19:50","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"贺贺","class":"URBAN"},{"teacher":"闫洋","class":"水系编舞"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周三","time":"20:00-21:30","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"谭老师","class":"URBAN"},{"teacher":"郭虎","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周四","time":"14:00-15:30","classes":[{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"CC","class":"水系编舞"},{"teacher":"十一","class":"WAACKING"}]},{"venue":"HUK 世茂店","day":"周四","time":"16:00-17:30","classes":[{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"一凡","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周四","time":"18:20-19:50","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"henry","class":"URBAN"},{"teacher":"海涛","class":"POPPING"}]},{"venue":"HUK 世茂店","day":"周四","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"可欣","class":"URBAN"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周五","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"一凡","class":"HIPHOP提高"},{"teacher":"咩咩","class":"JAZZ"},{"teacher":"'mimmi","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周五","time":"16:00-17:30","classes":[{"teacher":"二毛","class":"URBAN"},{"teacher":"小六","class":"HIPHOP基础"},{"teacher":"凡凡","class":"SOULDANCE"}]},{"venue":"HUK 世茂店","day":"周五","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"椰子","class":"URBAN"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周五","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"椰子","class":"URBAN"},{"teacher":"小秦","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周六","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"郭虎","class":"HIPHOP提高"},{"teacher":"龙荔","class":"HEELS高跟鞋"},{"teacher":"斑斑","class":"URBAN"}]},{"venue":"HUK 世茂店","day":"周六","time":"16:00-17:30","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"柚子","class":"HIPHOP基础"},{"teacher":"贝爷","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周六","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"mimmi","class":"URBAN"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周六","time":"20:00-21:30","classes":[{"teacher":"金鸣","class":"HIPHOP提高"},{"teacher":"cC","class":"水系编舞"},{"teacher":"惠子","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周日","time":"14:00-15:30","classes":[{"teacher":"阿九","class":"HIPHOP基础"},{"teacher":"龙荔","class":"HEELS高跟鞋"},{"teacher":"椰子","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周日","time":"16:00-17:30","classes":[{"teacher":"甲甲","class":"HIPHOP提高"},{"teacher":"lee","class":"URBAN"},{"teacher":"小秦","class":"HIPHOP基础"},{"teacher":"贝爷","class":"JAZZ"}]},{"venue":"HUK 世茂店","day":"周日","time":"18:20-19:50","classes":[{"teacher":"zeze","class":"HIPHOP提高"},{"teacher":"可欣","class":"URBAN"},{"teacher":"酸酸","class":"JAZZ"},{"teacher":"艺艺","class":"HIPHOP基础"}]},{"venue":"HUK 世茂店","day":"周日","time":"20:00-21:30","classes":[{"teacher":"一凡","class":"HIPHOP基础"},{"teacher":"莉莉","class":"JAZZ"},{"teacher":"'mimmi","class":"URBAN"},{"teacher":"片片","class":"POPPING"}]},{"venue":"BAD EGGS","day":"周二","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周二","time":"15:00-16:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"橘子","class":"JAZZ基础强化"}]},{"venue":"BAD EGGS","day":"周二","time":"17:00-18:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"小尤","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周二","time":"19:00-20:30","classes":[{"teacher":"彬彬","class":"JAZZ"},{"teacher":"涛涛","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"12:30-14:00","classes":[{"teacher":"文文","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周三","time":"15:00-16:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"橘子","class":"JAZZ基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"17:00-18:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"小尤","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周三","time":"19:00-20:30","classes":[{"teacher":"涛涛","class":"JAZZ"},{"teacher":"彬彬","class":"JAZZ 基础入门 基础强化"}]},{"venue":"BAD EGGS","day":"周四","time":"12:30-14:00","classes":[{"teacher":"小维","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周四","time":"15:00-16:30","classes":[{"teacher":"叶子","class":"JAZZ"},{"teacher":"KEVIN","class":"CHOREO 基础强化"}]},{"venue":"BAD EGGS","day":"周四","time":"17:00-18:30","classes":[{"teacher":"小文","class":"JAZZ"},{"teacher":"KEVIN","class":"CHOREO 基础入门"}]},{"venue":"BAD EGGS","day":"周四","time":"19:00-20:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"紧张","class":"JAZZ 基础入门 特训班"}]},{"venue":"BAD EGGS","day":"周五","time":"12:30-14:00","classes":[{"teacher":"小维","class":"JAZZ 基础入门"}]},{"venue":"BAD EGGS","day":"周五","time":"15:00-16:30","classes":[{"teacher":"KEVIN","class":"CHOREO"},{"teacher":"叶子","class":"JAZZ 基础强化"}]},{"venue":"BAD EGGS","day":"周五","time":"17:00-18:30","classes":[{"teacher":"小文","class":"JAZZ"},{"teacher":"KEVIN","class":"CHOREO 基础入门"}]},{"venue":"BAD EGGS","day":"周五","time":"19:00-20:30","classes":[{"teacher":"小蟒","class":"HIPHOP"},{"teacher":"紧张","class":"JAZZ 特训班 基础入门"}]},{"venue":"HUK 河西店","day":"周六","time":"12:00-13:30","classes":[{"teacher":"融融","class":"JAZZ提高"}]},{"venue":"HUK 河西店","day":"周日","time":"12:00-13:30","classes":[{"teacher":"融融","class":"JAZZ提高"}]},{"venue":"BAD EGGS","day":"周六","time":"15:00-16:30","classes":[{"teacher":"濤濤","class":"JAZZ入門"},{"teacher":"彬彬","class":"JAZZ強化"},{"teacher":"DANNIE","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周六","time":"17:00-18:30","classes":[{"teacher":"彬彬","class":"JAZZ入門"},{"teacher":"緊張","class":"JAZZ進階"},{"teacher":"康康","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周六","time":"19:00-20:30","classes":[{"teacher":"濤濤","class":"JAZZ強化"},{"teacher":"康康","class":"編舞入門"},{"teacher":"嘉怡","class":"JAZZ入門"}]},{"venue":"BAD EGGS","day":"周日","time":"15:00-16:30","classes":[{"teacher":"濤濤","class":"JAZZ入門"},{"teacher":"彬彬","class":"JAZZ強化"},{"teacher":"DANNIE","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周日","time":"17:00-18:30","classes":[{"teacher":"彬彬","class":"JAZZ入門"},{"teacher":"緊張","class":"JAZZ進階"},{"teacher":"康康","class":"編舞進階"}]},{"venue":"BAD EGGS","day":"周日","time":"19:00-20:30","classes":[{"teacher":"濤濤","class":"JAZZ強化"},{"teacher":"康康","class":"編舞入門"},{"teacher":"嘉怡","class":"JAZZ入門"}]}];
   // BADEGGS_SPECIAL_DATA_START
   const badEggsSpecialSchedule = {"2026-10-01":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}],"2026-10-02":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}],"2026-10-03":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}],"2026-10-04":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}],"2026-10-05":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}],"2026-10-06":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}],"2026-10-07":[{"time":"14:00-17:00","teacher":"博博","class":"BAD EGGS 特訓"}]};
   // BADEGGS_SPECIAL_DATA_END
   // ODOG_DATA_START
-  const odogSchedule = {"2026-09-12":[{"time":"15:00-16:30","teacher":"CHOCO","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"TALITA","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-09-13":[{"time":"15:00-16:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VERNEY","class":"O-DOG 指定日課程"}],"2026-09-14":[{"time":"15:00-16:30","teacher":"老師待核對","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"根宝","class":"O-DOG 指定日課程"}],"2026-09-15":[{"time":"15:00-16:30","teacher":"根宝","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"VIC","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"根宝","class":"O-DOG 指定日課程"}],"2026-09-16":[{"time":"15:00-16:30","teacher":"根宝","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"SUNNY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"根宝","class":"O-DOG 指定日課程"}],"2026-09-17":[{"time":"15:00-16:30","teacher":"POPONE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"PENG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"琴子","class":"O-DOG 指定日課程"}],"2026-09-18":[{"time":"15:00-16:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"KATIE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"JAYE","class":"O-DOG 指定日課程"}],"2026-09-19":[{"time":"15:00-16:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"CHOCO","class":"O-DOG 指定日課程"}],"2026-09-20":[{"time":"15:00-16:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"VIC","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VERNEY","class":"O-DOG 指定日課程"}],"2026-09-21":[{"time":"15:00-16:30","teacher":"老師待核對","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-09-22":[{"time":"15:00-16:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"TALITA","class":"O-DOG 指定日課程"}],"2026-09-23":[{"time":"15:00-16:30","teacher":"SHERRY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"SHERRY","class":"O-DOG 指定日課程"}],"2026-09-24":[{"time":"15:00-16:30","teacher":"SHERRY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"7DONG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"PENG","class":"O-DOG 指定日課程"}],"2026-09-25":[{"time":"15:00-16:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"7DONG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"CHOCO","class":"O-DOG 指定日課程"}],"2026-09-26":[{"time":"15:00-16:30","teacher":"TALITA","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZILLA","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VIC","class":"O-DOG 指定日課程"}],"2026-09-27":[{"time":"15:00-16:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"PENG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"KATIE","class":"O-DOG 指定日課程"}],"2026-09-28":[{"time":"15:00-16:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-09-29":[{"time":"15:00-16:30","teacher":"VERNEY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"椰紫","class":"O-DOG 指定日課程"}],"2026-09-30":[{"time":"15:00-16:30","teacher":"AENNON","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"AENNON","class":"O-DOG 指定日課程"}],"2026-10-01":[{"time":"13:00-14:30","teacher":"QZIKA","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"MAGGIE","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"SHUKI","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"VIC","class":"O-DOG 國慶集訓"}],"2026-10-02":[{"time":"13:00-14:30","teacher":"PENG","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"SHUKI","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"DEREK","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"SHUKI","class":"O-DOG 國慶集訓"}],"2026-10-03":[{"time":"13:00-14:30","teacher":"CHOCO","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"AENNON","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"DEREK","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"AENNON / SUNNY","class":"O-DOG 國慶集訓"}],"2026-10-04":[{"time":"13:00-14:30","teacher":"JAYE","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"HUI","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"ATO","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"HUI","class":"O-DOG 國慶集訓"}],"2026-10-05":[{"time":"13:00-14:30","teacher":"ZIKEE","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"ATO","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"HUI","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"ATO","class":"O-DOG 國慶集訓"}],"2026-10-12":[{"time":"15:00-16:30","teacher":"VERNEY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"CHOCO","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"PETER","class":"O-DOG 指定日課程"}],"2026-10-13":[{"time":"15:00-16:30","teacher":"KATIE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"YUNIE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"羊儿","class":"O-DOG 指定日課程"}],"2026-10-14":[{"time":"15:00-16:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"黑楠","class":"O-DOG 指定日課程"}],"2026-10-15":[{"time":"15:00-16:30","teacher":"POPONE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"TALITA","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"椰紫","class":"O-DOG 指定日課程"}],"2026-10-16":[{"time":"15:00-16:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZILLA","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VIC","class":"O-DOG 指定日課程"}],"2026-10-17":[{"time":"15:00-16:30","teacher":"VERNEY","class":"O-DOG FOUNDATION"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"SUNNY","class":"O-DOG 指定日課程"}],"2026-10-18":[{"time":"15:00-16:30","teacher":"PENG","class":"O-DOG FOUNDATION"},{"time":"17:00-18:30","teacher":"JM","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"JM","class":"O-DOG 指定日課程"}],"2026-10-19":[{"time":"15:00-16:30","teacher":"JM","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"JM","class":"O-DOG 指定日課程"}],"2026-10-20":[{"time":"15:00-16:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"BONNIE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"CHOCO","class":"O-DOG 指定日課程"}],"2026-10-21":[{"time":"15:00-16:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VIC & KATIE","class":"O-DOG 指定日課程"}],"2026-10-22":[{"time":"15:00-16:30","teacher":"POPONE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"椰紫","class":"O-DOG 指定日課程"}],"2026-10-23":[{"time":"15:00-16:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"PENG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"TALITA","class":"O-DOG 指定日課程"}],"2026-10-24":[{"time":"15:00-16:30","teacher":"CHOCO","class":"O-DOG FOUNDATION"},{"time":"17:00-18:30","teacher":"SUNNY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"}],"2026-10-25":[{"time":"15:00-16:30","teacher":"羊儿","class":"O-DOG FOUNDATION"},{"time":"17:00-18:30","teacher":"YI","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"YI","class":"O-DOG 指定日課程"}],"2026-10-26":[{"time":"15:00-16:30","teacher":"YI","class":"O-DOG FOUNDATION"},{"time":"17:00-18:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"YI","class":"O-DOG 指定日課程"}],"2026-10-27":[{"time":"15:00-16:30","teacher":"YI","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"YI","class":"O-DOG 指定日課程"}],"2026-10-28":[{"time":"15:00-16:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"VERNEY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-10-29":[{"time":"15:00-16:30","teacher":"IF","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"PENG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"CHOCO","class":"O-DOG 指定日課程"}],"2026-10-30":[{"time":"15:00-16:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"}],"2026-10-31":[{"time":"15:00-16:30","teacher":"VIC","class":"O-DOG FOUNDATION"},{"time":"17:00-18:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"TALITA","class":"O-DOG 指定日課程"}]};
+  const odogSchedule = {"2026-09-12":[{"time":"15:00-16:30","teacher":"CHOCO","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"TALITA","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-09-13":[{"time":"15:00-16:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VERNEY","class":"O-DOG 指定日課程"}],"2026-09-14":[{"time":"15:00-16:30","teacher":"老師待核對","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"根宝","class":"O-DOG 指定日課程"}],"2026-09-15":[{"time":"15:00-16:30","teacher":"根宝","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"VIC","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"根宝","class":"O-DOG 指定日課程"}],"2026-09-16":[{"time":"15:00-16:30","teacher":"根宝","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"SUNNY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"根宝","class":"O-DOG 指定日課程"}],"2026-09-17":[{"time":"15:00-16:30","teacher":"POPONE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"PENG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"琴子","class":"O-DOG 指定日課程"}],"2026-09-18":[{"time":"15:00-16:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"KATIE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"JAYE","class":"O-DOG 指定日課程"}],"2026-09-19":[{"time":"15:00-16:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"CHOCO","class":"O-DOG 指定日課程"}],"2026-09-20":[{"time":"15:00-16:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"VIC","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VERNEY","class":"O-DOG 指定日課程"}],"2026-09-21":[{"time":"15:00-16:30","teacher":"老師待核對","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-09-22":[{"time":"15:00-16:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"椰紫","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"TALITA","class":"O-DOG 指定日課程"}],"2026-09-23":[{"time":"15:00-16:30","teacher":"SHERRY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"SHERRY","class":"O-DOG 指定日課程"}],"2026-09-24":[{"time":"15:00-16:30","teacher":"SHERRY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"7DONG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"PENG","class":"O-DOG 指定日課程"}],"2026-09-25":[{"time":"15:00-16:30","teacher":"SANER","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"7DONG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"CHOCO","class":"O-DOG 指定日課程"}],"2026-09-26":[{"time":"15:00-16:30","teacher":"TALITA","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"ZILLA","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"VIC","class":"O-DOG 指定日課程"}],"2026-09-27":[{"time":"15:00-16:30","teacher":"琴子","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"PENG","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"KATIE","class":"O-DOG 指定日課程"}],"2026-09-28":[{"time":"15:00-16:30","teacher":"ZIKEE","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"羊儿","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"POPONE","class":"O-DOG 指定日課程"}],"2026-09-29":[{"time":"15:00-16:30","teacher":"VERNEY","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"JAYE","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"椰紫","class":"O-DOG 指定日課程"}],"2026-09-30":[{"time":"15:00-16:30","teacher":"AENNON","class":"O-DOG 指定日課程"},{"time":"17:00-18:30","teacher":"WHYWHY","class":"O-DOG 指定日課程"},{"time":"19:00-20:30","teacher":"AENNON","class":"O-DOG 指定日課程"}],"2026-10-01":[{"time":"13:00-14:30","teacher":"QZIKA","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"MAGGIE","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"SHUKI","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"VIC","class":"O-DOG 國慶集訓"}],"2026-10-02":[{"time":"13:00-14:30","teacher":"PENG","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"SHUKI","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"DEREK","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"SHUKI","class":"O-DOG 國慶集訓"}],"2026-10-03":[{"time":"13:00-14:30","teacher":"CHOCO","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"AENNON","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"DEREK","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"AENNON / SUNNY","class":"O-DOG 國慶集訓"}],"2026-10-04":[{"time":"13:00-14:30","teacher":"JAYE","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"HUI","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"ATO","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"HUI","class":"O-DOG 國慶集訓"}],"2026-10-05":[{"time":"13:00-14:30","teacher":"ZIKEE","class":"O-DOG 國慶集訓"},{"time":"15:00-16:30","teacher":"ATO","class":"O-DOG 國慶集訓"},{"time":"17:00-18:30","teacher":"HUI","class":"O-DOG 國慶集訓"},{"time":"19:00-20:30","teacher":"ATO","class":"O-DOG 國慶集訓"}]};
   const odogPartialNotes = {};
   // ODOG_DATA_END
   const home = {"HUK 河西店":{"km":5.2,"min":24},"HUK 世茂店":{"km":6.8,"min":30},"BAD EGGS":{"km":3.7,"min":18},"O-DOG":{"km":0.55,"min":7}};
@@ -402,8 +379,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     root.querySelector("#dp-route-clear").addEventListener("click", function () {
       routeStops = [];
       renderRouteStops();
-      renderDailySchedule();
-      renderSchedule();
+      refreshRouteCardStates();
     });
     root.querySelector("#dp-route-add").addEventListener("click", function () {
       const used = routeStops.map(function (stop) { return stop.location; });
@@ -417,44 +393,13 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     renderRouteStops();
   }
 
-  function isWaypoint(stop) { return !!stop && !stop.courseKey && (stop.kind === "waypoint" || !(Number(stop.classMin) > 0)); }
-  function stopTimeText(stop) {
-    const stay = Math.max(0, Number(stop.classMin) || 0), delay = Math.max(0, Number(stop.delayMin) || 0);
-    if (isWaypoint(stop)) return (stay + delay) ? ("停留 " + (stay + delay) + " 分") : "停留 0 分";
-    return "上課 " + stay + " 分" + (delay ? (" + 拖堂 " + delay + " 分") : "");
-  }
-  function waypointAnchor(index) {
-    for (let i = index - 1; i >= 0; i--) {
-      const v = routeStops[i].sortStart;
-      if (v !== null && v !== undefined && Number.isFinite(Number(v))) return Number(v) + 0.5;
-    }
-    for (let i = index; i < routeStops.length; i++) {
-      const v = routeStops[i].sortStart;
-      if (v !== null && v !== undefined && Number.isFinite(Number(v))) return Number(v) - 0.5;
-    }
-    return null;
-  }
-  function insertWaypoint(index) {
-    const at = Math.max(0, Math.min(routeStops.length, Number(index) || 0));
-    if (routeStops.length >= 14) { alert("停靠點太多了，請先移除一些。"); return; }
-    routeStops.splice(at, 0, {
-      courseKey:null, kind:"waypoint", location:"家", classMin:0, delayMin:0,
-      label:"中途回家", timeText:"自訂時間", color:"teal",
-      sortStart:waypointAnchor(at),
-      dateText:root.querySelector("#dp-work-date").value, day:selectedDay,
-      pickOrder:++routePickOrder
-    });
-    renderRouteStops();
-    renderDailySchedule();
-    renderSchedule();
-  }
   function renderRouteStops() {
     renderFixedWeek();
     renderOdogSchedule();
     renderBadEggsSpecialSchedule();
     const host = root.querySelector("#dp-route-stops");
     if (!routeStops.length) {
-      host.innerHTML = `<p class="text-small text-muted">點下方課程卡片，課程會依點擊順序加入為 B、C 等停靠點。要在兩站之間回家，點那一站的「＋中途點」即可插入「家」，後面的停靠點會自動往後順延。</p>`;
+      host.innerHTML = `<p class="text-small text-muted">點下方課程卡片，課程會依點擊順序加入為 B、C 等停靠點。</p>`;
       renderRoutePlan();
       return;
     }
@@ -463,10 +408,9 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
         <select class="form-select" data-route-stop="${index}" aria-label="停靠點 ${index + 1}">${locations.map(function (loc) {
           return `<option value="${esc(loc)}" ${loc === stop.location ? "selected" : ""}>${esc(loc)}</option>`;
         }).join("")}</select>
-        <label class="dp-route-time-field text-small">${isWaypoint(stop) ? "停留" : "上課"} <input class="form-control" type="number" min="0" max="300" step="5" value="${stop.classMin}" data-class-min="${index}" aria-label="第 ${index + 1} 站上課分鐘"> 分</label>
+        <label class="dp-route-time-field text-small">上課 <input class="form-control" type="number" min="0" max="300" step="5" value="${stop.classMin}" data-class-min="${index}" aria-label="第 ${index + 1} 站上課分鐘"> 分</label>
         <label class="dp-route-time-field text-small">拖堂 <input class="form-control" type="number" min="0" max="120" step="5" value="${stop.delayMin}" data-delay-min="${index}" aria-label="第 ${index + 1} 站拖堂分鐘"> 分</label>
-        <button type="button" class="btn dp-insert-btn" data-route-insert="${index}" title="在這一站之前插入一個中途點（預設「家」），後面的停靠點會自動往後順延">＋中途點</button>
-        <button type="button" class="btn dp-remove-btn" data-route-remove="${index}">移除</button>
+        <button type="button" class="btn" data-route-remove="${index}">移除</button>
       </div>`;
     }).join("");
     host.querySelectorAll("[data-route-stop]").forEach(function (select) {
@@ -474,7 +418,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
         const stop = routeStops[Number(select.dataset.routeStop)];
         stop.location = select.value;
         stop.courseKey = null;
-        renderRoutePlan();
+        renderRouteStops();
+        refreshRouteCardStates();
       });
     });
     host.querySelectorAll("[data-class-min]").forEach(function (input) {
@@ -495,10 +440,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       button.addEventListener("click", function () {
         routeStops.splice(Number(button.dataset.routeRemove), 1);
         renderRouteStops();
+        refreshRouteCardStates();
       });
-    });
-    host.querySelectorAll("[data-route-insert]").forEach(function (button) {
-      button.addEventListener("click", function () { insertWaypoint(Number(button.dataset.routeInsert)); });
     });
     root.querySelector("#dp-route-add").disabled = routeStops.length >= 8 || locations.every(function (loc) {
       return routeStops.some(function (stop) { return stop.location === loc; });
@@ -684,7 +627,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       cursor += effectiveClass;
       classMin += effectiveClass;
       legs.push({from:previous, to:stop.location, km:info.km, min:info.min});
-      timeline.push({type:"stop", location:stop.location, arrive:arrive, depart:cursor, travel:info.min, classMin:stop.classMin, delayMin:stop.delayMin, label:stop.label, waypoint:isWaypoint(stop)});
+      timeline.push({type:"stop", location:stop.location, arrive:arrive, depart:cursor, travel:info.min, classMin:stop.classMin, delayMin:stop.delayMin});
       previous = stop.location;
     });
 
@@ -710,10 +653,6 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     const stopRows = timeline.map(function (item) {
       if (item.type === "return") {
         return `<li class="dp-route-leg ${venueClass[item.location] || ""}"><span>${esc(item.location)}（返回）</span><span class="text-small text-muted">${formatClock(item.arrive)} · 移動 ${item.travel} 分</span></li>`;
-      }
-      if (item.waypoint) {
-        const stay = Math.max(0, Number(item.classMin) || 0) + Math.max(0, Number(item.delayMin) || 0);
-        return `<li class="dp-route-leg is-waypoint"><span>${esc(item.location)}${item.label ? "（" + esc(item.label) + "）" : ""}</span><span class="text-small text-muted">${formatClock(item.arrive)} 到達 · 移動 ${item.travel} 分 · 停留 ${stay} 分${stay ? " · " + formatClock(item.depart) + " 離開" : ""}</span></li>`;
       }
       return `<li class="dp-route-leg ${venueClass[item.location] || ""}"><span>${esc(item.location)}</span><span class="text-small text-muted">${formatClock(item.arrive)} 到達 · 上課 ${item.classMin} 分${item.delayMin ? ` + 拖堂 ${item.delayMin} 分` : ""} · ${formatClock(item.depart)} 離開</span></li>`;
     }).join("");
@@ -769,6 +708,12 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     }
   }
 
+  function refreshRouteCardStates() {
+    renderSchedule();
+    renderWorkSchedule();
+    renderDailySchedule();
+  }
+
   function toggleCourseInRoute(cell) {
     const dailyFold = root.querySelector("#dp-daily-fold");
     if (dailyFold) dailyFold.open = true;
@@ -777,7 +722,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     if (exact >= 0) {
       routeStops.splice(exact, 1);
       renderRouteStops();
-      renderDailySchedule();
+      refreshRouteCardStates();
       return;
     }
     const span = minutes(cell.time);
@@ -798,7 +743,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       return timeDiff || (a.pickOrder || 0) - (b.pickOrder || 0);
     });
     renderRouteStops();
-    renderDailySchedule();
+    refreshRouteCardStates();
   }
 
   function hmClock(value) {
@@ -934,31 +879,24 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       host.innerHTML = `<p class="text-small text-muted">點擊上方工作日程或下方課程卡片，選取後會在這裡自動生成當天行程。</p>`;
       return;
     }
-    const startLoc = root.querySelector("#dp-route-start").value || "家";
     let previous = null;
-    let cursorLoc = startLoc;
-    let chainTravel = 0;
     host.innerHTML = items.map(function (item, index) {
-      const travel = routeInfo(cursorLoc, item.location);
-      chainTravel += travel.min;
-      cursorLoc = item.location;
+      const travel = previous ? routeInfo(previous.location, item.location) : null;
       let status = "";
-      const fromText = previous ? `從 ${previous.location} 出發` : `從 ${startLoc} 出發`;
-      if (!isWaypoint(item)) {
-        if (previous && previous.sortStart != null && item.sortStart != null) {
-          const previousEnd = previous.sortStart + previous.classMin + (previous.delayMin || 0);
-          const gap = item.sortStart - previousEnd;
-          status = gap >= chainTravel
-            ? `<div class="dp-daily-status is-ok text-small">${esc(previous.location)} → ${esc(item.location)} 轉場共 ${chainTravel} 分，間隔 ${gap} 分，來得及</div>`
-            : `<div class="dp-daily-status is-bad text-small">${esc(previous.location)} → ${esc(item.location)} 需要 ${chainTravel} 分，但只有 ${gap} 分，來不及</div>`;
-        }
-        previous = item;
-        chainTravel = 0;
+      if (previous && previous.sortStart != null && item.sortStart != null) {
+        const previousEnd = previous.sortStart + previous.classMin + (previous.delayMin || 0);
+        const gap = item.sortStart - previousEnd;
+        const needed = travel.min;
+        status = gap >= needed
+          ? `<div class="dp-daily-status is-ok text-small">前一站到本站轉場 ${travel.min} 分，間隔 ${gap} 分，來得及</div>`
+          : `<div class="dp-daily-status is-bad text-small">前一站到本站需 ${travel.min} 分，但只有 ${gap} 分，來不及</div>`;
       }
+      const fromText = previous ? `從 ${previous.location} 出發` : `從 ${root.querySelector("#dp-route-start").value} 出發`;
+      previous = item;
       return `<div class="dp-daily-item" style="border-left-color:${colorHex(item.color)}">
         <div class="dp-daily-title"><strong>${index + 1}. ${esc(item.label || item.location)}</strong><span class="text-small text-muted">${esc(item.timeText || "自訂時間")}</span></div>
-        <div class="text-small">${esc(item.location)} · ${stopTimeText(item)}</div>
-        <div class="text-small text-muted">${esc(fromText)}，移動約 ${travel.min} 分（${travel.km.toFixed(1)} km）</div>
+        <div class="text-small">${esc(item.location)} · 上課 ${item.classMin} 分${item.delayMin ? ` + 拖堂 ${item.delayMin} 分` : ""}</div>
+        ${travel ? `<div class="text-small text-muted">${esc(fromText)}，移動約 ${travel.min} 分（${travel.km.toFixed(1)} km）</div>` : ""}
         ${status}
       </div>`;
     }).join("");
@@ -1012,7 +950,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
       ctx.fillText(item.timeText || "自訂時間",cardX+60,y+92);
       ctx.fillStyle="rgba(255,255,255,.82)";
       ctx.font="400 16px system-ui,\"Microsoft YaHei\",sans-serif";
-      let detail=item.location+" · "+stopTimeText(item);
+      let detail=item.location+" · 上課 "+item.classMin+" 分"+(item.delayMin ? " + 拖堂 "+item.delayMin+" 分" : "");
       if (previous) { const travel=routeInfo(previous.location,item.location); detail += " · 轉場約 "+travel.min+" 分"; }
       const detailLines=wrapCanvasText(ctx,detail,cardW-310).slice(0,2);
       detailLines.forEach(function (line,li) { ctx.fillText(line,cardX+270,y+39+li*21); });
@@ -1030,7 +968,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
     const dateText = root.querySelector("#dp-work-date").value || "2026-09-26";
     const items = dailyItems();
     const rows = items.map(function (item, index) {
-      return `<tr><td>${index + 1}</td><td>${esc(item.timeText || "")}</td><td>${esc(item.label || "")}</td><td>${esc(item.location)}</td><td>${stopTimeText(item)}</td></tr>`;
+      return `<tr><td>${index + 1}</td><td>${esc(item.timeText || "")}</td><td>${esc(item.label || "")}</td><td>${esc(item.location)}</td><td>${item.classMin} 分${item.delayMin ? `＋拖堂 ${item.delayMin} 分` : ""}</td></tr>`;
     }).join("");
     return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>當天行程 ${dateText}</title><style>body{font-family:system-ui,"Microsoft YaHei",sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:10px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>${dateText} 當天行程</h1><table><thead><tr><th>順序</th><th>時間</th><th>安排</th><th>地點</th><th>課堂時間</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
   }
@@ -1332,27 +1270,35 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opa
   installBtn.id='pwa-install-button';
   installBtn.type='button';
   installBtn.textContent='安裝到手機';
-  installBtn.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9999;display:none;border:0;border-radius:999px;padding:12px 18px;background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;font:600 15px system-ui;box-shadow:0 8px 24px rgba(34,211,238,.3)';
+  installBtn.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9999;display:none;border:0;border-radius:999px;padding:12px 18px;background:#2563eb;color:#fff;font:600 15px system-ui;box-shadow:0 8px 24px rgba(37,99,235,.35)';
   document.body.appendChild(installBtn);
+  var updateBtn=document.createElement('button');
+  updateBtn.id='pwa-update-button';
+  updateBtn.type='button';
+  updateBtn.textContent='更新';
+  updateBtn.style.cssText='position:fixed;left:14px;bottom:14px;z-index:9999;border:1px solid #94a3b8;border-radius:999px;padding:10px 15px;background:#fff;color:#334155;font:600 14px system-ui;box-shadow:0 6px 18px rgba(15,23,42,.16)';
+  document.body.appendChild(updateBtn);
+  updateBtn.addEventListener('click',function(){
+    updateBtn.disabled=true; updateBtn.textContent='更新中…';
+    var jobs=[];
+    if('serviceWorker' in navigator){jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(reg){return reg.unregister();}));}));}
+    if(window.caches){jobs.push(caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key);}));}));}
+    Promise.all(jobs).catch(function(){}).then(function(){location.replace(location.pathname+'?v=14&refresh='+Date.now());});
+  });
   var promptEvent=null;
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();promptEvent=e;installBtn.style.display='block';});
   installBtn.addEventListener('click',function(){if(!promptEvent)return;promptEvent.prompt();promptEvent.userChoice.then(function(){promptEvent=null;installBtn.style.display='none';});});
   window.addEventListener('appinstalled',function(){installBtn.style.display='none';});
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js?v=16',{updateViaCache:'none'}).catch(function(){});}
-  var updateButton=document.createElement('button');
-  updateButton.id='manual-update-button';
-  updateButton.type='button';
-  updateButton.textContent='🔄 更新';
-  updateButton.style.cssText='position:fixed;left:14px;bottom:14px;z-index:9999;border:0;border-radius:999px;padding:11px 17px;background:linear-gradient(135deg,#0891b2,#4f46e5);color:#fff;font:700 14px system-ui;box-shadow:0 8px 24px rgba(34,211,238,.3);cursor:pointer';
-  updateButton.addEventListener('click',async function(){
-    updateButton.disabled=true;updateButton.textContent='更新中…';
-    try{
-      if('serviceWorker' in navigator){var registration=await navigator.serviceWorker.getRegistration();if(registration)await registration.unregister();}
-      if(window.caches){var keys=await caches.keys();await Promise.all(keys.filter(function(key){return key.indexOf('dance-route-pwa-')===0;}).map(function(key){return caches.delete(key);}));}
-    }catch(error){}
-    var target=new URL(location.href);target.searchParams.set('manual-update',String(Date.now()));location.replace(target.toString());
-  });
-  document.body.appendChild(updateButton);
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('./service-worker.js?v=14').then(function(reg){
+        reg.update();
+        reg.addEventListener('updatefound',function(){reg.update();});
+      }).catch(function(){});
+    });
+    var reloading=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){if(reloading)return;reloading=true;window.location.reload();});
+  }
 })();
 </script>
 </body>
