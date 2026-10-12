@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-12.27">
+<meta name="app-version" content="2026-10-12.29">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -325,6 +325,11 @@ body.mobile-fit .dh .dt{font-size:12.5px;min-width:22px;height:22px;padding:0 4p
 body.theme-cyber #dayHeader{background:rgba(13,29,49,.97);border-bottom-color:rgba(83,210,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.35)}
 body.theme-cyber #dayHeader .gutter-head,body.theme-cyber #dayBody .gutter{background:rgba(13,29,49,.97)}
 body.mobile-fit.theme-cyber .tl{color:#7ee7fb}
+/* ---- 工具菜單：不超出畫面，可捲動（.29） ---- */
+.floating{max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px)}
+.float-panel{max-height:calc(100vh - 118px);max-height:calc(100dvh - 118px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.float-panel::-webkit-scrollbar{width:6px}
+.float-panel::-webkit-scrollbar-thumb{background:rgba(100,116,139,.38);border-radius:3px}
 </style>
 </head><body>
 <div id="bgShade"></div>
@@ -1599,9 +1604,10 @@ function openDialog(mode,ev){
     }
     if(mode==="create"){
       var K=weekKey(state.weekStart);
+      var _ds=nextScopeDefault; nextScopeDefault=null;
       closeDialog();
       promptScope({
-        mode:"add",K:K,defaultSel:"all",
+        mode:"add",K:K,defaultSel:(_ds||"all"),
         title:"新增「"+f.title+"」（"+WD[f.day]+" "+fmt(f.start)+"–"+fmt(f.end)+"）。要应用到哪些周？",
         onApply:function(toEx){
           state.arrs.push({id:uid(),updatedAt:Date.now(),versions:[{from:K,to:toEx,day:f.day,start:f.start,end:f.end,title:f.title,color:f.color,note:f.note,deleted:false}]});
@@ -1640,9 +1646,9 @@ function openDialog(mode,ev){
   attachOverlayClose(ov,function(){ closeDialog(); });
 }
 /* ===== 機構課表（行政參考，不占自己的日程） ===== */
-const SCH_VENUES=["HUK 河西店","HUK 世茂店","BAD EGGS"];
-const SCH_PREFIX=["HUK西 ","HUK东 ",""];
-const SCH_COLOR=["indigo","purple","teal"];
+const SCH_VENUES=["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG（按日期）"];
+const SCH_PREFIX=["HUK西 ","HUK东 ","","O-DOG "];
+const SCH_COLOR=["indigo","purple","teal","rose"];
 const INST_SCHEDULE=[
     /* === HUK 河西店 === */
     {"v":0,"d":0,"t":"10:00-11:30","c":[["小富","URBAN"]]},
@@ -1739,6 +1745,9 @@ const INST_SCHEDULE=[
     {"v":2,"d":6,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]}
 ];
 var schV=0, schD=null;
+var schDateVal=null, nextScopeDefault=null;
+/* O-DOG 指定日期課表（10/12–10/31，每天老師不固定） */
+const ODOG_DAILY={"2026-10-12":[["15:00-16:30","VERNEY",""],["17:00-18:30","CHOCO",""],["19:00-20:30","PETER",""]],"2026-10-13":[["15:00-16:30","KATIE",""],["17:00-18:30","YUNIE",""],["19:00-20:30","羊儿",""]],"2026-10-14":[["15:00-16:30","琴子",""],["17:00-18:30","ZIKEE",""],["19:00-20:30","黑楠",""]],"2026-10-15":[["15:00-16:30","POPONE",""],["17:00-18:30","TALITA",""],["19:00-20:30","椰紫",""]],"2026-10-16":[["15:00-16:30","SANER",""],["17:00-18:30","ZILLA",""],["19:00-20:30","VIC",""]],"2026-10-17":[["15:00-16:30","VERNEY","FOUNDATION"],["17:00-18:30","WHYWHY",""],["19:00-20:30","SUNNY",""]],"2026-10-18":[["15:00-16:30","PENG","FOUNDATION"],["17:00-18:30","JM",""],["19:00-20:30","JM",""]],"2026-10-19":[["15:00-16:30","JM",""],["17:00-18:30","JAYE",""],["19:00-20:30","JM",""]],"2026-10-20":[["15:00-16:30","ZIKEE",""],["17:00-18:30","BONNIE",""],["19:00-20:30","CHOCO",""]],"2026-10-21":[["15:00-16:30","羊儿",""],["17:00-18:30","琴子",""],["19:00-20:30","VIC & KATIE",""]],"2026-10-22":[["15:00-16:30","POPONE",""],["17:00-18:30","WHYWHY",""],["19:00-20:30","椰紫",""]],"2026-10-23":[["15:00-16:30","SANER",""],["17:00-18:30","PENG",""],["19:00-20:30","TALITA",""]],"2026-10-24":[["15:00-16:30","CHOCO","FOUNDATION"],["17:00-18:30","SUNNY",""],["19:00-20:30","ZIKEE",""]],"2026-10-25":[["15:00-16:30","羊儿","FOUNDATION"],["17:00-18:30","YI",""],["19:00-20:30","YI",""]],"2026-10-26":[["15:00-16:30","YI","FOUNDATION"],["17:00-18:30","JAYE",""],["19:00-20:30","YI",""]],"2026-10-27":[["15:00-16:30","YI",""],["17:00-18:30","琴子",""],["19:00-20:30","YI",""]],"2026-10-28":[["15:00-16:30","椰紫",""],["17:00-18:30","VERNEY",""],["19:00-20:30","POPONE",""]],"2026-10-29":[["15:00-16:30","IF",""],["17:00-18:30","PENG",""],["19:00-20:30","CHOCO",""]],"2026-10-30":[["15:00-16:30","JAYE",""],["17:00-18:30","ZIKEE",""],["19:00-20:30","WHYWHY",""]],"2026-10-31":[["15:00-16:30","VIC","FOUNDATION"],["17:00-18:30","SANER",""],["19:00-20:30","TALITA",""]]};
 function escH(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]; }); }
 function schTitle(vi,teacher){ return (SCH_PREFIX[vi]||"")+teacher; }
 function schSpan(t){
@@ -1760,16 +1769,84 @@ function schExists(d,s,e,title){
   }
   return false;
 }
+function schDateMode(){ return schV===3; }
+function schDateNow(){ if(!schDateVal){ schDateVal=fmtKey(new Date()); } return schDateVal; }
+function schDateShift(n){
+  var d=new Date(schDateNow()+"T00:00:00");
+  if(isNaN(d.getTime())) d=new Date();
+  d.setDate(d.getDate()+Number(n)||0);
+  schDateVal=fmtKey(d);
+  renderSchChips(); renderSchList();
+}
+function renderSchDateBar(host){
+  var ds=schDateNow();
+  var d=new Date(ds+"T00:00:00");
+  var wd=isNaN(d.getTime())?"":WD[(d.getDay()+6)%7];
+  host.innerHTML="<button type=\"button\" class=\"sc\" data-dstep=\"-1\">◀ 前一天</button>"+
+    "<input type=\"date\" id=\"schDate\" value=\""+ds+"\" style=\"padding:6px 9px;border:1px solid #d7dce6;border-radius:10px;font:inherit;font-size:13px;background:#fff;color:#1f2430\">"+
+    "<button type=\"button\" class=\"sc\" data-dstep=\"1\">后一天 ▶</button>"+
+    (wd?("<span class=\"sc\" style=\"cursor:default;border-style:dashed\">"+wd+"</span>"):"");
+  host.querySelectorAll("[data-dstep]").forEach(function(b){ b.addEventListener("click",function(){ schDateShift(b.dataset.dstep); }); });
+  var inp=$("#schDate"); if(inp) inp.addEventListener("change",function(){ schDateVal=inp.value; renderSchChips(); renderSchList(); });
+}
+function schExistsOn(dateText,s,e,title){
+  var d=new Date(dateText+"T00:00:00"); if(isNaN(d.getTime())) return false;
+  var list=weekEvents(weekKey(startOfWeek(d)));
+  var day=(d.getDay()+6)%7;
+  for(var i=0;i<list.length;i++){
+    var x=list[i];
+    if(x.day===day&&x.start===s&&x.end===e&&String(x.title||"")===String(title||"")) return true;
+  }
+  return false;
+}
+function renderSchOdog(host){
+  var ds=schDateNow();
+  var list=ODOG_DAILY[ds]||[];
+  if(!list.length){
+    host.innerHTML="<p class=\"dsub\" style=\"padding:12px 6px\">"+escH(ds)+" 這天還沒有 O-DOG 課表。O-DOG 每天老師都不一樣，目前資料是 10/12–10/31，用「前一天 / 后一天」或直接選日期。</p>";
+    return;
+  }
+  host.innerHTML=list.map(function(r){
+    var sp=schSpan(r[0]);
+    var title=schTitle(3,r[1]);
+    var here=sp?schExistsOn(ds,sp[0],sp[1],title):false;
+    return "<div class=\"schrow"+(here?" here":"")+"\"><span class=\"st\">"+escH(r[0])+"</span>"+
+      "<span class=\"sn\"><b>"+escH(r[1])+"</b><i>"+escH(r[2]||"")+"</i>"+(here?" · 已在日程":"")+"</span>"+
+      "<button type=\"button\" class=\"btn add\" data-odog=\""+escH(ds)+"|"+escH(r[0])+"|"+escH(r[1])+"|"+escH(r[2]||"")+"\">＋加入</button></div>";
+  }).join("");
+  host.querySelectorAll("[data-odog]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var p=b.dataset.odog.split("|");
+      addFromOdog(p[0],p[1],p[2],p[3]);
+    });
+  });
+}
+function addFromOdog(dateText,t,teacher,cls){
+  var sp=schSpan(t); if(!sp) return;
+  var d=new Date(dateText+"T00:00:00"); if(isNaN(d.getTime())) return;
+  var day=(d.getDay()+6)%7;
+  closeSch();
+  var wk=startOfWeek(d);
+  if(weekKey(wk)!==weekKey(state.weekStart)){ state.weekStart=wk; renderAll(); }
+  nextScopeDefault="1";
+  openDialog("create",{day:day,start:sp[0],end:sp[1],title:"",color:"rose"});
+  var ti=$("#fTitle"); if(ti) ti.value=schTitle(3,teacher);
+  var no=$("#fNote"); if(no) no.value="O-DOG（按日期）"+(cls?(" · "+cls):"");
+  var fe=$("#fErr"); if(fe) fe.textContent="";
+  showToast("📅 已切到 "+dateText+" 那一週，保存時預設「僅本周」");
+}
 function closeSch(){ var ov=$("#overlay"); ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){ document.removeEventListener("keydown",curEsc); curEsc=null; } }
 function renderSchChips(){
   var vh=$("#schV"), dh=$("#schD"); if(!vh||!dh) return;
   vh.innerHTML=SCH_VENUES.map(function(v,i){ return "<button type=\"button\" class=\"sc"+(i===schV?" on":"")+"\" data-sv=\""+i+"\">"+escH(v)+"</button>"; }).join("");
-  dh.innerHTML=WD.map(function(w,i){ return "<button type=\"button\" class=\"sc"+(i===schD?" on":"")+"\" data-sd=\""+i+"\">"+w+"</button>"; }).join("");
+  if(schDateMode()){ renderSchDateBar(dh); }
+  else { dh.innerHTML=WD.map(function(w,i){ return "<button type=\"button\" class=\"sc"+(i===schD?" on":"")+"\" data-sd=\""+i+"\">"+w+"</button>"; }).join(""); }
   vh.querySelectorAll("[data-sv]").forEach(function(b){ b.addEventListener("click",function(){ schV=Number(b.dataset.sv); renderSchChips(); renderSchList(); }); });
   dh.querySelectorAll("[data-sd]").forEach(function(b){ b.addEventListener("click",function(){ schD=Number(b.dataset.sd); renderSchChips(); renderSchList(); }); });
 }
 function renderSchList(){
   var host=$("#schL"); if(!host) return;
+  if(schDateMode()){ renderSchOdog(host); return; }
   var rows=[];
   for(var i=0;i<INST_SCHEDULE.length;i++){
     var it=INST_SCHEDULE[i];
@@ -2977,6 +3054,8 @@ function bindUI(){
   $("#floatToggle").addEventListener("click",function(){
     document.getElementById("floatWrap").classList.toggle("open");
   });
+  var _fp=$("#floatPanel");
+  if(_fp){ _fp.addEventListener("click",function(e){ var b=(e.target&&e.target.closest)?e.target.closest("button"):null; if(!b) return; var w=document.getElementById("floatWrap"); if(w) w.classList.remove("open"); }); }
   $("#pbDone").addEventListener("click",cancelPaste);
   document.addEventListener("keydown",function(e){
     if(e.key==="Escape"&&pasteOn&&$("#overlay").classList.contains("hidden")) cancelPaste();
