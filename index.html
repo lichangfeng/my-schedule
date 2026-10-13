@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-14.39">
+<meta name="app-version" content="2026-10-14.40">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -2395,6 +2395,13 @@ let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,rowH:"auto",rowScale:
       vset.dayStart=10;
       localStorage.setItem(VIEW_KEY,JSON.stringify(vset));
     }
+    if(!localStorage.getItem("myScheduleRowAuto3")){
+      localStorage.setItem("myScheduleRowAuto3","1");
+      vset.rowH="auto";
+      vset.rowScale=0.9;
+      vset.dayStart=10;
+      localStorage.setItem(VIEW_KEY,JSON.stringify(vset));
+    }
   }catch(e){}
 }
 function shadowVal(on){ return on?"0 1px 2px rgba(0,0,0,.3)":"none"; }
@@ -2912,7 +2919,11 @@ function applyImportedData(d,silent){
   state.arrs=d.arrs;
   try{ localStorage.setItem(LASTCHANGE_KEY,String(d.modifiedAt||Date.now())); }catch(e){}
   sanitizeData();
-  if(d.view) vset=Object.assign({},vset,d.view);
+  if(d.view){
+    var _cv=Object.assign({},d.view);
+    delete _cv.rowH; delete _cv.rowScale; delete _cv.dayStart; delete _cv.showNote;
+    vset=Object.assign({},vset,_cv);
+  }
   if(d.bg){ var _bt=normBg(d.bg.t), _bp=normBg(d.bg.p); if(_bt.type!=="none") bgCur=_bt; if(_bp.type!=="none") pgCur=_bp; }
   hidden=d.hidden||{};
   if(d.title){ $("#mainTitle").textContent=d.title; try{ localStorage.setItem(TITLE_KEY,d.title); }catch(e){} }
@@ -3228,10 +3239,13 @@ function bindUI(){
     if(h.classList.contains("show")){ hideHint(); } else { showHint(); }
   });
   $("#floatToggle").addEventListener("click",function(){
-    document.getElementById("floatWrap").classList.toggle("open");
+    var _w=document.getElementById("floatWrap");
+    var _open=!_w.classList.contains("open");
+    _w.classList.toggle("open",_open);
+    if(!_open) setFabHidden(true);
   });
   var _fp=$("#floatPanel");
-  if(_fp){ _fp.addEventListener("click",function(e){ var b=(e.target&&e.target.closest)?e.target.closest("button"):null; if(!b) return; var w=document.getElementById("floatWrap"); if(w) w.classList.remove("open"); }); }
+  if(_fp){ _fp.addEventListener("click",function(e){ var b=(e.target&&e.target.closest)?e.target.closest("button"):null; if(!b) return; var w=document.getElementById("floatWrap"); if(w) w.classList.remove("open"); setFabHidden(true); }); }
   $("#pbDone").addEventListener("click",cancelPaste);
   document.addEventListener("keydown",function(e){
     if(e.key==="Escape"&&pasteOn&&$("#overlay").classList.contains("hidden")) cancelPaste();
