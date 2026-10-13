@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-14.38">
+<meta name="app-version" content="2026-10-14.39">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -364,6 +364,8 @@ body.mobile-fit .day-switch{margin-bottom:4px}
 .fab-restore:hover{opacity:1}
 body.fab-hidden .floating{display:none!important}
 body.fab-hidden .fab-restore{display:block}
+.verline{font-size:11px;color:#98a1b3;text-align:center;padding:2px 0 1px;border-top:1px dashed #e3e8f0;margin-top:3px}
+body.theme-cyber .verline{color:#6f93a8;border-top-color:rgba(83,210,255,.18)}
 body.theme-cyber .fab-restore{background:rgba(13,29,49,.85);border-color:rgba(83,210,255,.3);color:#87a7bd}
 </style>
 </head><body>
@@ -425,6 +427,7 @@ body.theme-cyber .fab-restore{background:rgba(13,29,49,.85);border-color:rgba(83
       <button class="btn" id="viewModeBtn">📱 手机视图</button>
       <button class="btn" id="printBtn">🖨 打印 / 导出 PDF</button>
       <button class="btn" id="helpBtn">❓ 使用说明</button>
+      <div class="verline" id="verLine"></div>
     </div>
     <button class="float-toggle" id="floatToggle" title="工具菜单">⚙️</button>
   </div>
@@ -986,7 +989,16 @@ function setFabHidden(on){
   document.body.classList.toggle("fab-hidden",!!on);
   try{ localStorage.setItem(FAB_KEY,on?"1":"0"); }catch(e){}
 }
-function loadFabHidden(){ try{ setFabHidden(localStorage.getItem(FAB_KEY)!=="0"); }catch(e){} }
+function loadFabHidden(){
+  try{
+    if(!localStorage.getItem("myScheduleFabDefault2")){
+      localStorage.setItem("myScheduleFabDefault2","1");
+      setFabHidden(true);
+      return;
+    }
+    setFabHidden(localStorage.getItem(FAB_KEY)!=="0");
+  }catch(e){}
+}
 function showToast(msg){
   var d=document.createElement("div");
   d.className="toast"; d.textContent=msg;
@@ -3162,6 +3174,7 @@ function openCloudDialog(){
   attachOverlayClose(ov,closeCloud);
 }
 function bindUI(){
+  try{ var _vm=document.querySelector('meta[name="app-version"]'); var _vl=$("#verLine"); if(_vl&&_vm) _vl.textContent="版本 "+_vm.getAttribute("content"); }catch(e){}
   initTitle();
   bindTitle();
   $("#prevWeek").addEventListener("click",function(){ state.weekStart=addDays(state.weekStart,-7); renderAll(); });
@@ -3178,7 +3191,7 @@ function bindUI(){
   $("#voiceAddBtn").addEventListener("click",voiceQuickAdd);
   $("#aliasBtn").addEventListener("click",openAliasDialog);
   $("#aiBtn").addEventListener("click",openAIDialog);
-  $("#reloadBtn").addEventListener("click",function(){ try{ localStorage.setItem("myScheduleHintOff","1"); }catch(e){} location.replace(location.pathname + "?r=" + Date.now()); });
+  $("#reloadBtn").addEventListener("click",function(){ try{ localStorage.setItem("myScheduleHintOff","1"); }catch(e){} purgeCaches(); setTimeout(function(){ location.replace(location.pathname + "?r=" + Date.now()); },250); });
   $("#hideUndo").addEventListener("click",undoHide);
   $("#hideRestore").addEventListener("click",restoreWeekHidden);
   $("#hideDone").addEventListener("click",function(){ setHideMode(false); });
@@ -3261,6 +3274,10 @@ if(location.search.indexOf("selftest")>=0){
   }catch(e){ document.title="SELFTEST ERROR: "+e.message; }
 }
 window.addEventListener("resize",function(){ clearTimeout(window.__mrt); window.__mrt=setTimeout(function(){ applyRowHeight(); renderAll(); },200); });
+function purgeCaches(){
+  try{ if(window.caches&&caches.keys){ caches.keys().then(function(ks){ ks.forEach(function(k){ try{ caches.delete(k); }catch(e){} }); }); } }catch(e){}
+  try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ try{ r.unregister(); }catch(e){} }); }); } }catch(e){}
+}
 function checkAppUpdate(){
   try{
     var cur=document.querySelector('meta[name="app-version"]');
@@ -3269,11 +3286,13 @@ function checkAppUpdate(){
     var url=location.pathname+"?_="+Date.now();
     fetch(url,{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(txt){
       var m=txt.match(/<meta name="app-version" content="([^"]+)"/);
-      if(!m||!curV||m[1]===curV) return;
-      var k="appUpdatedTo";
-      if(sessionStorage.getItem(k)===m[1]) return;
-      sessionStorage.setItem(k,m[1]);
-      location.replace(url);
+      if(!m||!curV) return;
+      if(m[1]===curV){ try{ sessionStorage.removeItem("appUpdateTries"); }catch(e){} return; }
+      var tries=parseInt(sessionStorage.getItem("appUpdateTries")||"0",10)||0;
+      if(tries>=3) return;
+      try{ sessionStorage.setItem("appUpdateTries",String(tries+1)); }catch(e){}
+      purgeCaches();
+      setTimeout(function(){ location.replace(url); },250);
     }).catch(function(){});
   }catch(e){}
 }
