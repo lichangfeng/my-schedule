@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-14.40">
+<meta name="app-version" content="2026-10-14.41">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .gutter{position:relative;border-right:1px solid #e6eaf2;background:#fbfcff}
 .tl{position:absolute;right:12px;top:0;font-size:11px;color:#98a1b3;font-variant-numeric:tabular-nums;line-height:1}
 .daycol{position:relative;border-right:1px solid #eff2f8;background-color:#fff;cursor:pointer;overflow:hidden;
- background-image:repeating-linear-gradient(to bottom, transparent 0 calc(var(--rowh,52px) - 1px), #eef1f8 calc(var(--rowh,52px) - 1px) var(--rowh,52px)),repeating-linear-gradient(to bottom, transparent 0 calc(var(--rowh,52px)/2 - 1px), #f6f8fc calc(var(--rowh,52px)/2 - 1px) calc(var(--rowh,52px)/2))}
+ background-image:repeating-linear-gradient(to bottom, transparent 0 calc(var(--rowh,52px) - 1px), var(--gl,rgba(148,163,184,.24)) calc(var(--rowh,52px) - 1px) var(--rowh,52px)),repeating-linear-gradient(to bottom, transparent 0 calc(var(--rowh,52px)/2 - 1px), var(--gl2,rgba(148,163,184,.12)) calc(var(--rowh,52px)/2 - 1px) calc(var(--rowh,52px)/2))}
 .daycol:last-child{border-right:none}
 .daycol.we{background-color:#fcfcfe}
 .daycol.today{background-color:#f5f7ff}
@@ -161,7 +161,7 @@ body.bg-on .daycol.we{background-color:rgba(255,255,255,.05)}
 .dh .wd{font-size:calc(var(--tsize,12px) + 1px);color:#42506b;font-family:var(--tfont,inherit)}
 .dh .dt{font-size:var(--tsize,13.5px);font-family:var(--tfont,inherit)}
 .ev .m{font-size:calc(var(--tsize,12px) - 1px);font-family:var(--tfont,inherit)}
-.daycol{background-image:repeating-linear-gradient(to bottom, transparent 0 55px, var(--gl,#eef1f8) 63px 64px),repeating-linear-gradient(to bottom, transparent 0 27px, var(--gl2,#f6f8fc) 31px 32px)}
+.daycol{background-image:repeating-linear-gradient(to bottom, transparent 0 calc(var(--rowh,52px) - 1px), var(--gl,rgba(148,163,184,.24)) calc(var(--rowh,52px) - 1px) var(--rowh,52px)),repeating-linear-gradient(to bottom, transparent 0 calc(var(--rowh,52px)/2 - 1px), var(--gl2,rgba(148,163,184,.12)) calc(var(--rowh,52px)/2 - 1px) calc(var(--rowh,52px)/2))}
 .rad{display:inline-flex;align-items:center;gap:6px;margin:0 14px 8px 0;cursor:pointer;font-size:13px;color:#374151}
 .rad input{accent-color:#4f6ef2}
 select.vsel{width:100%;border:1px solid #d9dfe9;border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;background:#fcfdff;color:#1f2430;outline:none}
@@ -514,7 +514,7 @@ function boardAvailH(){
   if(!(h>180)) h=560;
   return h;
 }
-function rowScale(){ return Math.max(0.5,Math.min(1.3,Number(vset.rowScale)||0.9)); }
+function rowScale(){ return Math.max(0.5,Math.min(1.3,Number(vset.rowScale)||1)); }
 function autoRowH(){
   var hours=(DAY_END-DAY_START)/60;
   var dh=document.getElementById("dayHeader");
@@ -2349,7 +2349,7 @@ const VFONTS={
   kai:"'KaiTi','STKaiti','Kaiti SC',serif",
   dengxian:"'DengXian','Microsoft YaHei',sans-serif"
 };
-let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,rowH:"auto",rowScale:0.9,showNote:false,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:8};function loadView(){
+let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,rowH:"auto",rowScale:1,showNote:false,grid:45,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:8};function loadView(){
   try{
     var raw=localStorage.getItem(VIEW_KEY);
     if(raw){
@@ -2398,8 +2398,15 @@ let vset={font:"system",size:13,dateFmt:"cn",leadZero:true,rowH:"auto",rowScale:
     if(!localStorage.getItem("myScheduleRowAuto3")){
       localStorage.setItem("myScheduleRowAuto3","1");
       vset.rowH="auto";
-      vset.rowScale=0.9;
+      vset.rowScale=1;
       vset.dayStart=10;
+      localStorage.setItem(VIEW_KEY,JSON.stringify(vset));
+    }
+    if(!localStorage.getItem("myScheduleFit1")){
+      localStorage.setItem("myScheduleFit1","1");
+      vset.rowH="auto";
+      vset.rowScale=1;
+      vset.grid=45;
       localStorage.setItem(VIEW_KEY,JSON.stringify(vset));
     }
   }catch(e){}
@@ -2465,7 +2472,7 @@ function alOptsHTML(){
   return "<option value=\"left\">靠左</option><option value=\"center\">居中</option><option value=\"right\">靠右</option>";
 }
 function openViewDialog(){
-  var cur={font:vset.font,size:vset.size,dateFmt:vset.dateFmt,leadZero:vset.leadZero,grid:vset.grid,cardFont:vset.cardFont,tSize:vset.tSize,mSize:vset.mSize,tBold:vset.tBold,mBold:vset.mBold,tColor:vset.tColor,mColor:vset.mColor,tAlign:vset.tAlign,mAlign:vset.mAlign,tItalic:vset.tItalic,mItalic:vset.mItalic,tUnder:vset.tUnder,mUnder:vset.mUnder,tShadow:vset.tShadow,mShadow:vset.mShadow,theme:vset.theme,dayStart:vset.dayStart,rowH:(vset.rowH===undefined?"auto":vset.rowH),rowScale:(vset.rowScale===undefined?0.9:vset.rowScale),showNote:!!vset.showNote};
+  var cur={font:vset.font,size:vset.size,dateFmt:vset.dateFmt,leadZero:vset.leadZero,grid:vset.grid,cardFont:vset.cardFont,tSize:vset.tSize,mSize:vset.mSize,tBold:vset.tBold,mBold:vset.mBold,tColor:vset.tColor,mColor:vset.mColor,tAlign:vset.tAlign,mAlign:vset.mAlign,tItalic:vset.tItalic,mItalic:vset.mItalic,tUnder:vset.tUnder,mUnder:vset.mUnder,tShadow:vset.tShadow,mShadow:vset.mShadow,theme:vset.theme,dayStart:vset.dayStart,rowH:(vset.rowH===undefined?"auto":vset.rowH),rowScale:(vset.rowScale===undefined?1:vset.rowScale),showNote:!!vset.showNote};
   var ov=$("#overlay");
   ov.classList.remove("hidden");
   var html="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\">"+
@@ -2524,7 +2531,7 @@ function openViewDialog(){
   $("#cTUl").checked=cur.tUnder; $("#cMUl").checked=cur.mUnder;
   $("#cTSh").checked=cur.tShadow; $("#cMSh").checked=cur.mShadow;
   $("#cTColor").value=cur.tColor||"#ffffff"; $("#cMColor").value=cur.mColor||"#ffffff";
-  var _sc=Math.max(0.5,Math.min(1.3,Number(cur.rowScale)||0.9));
+  var _sc=Math.max(0.5,Math.min(1.3,Number(cur.rowScale)||1));
   function paintScale(){ var el=$("#vScaleV"); if(el) el.textContent=_sc.toFixed(2)+"x"; }
   (function(){
     var m=$("#vScaleM"), p=$("#vScaleP");
@@ -2596,7 +2603,7 @@ function openViewDialog(){
   $("#vOk").addEventListener("click",okV);
   $("#vCancel").addEventListener("click",closeV);
   $("#vReset").addEventListener("click",function(){
-    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,rowH:"auto",rowScale:0.9,showNote:false,grid:22,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:8};
+    vset={font:"system",size:13,dateFmt:"cn",leadZero:true,rowH:"auto",rowScale:1,showNote:false,grid:45,cardFont:"inherit",tSize:13,mSize:11,tBold:true,mBold:false,tColor:"#ffffff",mColor:"#ffffff",tAlign:"left",mAlign:"left",tItalic:false,mItalic:false,tUnder:false,mUnder:false,tShadow:true,mShadow:true,theme:"default",dayStart:8};
     applyView(); saveView(); renderAll(); closeV();
   });
   var esc=function(e){
@@ -2921,7 +2928,7 @@ function applyImportedData(d,silent){
   sanitizeData();
   if(d.view){
     var _cv=Object.assign({},d.view);
-    delete _cv.rowH; delete _cv.rowScale; delete _cv.dayStart; delete _cv.showNote;
+    delete _cv.rowH; delete _cv.rowScale; delete _cv.dayStart; delete _cv.showNote; delete _cv.grid;
     vset=Object.assign({},vset,_cv);
   }
   if(d.bg){ var _bt=normBg(d.bg.t), _bp=normBg(d.bg.p); if(_bt.type!=="none") bgCur=_bt; if(_bp.type!=="none") pgCur=_bp; }
