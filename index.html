@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f6ef2">
-<meta name="app-version" content="2026-10-14.41">
+<meta name="app-version" content="2026-10-14.42">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -1787,9 +1787,9 @@ function openDialog(mode,ev){
   attachOverlayClose(ov,function(){ closeDialog(); });
 }
 /* ===== 機構課表（行政參考，不占自己的日程） ===== */
-const SCH_VENUES=["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG（按日期）"];
-const SCH_PREFIX=["HUK西 ","HUK东 ","","O-DOG "];
-const SCH_COLOR=["indigo","purple","teal","rose"];
+const SCH_VENUES=["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG（按日期）","常规课 · 安生"];
+const SCH_PREFIX=["HUK西 ","HUK东 ","","O-DOG ",""];
+const SCH_COLOR=["indigo","purple","teal","rose","blue"];
 const INST_SCHEDULE=[
     /* === HUK 河西店 === */
     {"v":0,"d":0,"t":"10:00-11:30","c":[["小富","URBAN"]]},
@@ -1883,7 +1883,16 @@ const INST_SCHEDULE=[
     {"v":2,"d":5,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]},
     {"v":2,"d":6,"t":"15:00-16:30","c":[["濤濤","JAZZ入門"],["彬彬","JAZZ強化"],["DANNIE","編舞進階"]]},
     {"v":2,"d":6,"t":"17:00-18:30","c":[["彬彬","JAZZ入門"],["緊張","JAZZ進階"],["康康","編舞進階"]]},
-    {"v":2,"d":6,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]}
+    {"v":2,"d":6,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]},
+    /* === 常规课 · 安生 === */
+    {"v":4,"d":0,"t":"16:00-17:30","c":[["妙舞社雨花亭 安生",""]]},
+    {"v":4,"d":0,"t":"18:40-21:30","c":[["Mine 安生","基础+进阶连堂"]]},
+    {"v":4,"d":1,"t":"19:00-21:00","c":[["领军南门口 安生","基础"]]},
+    {"v":4,"d":2,"t":"18:40-20:20","c":[["HR时代广场店 安生","基础"]]},
+    {"v":4,"d":3,"t":"19:30-21:30","c":[["一条 安生","进阶连堂"]]},
+    {"v":4,"d":4,"t":"14:30-16:30","c":[["领军南门口 安生","提高"]]},
+    {"v":4,"d":4,"t":"19:30-21:00","c":[["星巢奥园店 安生","基础"]]},
+    {"v":4,"d":5,"t":"19:00-20:20","c":[["含浦PM 安生","基础"]]}
 ];
 var schV=0, schD=null;
 var schDateVal=null, nextScopeDefault=null;
@@ -2015,7 +2024,7 @@ function addFromInst(vi,d,t,teacher,cls){
   closeSch();
   openDialog("create",{day:d,start:sp[0],end:sp[1],title:"",color:SCH_COLOR[vi]||"indigo"});
   var ti=$("#fTitle"); if(ti) ti.value=schTitle(vi,teacher);
-  var no=$("#fNote"); if(no) no.value=(SCH_VENUES[vi]||"")+(cls?(" · "+cls):"");
+  var no=$("#fNote"); if(no) no.value=(vi===4?("安生"+(cls?(" · "+cls):"")):((SCH_VENUES[vi]||"")+(cls?(" · "+cls):"")));
   var fe=$("#fErr"); if(fe) fe.textContent="";
 }
 function openInstSchedule(){
