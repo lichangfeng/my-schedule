@@ -24,7 +24,7 @@
       <a class="btn" data-ledger-link href="./">上課紀錄</a>
       <a class="btn" href="./salary-calendar.html">薪資日曆</a>
       <button id="print-report" class="btn" type="button">列印／PDF</button>
-      <span class="pill good" id="hero-version">v1.6.3</span>
+      <span class="pill good" id="hero-version">v1.6.4</span>
       <button id="manual-update" class="btn primary" type="button">更新版本</button>
     </div>
   </header>
@@ -57,7 +57,7 @@
     </div>
     <div class="card-body">
       <div id="metrics" class="metrics"></div>
-      <div class="subcard section" id="cash-overview"></div>
+      <div class="subcard section" id="cash-overview" data-target="#savings"></div>
       <div class="subcard" id="salary-panel"></div>
       <div class="subcard section" id="due-panel"></div>
 
@@ -550,7 +550,7 @@
         <h2>使用說明與資料安全</h2>
         <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
       </div>
-      <span class="pill good" id="version-pill">v1.6.3</span>
+      <span class="pill good" id="version-pill">v1.6.4</span>
     </div>
     <div class="card-body helper">
       <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
@@ -566,6 +566,6 @@
   <a href="#records">匯出</a>
 </nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./finance.js?v=11"></script>
+<script src="./finance.js?v=12"></script>
 </body>
 </html>
