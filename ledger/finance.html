@@ -13,14 +13,29 @@
 .tabs{display:flex;gap:7px;overflow:auto;padding:4px 0 12px}.tab{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:8px 13px;font-weight:750;white-space:nowrap}.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .section{margin-top:14px}.hidden{display:none!important}.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:9px 12px;font-weight:750;text-decoration:none}.btn:hover{background:var(--surface-2)}.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}.btn.primary:hover{background:var(--primary-2)}.btn.danger{color:var(--red);border-color:#f1c7c3}.btn.small{padding:6px 9px;border-radius:8px;font-size:.82rem}.pill{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:.75rem;font-weight:800;background:var(--accent);color:var(--primary-2)}
 .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.summary-card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fff,#fafcfb);padding:13px}.summary-card span{display:block;color:var(--muted);font-size:.82rem;margin-bottom:6px}.summary-card strong{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums}.summary-card small{display:block;color:var(--muted);font-size:.8rem;margin-top:5px}.good{color:var(--green)}.bad{color:var(--red)}
-.grid-2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:14px;align-items:start}.subcard{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:15px}.subcard h3{margin:0 0 12px;font-size:.97rem}
+.grid-2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:14px;align-items:start}.grid-2>*{min-width:0}.card{min-width:0}.subcard{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:15px}.subcard h3{margin:0 0 12px;font-size:.97rem}
 label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-bottom:5px}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);padding:9px 10px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.12)}textarea{min-height:72px;resize:vertical}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.field.full{grid-column:1/-1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}.table{width:100%;border-collapse:collapse;min-width:680px}.table th,.table td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem}.table th{background:var(--surface-2);color:var(--muted);font-size:.8rem;font-weight:800}.table tr:last-child td{border-bottom:0}.table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.empty{padding:22px 14px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px;background:#fff}
 .badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:.74rem;font-weight:800;margin:1px 3px}.helper{color:var(--muted);font-size:.83rem;line-height:1.55;margin:8px 0 0}.donut{width:150px;height:150px;border-radius:50%;background:conic-gradient(var(--primary) 0 100%);box-shadow:inset 0 0 0 20px #fff;margin:0 auto}.legend{display:grid;gap:7px;margin-top:12px}.legend-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:.85rem}.dot{width:10px;height:10px;border-radius:50%}
 .trend{display:grid;gap:8px}.trend-row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:.84rem}.trend-bar{height:10px;background:#edf1f7;border-radius:999px;overflow:hidden}.trend-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--primary),var(--blue))}
 .month-bar{display:grid;grid-template-columns:minmax(160px,230px) auto auto auto;gap:8px;align-items:end}.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:#0f172a;color:#fff;padding:11px 15px;border-radius:11px;z-index:50;transition:.2s;max-width:calc(100vw - 24px);text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}.candidate{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;display:grid;gap:10px}.candidate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.progress{height:9px;border-radius:999px;background:#edf1f7;overflow:hidden}.progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--primary),var(--blue))}.flow-source{color:var(--muted);font-size:.78rem}
-.mobile-nav{display:none}@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}}@media(max-width:620px){body{padding:10px}.form-grid,.form-grid.three,.candidate-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary-grid{grid-template-columns:1fr 1fr}.month-bar{grid-template-columns:1fr 1fr}.month-bar .btn{width:100%}.table{min-width:600px}.card-head,.card-body{padding-left:12px;padding-right:12px}.hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.hero-actions .btn,.hero-actions .pill{width:100%}.mobile-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;position:fixed;z-index:35;left:8px;right:8px;bottom:8px;padding:5px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:.74rem;font-weight:800;padding:8px 2px}.mobile-nav button.active{color:var(--primary)}body{padding-bottom:82px}}@media print{body{background:#fff;padding:0}.hero-actions,.tabs,.mobile-nav,.no-print{display:none!important}.card{box-shadow:none}.grid-2{display:block}.summary-grid{grid-template-columns:repeat(4,1fr)}}
+.mobile-nav{display:none}
+summary.card-head{cursor:pointer;padding-bottom:16px;list-style:none}
+summary.card-head::-webkit-details-marker{display:none}
+.debt-summary{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;list-style:none}
+.debt-summary::-webkit-details-marker{display:none}
+.debt-summary .debt-head{font-weight:750}
+.debt-summary .debt-meta{color:var(--muted);font-size:.82rem}
+.status-chip{display:inline-block;padding:3px 8px;border-radius:999px;font-size:.74rem;font-weight:800;white-space:nowrap}
+.status-chip.paid{background:#e7f6ee;color:#067647}
+.status-chip.due{background:#fff4e5;color:#b45309}
+.status-chip.late{background:#fdecea;color:#b42318}
+.status-chip.wait{background:#eef2ff;color:#4338ca}
+.overdue-box{border-color:#f1c7c3;background:#fff7f6}
+.is-current{background:#f0fdfa}
+#report-debt-card{cursor:pointer}
+#report-debt-card:hover{background:var(--surface-2)}@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}}@media(max-width:620px){.debt-summary{padding:12px;flex-direction:column;align-items:flex-start;gap:4px}body{padding:10px}.form-grid,.form-grid.three,.candidate-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary-grid{grid-template-columns:1fr 1fr}.month-bar{grid-template-columns:1fr 1fr}.month-bar .btn{width:100%}.table{min-width:600px}.card-head,.card-body{padding-left:12px;padding-right:12px}.hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.hero-actions .btn,.hero-actions .pill{width:100%}.mobile-nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;position:fixed;z-index:35;left:8px;right:8px;bottom:8px;padding:5px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:.7rem;font-weight:800;padding:8px 2px}.mobile-nav button.active{color:var(--primary)}body{padding-bottom:82px}}@media print{body{background:#fff;padding:0}.hero-actions,.tabs,.mobile-nav,.no-print{display:none!important}.card{box-shadow:none}.grid-2{display:block}.summary-grid{grid-template-columns:repeat(4,1fr)}}
 
 </style>
 </head>
@@ -43,6 +58,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   </header>
   <nav class="tabs" id="tabs">
     <button class="tab active" data-tab="report" type="button">月度报表</button>
+    <button class="tab" data-tab="debts" type="button">负债还款</button>
     <button class="tab" data-tab="annual" type="button">年度汇总</button>
     <button class="tab" data-tab="categories" type="button">分类管理</button>
     <button class="tab" data-tab="accounts" type="button">账户管理</button>
@@ -73,7 +89,10 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
       <div class="card"><div class="card-head"><div><h2>账户余额快照</h2><p>每月录入一次整套账户余额；转账只改快照，不重复计收支。</p></div></div><div class="card-body"><div id="account-balance-editor"></div></div></div>
       <div class="card"><div class="card-head"><div><h2>收支汇总</h2><p>本月总收入、总支出与结余。</p></div></div><div class="card-body"><div id="income-expense-summary"></div><div id="report-pie"></div></div></div>
     </div>
-    <div class="card section"><div class="card-head"><div><h2>分类月度合计</h2><p>视频核心表：同一月 + 分类只保存一个合计金额。</p></div></div><div class="card-body"><div id="category-totals-editor"></div></div></div>
+    <div class="card section" id="report-debt-card" role="button" tabindex="0">
+      <div class="card-head"><div><h2>負債與還款計劃</h2><p>點一下進入負債頁：標記還款、查看每期明細、匯入新的還款計劃。</p></div><span class="pill">查看負債 →</span></div>
+      <div class="card-body"><div class="summary-grid" id="report-debts"></div><p class="helper" id="report-debt-hint"></p></div>
+    </div>    <div class="card section"><div class="card-head"><div><h2>分类月度合计</h2><p>视频核心表：同一月 + 分类只保存一个合计金额。</p></div></div><div class="card-body"><div id="category-totals-editor"></div></div></div>
     <div class="card section">
       <div class="card-head"><div><h2>分摊支出</h2><p>大额年费可分摊到多个月，例如 1200 元分 12 个月，每月 +100。</p></div></div>
       <div class="card-body">
@@ -133,7 +152,47 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     <div class="card"><div class="card-head"><div><h2>年度汇总</h2><p>12 个月收入、支出、结余与趋势。</p></div><div class="month-bar"><div><label for="year-picker">年份</label><input id="year-picker" type="number" min="2000" max="2100" step="1"></div></div></div>
     <div class="card-body"><div id="annual-table"></div><div id="annual-trend" class="section"></div><div id="annual-categories" class="section"></div></div></div>
   </section>
-  <section id="tab-categories" class="hidden">
+  <section id="tab-debts" class="hidden">
+    <div class="card">
+      <div class="card-head"><div><h2>負債總覽</h2><p>借唄 / 花唄 / 美團月付等欠款與每期應還金額；還款本身不重複計入支出（消費發生時已計過）。</p></div></div>
+      <div class="card-body"><div class="summary-grid" id="debt-summary"></div><div id="debt-overdue" class="section"></div></div>
+    </div>
+    <details class="card section" id="debt-import-panel">
+      <summary class="card-head"><div><h2>匯入／更新還款計劃</h2><p>貼上 JSON（totalDebt + debtList）按匯入；同名欠款會更新計劃並保留已標記「已還」的期數。</p></div><span class="pill">展開</span></summary>
+      <div class="card-body">
+        <div class="form-grid three">
+          <div><label for="debt-file">負債 JSON 檔案</label><input id="debt-file" type="file" accept=".json,application/json,.txt,text/plain"></div>
+          <div class="field full"><label for="debt-json">負債 JSON 文字</label><textarea id="debt-json" placeholder='{"totalDebt":12960.91,"debtList":[{"name":"借唄","total":1981.49,"plan":[{"period":"2026-11","date":"2026-11-08","amount":695.88}]}]}'></textarea></div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="import-debts-json" type="button">匯入負債</button>
+          <button class="btn" id="clipboard-debts-json" type="button">從剪貼簿匯入</button>
+          <button class="btn" id="fill-debt-sample" type="button">填入範例格式</button>
+          <button class="btn" id="clear-debt-input" type="button">清空輸入</button>
+        </div>
+        <p class="helper" id="debt-status"></p>
+      </div>
+    </details>
+    <details class="card section">
+      <summary class="card-head"><div><h2>快速新增分期欠款</h2><p>填總金額與期數，每期同額自動計算（尾差放在最後一期）。</p></div><span class="pill">展開</span></summary>
+      <div class="card-body">
+        <form id="debt-quick-form" class="form-grid three">
+          <div><label for="debt-quick-name">名稱</label><input id="debt-quick-name" type="text" maxlength="30" placeholder="例如：美團月付" required></div>
+          <div><label for="debt-quick-total">總金額</label><input id="debt-quick-total" type="number" min="0.01" step="0.01" required></div>
+          <div><label for="debt-quick-periods">期數</label><input id="debt-quick-periods" type="number" min="1" max="60" step="1" value="3" required></div>
+          <div><label for="debt-quick-date">首期應還日</label><input id="debt-quick-date" type="date" required></div>
+          <div><label for="debt-quick-unbooked">未出帳金額（可留空）</label><input id="debt-quick-unbooked" type="number" min="0" step="0.01" placeholder="尚未列入還款計劃的金額"></div>
+          <div class="field full actions"><button class="btn primary" type="submit">建立還款計劃</button></div>
+        </form>
+      </div>
+    </details>
+    <div id="debt-list-view" class="section"></div>
+    <div id="debt-schedule" class="section"></div>
+    <details class="card section">
+      <summary class="card-head"><div><h2>清空負債資料</h2><p>只清空負債與還款計劃，不影響帳戶、流水與分類合計。</p></div><span class="pill">危險</span></summary>
+      <div class="card-body"><button class="btn danger" id="clear-debts" type="button">清空全部負債</button></div>
+    </details>
+  </section>  <section id="tab-categories" class="hidden">
     <div class="card"><div class="card-head"><div><h2>分类管理</h2><p>建议分类总量控制在 10 个以内。</p></div></div>
     <div class="card-body"><form id="category-form" class="form-grid three"><div><label for="category-name">名称</label><input id="category-name" type="text" maxlength="30" required></div><div><label for="category-type">类型</label><select id="category-type"><option value="expense">支出</option><option value="income">收入</option></select></div><div class="actions"><button class="btn primary" type="submit">新增分类</button></div></form><div id="category-list" class="section"></div></div></div>
   </section>
@@ -146,13 +205,13 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   </section>
 </div>
 <nav class="mobile-nav" id="mobile-nav">
-  <button class="active" data-tab="report" type="button">月度</button><button data-tab="annual" type="button">年度</button><button data-tab="categories" type="button">分类</button><button data-tab="accounts" type="button">账户</button><button data-tab="flows" type="button">流水</button>
+  <button class="active" data-tab="report" type="button">月度</button><button data-tab="debts" type="button">負債</button><button data-tab="annual" type="button">年度</button><button data-tab="categories" type="button">分类</button><button data-tab="accounts" type="button">账户</button><button data-tab="flows" type="button">流水</button>
 </nav>
 <div id="toast" class="toast" role="status"></div>
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.2.0";
+  var APP_VERSION = "1.3.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -178,7 +237,16 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     batchSource: document.getElementById("batch-source"), batchFile: document.getElementById("batch-file"), batchText: document.getElementById("batch-text"), batchParse: document.getElementById("batch-parse"), batchImport: document.getElementById("batch-import"), batchClear: document.getElementById("batch-clear"), batchStatus: document.getElementById("batch-status"), batchPreview: document.getElementById("batch-preview"),
     clipboardImport: document.getElementById("clipboard-import"),
     importFlowsJson: document.getElementById("import-flows-json"),
-    toast: document.getElementById("toast"), versionLabel: document.getElementById("version-label")
+    toast: document.getElementById("toast"), versionLabel: document.getElementById("version-label"),
+    debtSummary: document.getElementById("debt-summary"), debtOverdue: document.getElementById("debt-overdue"),
+    debtList: document.getElementById("debt-list-view"), debtSchedule: document.getElementById("debt-schedule"),
+    debtJson: document.getElementById("debt-json"), debtFile: document.getElementById("debt-file"), debtStatus: document.getElementById("debt-status"),
+    importDebtsJson: document.getElementById("import-debts-json"), clipboardDebtsJson: document.getElementById("clipboard-debts-json"),
+    fillDebtSample: document.getElementById("fill-debt-sample"), clearDebtInput: document.getElementById("clear-debt-input"), clearDebts: document.getElementById("clear-debts"),
+    debtQuickForm: document.getElementById("debt-quick-form"), debtQuickName: document.getElementById("debt-quick-name"), debtQuickTotal: document.getElementById("debt-quick-total"),
+    debtQuickPeriods: document.getElementById("debt-quick-periods"), debtQuickDate: document.getElementById("debt-quick-date"), debtQuickUnbooked: document.getElementById("debt-quick-unbooked"),
+    reportDebts: document.getElementById("report-debts"), reportDebtCard: document.getElementById("report-debt-card"), reportDebtHint: document.getElementById("report-debt-hint"),
+    reportSummary: document.getElementById("report-summary")
   };
   function uid(prefix) { return (prefix || "id") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
   function esc(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
@@ -197,7 +265,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     DEFAULT_EXPENSE.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "expense" }); });
     DEFAULT_INCOME.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "income" }); });
     var accounts = DEFAULT_ACCOUNTS.map(function(name){ return { id: "acc-" + name, name: name, type: name }; });
-    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [] };
+    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [] };
   }
   function migrateLegacyState(target) {
     try {
@@ -226,6 +294,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
       parsed.summaries = Array.isArray(parsed.summaries) ? parsed.summaries : [];
       parsed.transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
       parsed.amortizations = Array.isArray(parsed.amortizations) ? parsed.amortizations : [];
+      parsed.debts = Array.isArray(parsed.debts) ? parsed.debts : [];
       migrateLegacyState(parsed);
       return parsed;
     } catch (e) { return defaultState(); }
@@ -403,11 +472,11 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   }
   function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); refreshTxOptions();
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); refreshTxOptions();
   }
   function switchTab(tab) {
     ui.tab = tab;
-    ["report","annual","categories","accounts","flows"].forEach(function(t){ document.getElementById("tab-" + t).classList.toggle("hidden", t !== tab); });
+    ["report","debts","annual","categories","accounts","flows"].forEach(function(t){ document.getElementById("tab-" + t).classList.toggle("hidden", t !== tab); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function(b){ b.classList.toggle("active", b.getAttribute("data-tab") === tab); });
   }
   el.categoryForm.addEventListener("submit", function(e){ e.preventDefault(); var name = el.categoryName.value.trim(); var type = el.categoryType.value; if (!name) return; if (state.categories.some(function(c){ return c.name === name && c.type === type; })) return showToast("分类已存在"); state.categories.push({ id: uid("cat"), name: name, type: type }); saveState(); el.categoryForm.reset(); renderAll(); showToast("分类已新增"); });
@@ -444,7 +513,347 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   el.txDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
   refreshTxOptions(); switchTab("report"); renderAll();
 
-  var NEUTRAL_KEYWORDS = ["还款","提现","充值","零钱通","理财通","存取","转账","红包","退款","小荷包","收益发放","借呗","花呗还款","美团金融还款","自动转入"];
+  /* ================= 負債 / 還款計劃 ================= */
+  var DEBT_SAMPLE_JSON = [
+    "{",
+    "  \"totalDebt\": 12960.91,",
+    "  \"debtList\": [",
+    "    {",
+    "      \"name\": \"借唄\",",
+    "      \"total\": 1981.49,",
+    "      \"unBooked\": 147.65,",
+    "      \"plan\": [",
+    "        { \"period\": \"2026-11\", \"date\": \"2026-11-08\", \"amount\": 695.88 },",
+    "        { \"period\": \"2026-12\", \"date\": \"2026-12-08\", \"amount\": 284.49 }",
+    "      ]",
+    "    },",
+    "    {",
+    "      \"name\": \"花唄\",",
+    "      \"principal\": 8514.60,",
+    "      \"plan\": [",
+    "        { \"period\": \"2026-11\", \"date\": \"2026-11-08\", \"amount\": 3586.71 },",
+    "        { \"period\": \"2026-12\", \"date\": \"2026-12-08\", \"amount\": 1050.99 }",
+    "      ]",
+    "    }",
+    "  ]",
+    "}"
+  ].join("\n");
+  function debtEntryMonth(entry) {
+    if (entry && entry.date) return String(entry.date).slice(0, 7);
+    return String((entry && entry.period) || "").slice(0, 7);
+  }
+  function debtEntryKey(debtId, planId) { return debtId + "::" + planId; }
+  function debtEntries(onlyUnpaid) {
+    var out = [];
+    state.debts.forEach(function (d) {
+      (d.plan || []).forEach(function (p) {
+        if (onlyUnpaid && p.paid) return;
+        out.push({ debt: d, entry: p });
+      });
+    });
+    return out;
+  }
+  function debtInfo() {
+    var declared = (state.debtTotal == null || state.debtTotal === "") ? null : num(state.debtTotal);
+    if (declared === 0) declared = null;
+    var all = debtEntries(false);
+    var totalOfDebts = state.debts.reduce(function (s, d) { return s + num(d.total); }, 0);
+    var unBooked = state.debts.reduce(function (s, d) { return s + num(d.unBooked); }, 0);
+    var planned = all.reduce(function (s, x) { return s + num(x.entry.amount); }, 0);
+    var paidSum = all.filter(function (x) { return x.entry.paid; }).reduce(function (s, x) { return s + num(x.entry.amount); }, 0);
+    var today = todayText();
+    var overdue = all.filter(function (x) { return !x.entry.paid && x.entry.date && x.entry.date < today; });
+    return {
+      declared: declared,
+      total: declared === null ? totalOfDebts : declared,
+      totalOfDebts: totalOfDebts,
+      unBooked: unBooked,
+      planned: planned,
+      paid: paidSum,
+      remaining: planned - paidSum,
+      overdue: overdue,
+      overdueAmount: overdue.reduce(function (s, x) { return s + num(x.entry.amount); }, 0),
+      count: state.debts.length
+    };
+  }
+  function debtMonthTotal(month, unpaidOnly) {
+    return debtEntries(false).filter(function (x) {
+      if (debtEntryMonth(x.entry) !== month) return false;
+      if (unpaidOnly && x.entry.paid) return false;
+      return true;
+    }).reduce(function (s, x) { return s + num(x.entry.amount); }, 0);
+  }
+  function statusChip(entry) {
+    if (entry.paid) return '<span class="status-chip paid">已還</span>';
+    if (entry.date && entry.date < todayText()) return '<span class="status-chip late">逾期</span>';
+    if (debtEntryMonth(entry) === currentMonthKey()) return '<span class="status-chip due">本月應還</span>';
+    return '<span class="status-chip wait">未到期</span>';
+  }
+  function renderDebtSummary() {
+    if (!el.debtSummary) return;
+    var info = debtInfo();
+    var thisMonth = currentMonthKey();
+    var thisSum = debtMonthTotal(thisMonth, false);
+    var thisUnpaid = debtMonthTotal(thisMonth, true);
+    var nextSum = debtMonthTotal(shiftMonth(thisMonth, 1), false);
+    el.debtSummary.innerHTML =
+      '<div class="summary-card"><span>負債總額</span><strong class="bad">' + money(info.total) + '</strong><small>' + info.count + ' 筆欠款' + (info.declared === null ? '（各筆加總）' : '（依匯入 totalDebt）') + '</small></div>' +
+      '<div class="summary-card"><span>本月應還</span><strong>' + money(thisSum) + '</strong><small>' + monthLabel(thisMonth) + ' · 未還 ' + money(thisUnpaid) + ' · 下月 ' + money(nextSum) + '</small></div>' +
+      '<div class="summary-card"><span>剩餘未還（已排定）</span><strong>' + money(info.remaining) + '</strong><small>已排定 ' + money(info.planned) + ' · 已還 ' + money(info.paid) + '</small></div>' +
+      '<div class="summary-card"><span>逾期未還</span><strong class="' + (info.overdue.length ? 'bad' : 'good') + '">' + money(info.overdueAmount) + '</strong><small>' + info.overdue.length + ' 期' + (info.unBooked > 0 ? ' · 未出帳 ' + money(info.unBooked) : '') + '</small></div>';
+  }
+  function renderDebtOverdue() {
+    if (!el.debtOverdue) return;
+    if (!state.debts.length) { el.debtOverdue.innerHTML = '<div class="empty">還沒有負債資料：展開下方的「匯入／更新還款計劃」，貼上 JSON 後按匯入。</div>'; return; }
+    var info = debtInfo();
+    if (!info.overdue.length) { el.debtOverdue.innerHTML = '<p class="helper">目前沒有逾期未還的期數。' + (info.unBooked > 0 ? '另有未出帳金額 ' + money(info.unBooked) + '（尚未列入每期計劃）。' : '') + '</p>'; return; }
+    el.debtOverdue.innerHTML = '<div class="subcard overdue-box"><h3 class="bad">逾期未還：' + info.overdue.length + ' 期，合計 ' + money(info.overdueAmount) + '</h3><div class="table-wrap"><table class="table"><thead><tr><th>欠款</th><th>應還日</th><th class="num">金額</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+      info.overdue.slice().sort(function (a, b) { return String(a.entry.date).localeCompare(String(b.entry.date)); }).map(function (x) {
+        return '<tr><td><strong>' + esc(x.debt.name) + '</strong></td><td>' + esc(x.entry.date) + '</td><td class="num bad">' + money(x.entry.amount) + '</td><td>' + statusChip(x.entry) + '</td><td><button class="btn small primary" data-debt-paid="' + esc(debtEntryKey(x.debt.id, x.entry.id)) + '" type="button">標記已還</button></td></tr>';
+      }).join("") + '</tbody></table></div></div>';
+  }
+  function renderDebtList() {
+    if (!el.debtList) return;
+    if (!state.debts.length) { el.debtList.innerHTML = '<div class="card"><div class="card-head"><div><h2>欠款明細</h2><p>匯入後這裡會列出每筆欠款與每期應還金額。</p></div></div><div class="card-body"><div class="empty">目前沒有負債資料。</div></div></div>'; return; }
+    el.debtList.innerHTML = state.debts.map(function (d) {
+      var plan = (d.plan || []).slice().sort(function (a, b) { return String(a.date || a.period).localeCompare(String(b.date || b.period)); });
+      var planned = plan.reduce(function (s, p) { return s + num(p.amount); }, 0);
+      var paid = plan.filter(function (p) { return p.paid; }).reduce(function (s, p) { return s + num(p.amount); }, 0);
+      var nextUnpaid = plan.filter(function (p) { return !p.paid; })[0] || null;
+      var paidCount = plan.filter(function (p) { return p.paid; }).length;
+      var head = '<span class="debt-title">' + esc(d.name) + '</span> <span class="badge">總額 ' + money(d.total) + '</span> <span class="badge">剩餘 ' + money(planned - paid) + '</span>' + (d.unBooked > 0 ? ' <span class="badge">未出帳 ' + money(d.unBooked) + '</span>' : '');
+      var meta = plan.length ? (paidCount + '/' + plan.length + ' 期已還' + (nextUnpaid ? ' · 下次 ' + esc(nextUnpaid.date || nextUnpaid.period) + ' ' + money(nextUnpaid.amount) : ' · 計劃內全部已還')) : '尚未建立每期還款計劃';
+      var rows = plan.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>期數</th><th>月份</th><th>應還日</th><th class="num">應還金額</th><th>狀態</th><th>操作</th></tr></thead><tbody>' + plan.map(function (p, i) {
+        return '<tr><td>' + (i + 1) + '</td><td>' + esc(debtEntryMonth(p)) + '</td><td>' + esc(p.date || "—") + '</td><td class="num">' + money(p.amount) + '</td><td>' + statusChip(p) + '</td><td><button class="btn small' + (p.paid ? '' : ' primary') + '" data-debt-paid="' + esc(debtEntryKey(d.id, p.id)) + '" type="button">' + (p.paid ? '取消已還' : '標記已還') + '</button></td></tr>';
+      }).join("") + '</tbody></table></div>' : '<div class="empty">這筆欠款沒有分期計劃；可展開「快速新增分期欠款」建立，或匯入含 plan 的 JSON。</div>';
+      return '<details class="card section"><summary class="debt-summary"><span class="debt-head">' + head + '</span><span class="debt-meta">' + meta + '</span></summary><div class="card-body"><p class="helper">已排定 ' + money(planned) + ' · 已還 ' + money(paid) + ' · 剩餘 ' + money(planned - paid) + '</p>' + rows + '<div class="actions"><button class="btn small danger" data-debt-del="' + esc(d.id) + '" type="button">刪除這筆欠款</button></div></div></details>';
+    }).join("");
+  }
+  function renderDebtSchedule() {
+    if (!el.debtSchedule) return;
+    var entries = debtEntries(false);
+    if (!entries.length) { el.debtSchedule.innerHTML = ""; return; }
+    var buckets = {};
+    entries.forEach(function (x) { var m = debtEntryMonth(x.entry); if (!m) return; (buckets[m] = buckets[m] || []).push(x); });
+    var keys = Object.keys(buckets).sort();
+    var current = currentMonthKey();
+    el.debtSchedule.innerHTML = '<div class="card"><div class="card-head"><div><h2>還款日曆（依月份合計）</h2><p>每月應還合計；可按「本月已還」一次標記該月全部期數。</p></div></div><div class="card-body"><div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="num">應還合計</th><th class="num">未還</th><th>明細</th><th>操作</th></tr></thead><tbody>' +
+      keys.map(function (m) {
+        var rows = buckets[m].slice().sort(function (a, b) { return String(a.entry.date || "").localeCompare(String(b.entry.date || "")); });
+        var sum = rows.reduce(function (s, x) { return s + num(x.entry.amount); }, 0);
+        var unpaid = rows.filter(function (x) { return !x.entry.paid; }).reduce(function (s, x) { return s + num(x.entry.amount); }, 0);
+        var detail = rows.map(function (x) { return esc(x.debt.name) + " " + money(x.entry.amount) + (x.entry.paid ? "(已還)" : ""); }).join(" · ");
+        var isCurrent = m === current;
+        return '<tr' + (isCurrent ? ' class="is-current"' : '') + '><td><strong>' + esc(monthLabel(m)) + '</strong>' + (isCurrent ? ' <span class="badge">本月</span>' : '') + '</td><td class="num">' + money(sum) + '</td><td class="num ' + (unpaid > 0 ? 'bad' : 'good') + '">' + money(unpaid) + '</td><td>' + detail + '</td><td><button class="btn small" data-debt-pay-month="' + esc(m) + '" type="button"' + (unpaid > 0 ? "" : " disabled") + '>本月已還</button></td></tr>';
+      }).join("") + '</tbody></table></div></div></div>';
+  }
+  function renderReportDebtCard() {
+    if (!el.reportDebts) return;
+    var info = debtInfo();
+    var month = ui.year + "-" + pad(ui.month);
+    var nextMonth = shiftMonth(month, 1);
+    var sum = debtMonthTotal(month, false);
+    var unpaid = debtMonthTotal(month, true);
+    el.reportDebts.innerHTML =
+      '<div class="summary-card"><span>負債總額</span><strong class="bad">' + money(info.total) + '</strong><small>' + info.count + ' 筆欠款</small></div>' +
+      '<div class="summary-card"><span>' + monthLabel(month) + ' 應還</span><strong>' + money(sum) + '</strong><small>未還 ' + money(unpaid) + '</small></div>' +
+      '<div class="summary-card"><span>' + monthLabel(nextMonth) + ' 應還</span><strong>' + money(debtMonthTotal(nextMonth, false)) + '</strong><small>下個月</small></div>' +
+      '<div class="summary-card"><span>逾期未還</span><strong class="' + (info.overdue.length ? 'bad' : 'good') + '">' + money(info.overdueAmount) + '</strong><small>' + info.overdue.length + ' 期</small></div>';
+    if (el.reportDebtHint) el.reportDebtHint.textContent = info.count ? '點這張卡片進入負債頁：標記還款、查看每期明細、匯入新的還款計劃。' : '還沒有負債資料：點這張卡片進入負債頁，展開「匯入／更新還款計劃」貼上 JSON。';
+  }
+  function renderDebts() { renderDebtSummary(); renderDebtOverdue(); renderDebtList(); renderDebtSchedule(); }
+  function parseJsonLoose(text) {
+    var s = String(text == null ? "" : text).trim();
+    if (!s) throw new Error("請先貼上負債 JSON");
+    s = s.replace(/^```[a-zA-Z]*\s*/, "").replace(/```\s*$/, "").trim();
+    var start = s.search(/[\[{]/);
+    if (start > 0) s = s.slice(start);
+    var end = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
+    if (end >= 0) s = s.slice(0, end + 1);
+    return JSON.parse(s);
+  }
+  function normalizeDebtPayload(raw) {
+    var list = null, totalDebt = null;
+    if (Array.isArray(raw)) list = raw;
+    else if (raw && typeof raw === "object") {
+      if (Array.isArray(raw.debtList)) list = raw.debtList;
+      else if (Array.isArray(raw.debts)) list = raw.debts;
+      if (raw.totalDebt != null && raw.totalDebt !== "") totalDebt = Math.round(num(raw.totalDebt) * 100) / 100;
+    }
+    if (!list || !list.length) throw new Error("找不到 debtList 或 debts 陣列");
+    var debts = list.map(function (d, i) {
+      if (!d || typeof d !== "object") throw new Error("第 " + (i + 1) + " 筆欠款格式不正確");
+      var name = String(d.name || d.title || ("欠款" + (i + 1))).trim();
+      var plan = (Array.isArray(d.plan) ? d.plan : []).map(function (p) {
+        var date = String((p && p.date) || "");
+        return {
+          id: uid("dp"),
+          period: String((p && p.period) || date.slice(0, 7)),
+          date: date,
+          amount: Math.round(num(p && p.amount) * 100) / 100,
+          paid: !!(p && p.paid),
+          paidAt: (p && p.paidAt) || ""
+        };
+      }).filter(function (p) { return p.amount > 0; }).sort(function (a, b) { return String(a.date || a.period).localeCompare(String(b.date || b.period)); });
+      return {
+        id: uid("debt"),
+        name: name,
+        total: Math.round(num(d.total != null ? d.total : d.principal) * 100) / 100,
+        principal: d.principal == null ? null : Math.round(num(d.principal) * 100) / 100,
+        unBooked: Math.round(num(d.unBooked) * 100) / 100,
+        note: String(d.note || ""),
+        plan: plan,
+        updatedAt: new Date().toISOString()
+      };
+    });
+    return { debts: debts, totalDebt: totalDebt };
+  }
+  function mergeDebts(parsed) {
+    var added = 0, updated = 0;
+    parsed.debts.forEach(function (nd) {
+      var old = state.debts.filter(function (d) { return d.name === nd.name; })[0];
+      if (!old) { state.debts.push(nd); added++; return; }
+      var oldPlan = old.plan || [];
+      nd.plan.forEach(function (np) {
+        var same = oldPlan.filter(function (p) { return p.period === np.period && Math.abs(num(p.amount) - np.amount) < 0.005 && String(p.date || "") === String(np.date || ""); })[0];
+        if (!same) same = oldPlan.filter(function (p) { return p.paid && p.period === np.period; })[0];
+        if (same && same.paid) { np.paid = true; np.paidAt = same.paidAt || ""; }
+      });
+      old.total = nd.total;
+      old.principal = nd.principal;
+      old.unBooked = nd.unBooked;
+      if (nd.note) old.note = nd.note;
+      old.plan = nd.plan;
+      old.updatedAt = nd.updatedAt;
+      updated++;
+    });
+    if (parsed.totalDebt != null) state.debtTotal = parsed.totalDebt;
+    else if (!state.debts.length) state.debtTotal = null;
+    return { added: added, updated: updated };
+  }
+  function importDebtsFromText(text) {
+    var parsed = normalizeDebtPayload(parseJsonLoose(text));
+    var res = mergeDebts(parsed);
+    saveState(); renderAll();
+    return { added: res.added, updated: res.updated, count: state.debts.length };
+  }
+  function toggleDebtPaid(key) {
+    var parts = String(key).split("::");
+    var d = state.debts.filter(function (x) { return x.id === parts[0]; })[0]; if (!d) return;
+    var p = (d.plan || []).filter(function (x) { return x.id === parts[1]; })[0]; if (!p) return;
+    p.paid = !p.paid;
+    p.paidAt = p.paid ? todayText() : "";
+    saveState(); renderAll();
+    showToast(p.paid ? "已標記還款：" + d.name + " " + money(p.amount) : "已取消還款標記：" + d.name + " " + money(p.amount));
+  }
+  function markDebtMonthPaid(month) {
+    var count = 0, sum = 0;
+    debtEntries(false).forEach(function (x) {
+      if (debtEntryMonth(x.entry) !== month || x.entry.paid) return;
+      x.entry.paid = true; x.entry.paidAt = todayText(); count++; sum += num(x.entry.amount);
+    });
+    if (!count) return showToast("這個月份沒有未還的期數");
+    saveState(); renderAll();
+    showToast("已標記 " + monthLabel(month) + " 還款 " + count + " 筆，合計 " + money(sum));
+  }
+  function setupDebtPanel() {
+    if (el.importDebtsJson) el.importDebtsJson.addEventListener("click", function () {
+      try {
+        var r = importDebtsFromText(el.debtJson.value);
+        el.debtStatus.textContent = "匯入完成：新增 " + r.added + " 筆、更新 " + r.updated + " 筆，目前共 " + r.count + " 筆負債。";
+        showToast("負債還款計劃已匯入");
+      } catch (err) {
+        el.debtStatus.textContent = "匯入失敗：" + (err && err.message ? err.message : "JSON 格式不正確");
+        alert("匯入失敗：" + (err && err.message ? err.message : "JSON 格式不正確"));
+      }
+    });
+    if (el.clipboardDebtsJson) el.clipboardDebtsJson.addEventListener("click", function () {
+      if (!navigator.clipboard || !navigator.clipboard.readText) { el.debtStatus.textContent = "這個瀏覽器不支援讀取剪貼簿，請手動貼到文字框再按匯入。"; return; }
+      navigator.clipboard.readText().then(function (text) {
+        var r = importDebtsFromText(text);
+        el.debtStatus.textContent = "已從剪貼簿匯入：新增 " + r.added + " 筆、更新 " + r.updated + " 筆，目前共 " + r.count + " 筆負債。";
+        showToast("已從剪貼簿匯入負債");
+      }).catch(function () { el.debtStatus.textContent = "無法讀取剪貼簿（瀏覽器未授權）：請長按貼到上面的文字框，再按「匯入負債」。"; });
+    });
+    if (el.debtFile) el.debtFile.addEventListener("change", function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        el.debtJson.value = String(reader.result || "");
+        try {
+          var r = importDebtsFromText(el.debtJson.value);
+          el.debtStatus.textContent = "已從檔案匯入：新增 " + r.added + " 筆、更新 " + r.updated + " 筆。";
+          showToast("負債檔案已匯入");
+        } catch (err) { el.debtStatus.textContent = "檔案解析失敗：" + (err && err.message ? err.message : "格式不正確"); }
+      };
+      reader.readAsText(f); this.value = "";
+    });
+    if (el.fillDebtSample) el.fillDebtSample.addEventListener("click", function () { el.debtJson.value = DEBT_SAMPLE_JSON; el.debtStatus.textContent = "已填入範例格式，改成自己的金額後按「匯入負債」。"; });
+    if (el.clearDebtInput) el.clearDebtInput.addEventListener("click", function () { el.debtJson.value = ""; el.debtStatus.textContent = ""; });
+    if (el.clearDebts) el.clearDebts.addEventListener("click", function () {
+      if (!state.debts.length) return showToast("目前沒有負債資料");
+      if (!confirm("確定清空全部負債與還款計劃？帳戶、流水與分類合計不受影響。")) return;
+      state.debts = []; state.debtTotal = null; saveState(); renderAll(); showToast("負債資料已清空");
+    });
+    if (el.debtQuickForm) el.debtQuickForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = el.debtQuickName.value.trim(); if (!name) return showToast("請填寫名稱");
+      var total = Math.round(num(el.debtQuickTotal.value) * 100) / 100;
+      var periods = Math.max(1, Math.min(60, Number(el.debtQuickPeriods.value) || 1));
+      var firstDate = el.debtQuickDate.value;
+      if (!(total > 0) || !firstDate) return showToast("請填寫總金額與首期應還日");
+      if (state.debts.some(function (d) { return d.name === name; }) && !confirm("已有同名欠款「" + name + "」，要覆蓋它的還款計劃嗎？")) return;
+      var per = Math.floor(total / periods * 100) / 100;
+      var base = firstDate.split("-");
+      var plan = [];
+      for (var i = 0; i < periods; i++) {
+        var d8 = new Date(Number(base[0]), Number(base[1]) - 1 + i, Number(base[2]));
+        var dt = d8.getFullYear() + "-" + pad(d8.getMonth() + 1) + "-" + pad(d8.getDate());
+        plan.push({ date: dt, period: dt.slice(0, 7), amount: i === periods - 1 ? Math.round((total - per * (periods - 1)) * 100) / 100 : per });
+      }
+      var parsed = normalizeDebtPayload({ debtList: [{ name: name, total: total, unBooked: num(el.debtQuickUnbooked.value), plan: plan }] });
+      mergeDebts(parsed); saveState();
+      el.debtQuickForm.reset(); el.debtQuickPeriods.value = "3"; el.debtQuickDate.value = todayText();
+      renderAll(); showToast("已建立還款計劃：" + name); switchTab("debts");
+    });
+    var tabDebts = document.getElementById("tab-debts");
+    if (tabDebts) tabDebts.addEventListener("click", function (e) {
+      var node = e.target;
+      if (!node || !node.closest) return;
+      var paidBtn = node.closest("[data-debt-paid]");
+      if (paidBtn) { toggleDebtPaid(paidBtn.getAttribute("data-debt-paid")); return; }
+      var delBtn = node.closest("[data-debt-del]");
+      if (delBtn) {
+        var id = delBtn.getAttribute("data-debt-del");
+        var d = state.debts.filter(function (x) { return x.id === id; })[0];
+        if (d && confirm("確定刪除「" + d.name + "」的欠款與還款計劃？")) {
+          state.debts = state.debts.filter(function (x) { return x.id !== id; });
+          saveState(); renderAll(); showToast("已刪除欠款：" + d.name);
+        }
+        return;
+      }
+      var monthBtn = node.closest("[data-debt-pay-month]");
+      if (monthBtn) { markDebtMonthPaid(monthBtn.getAttribute("data-debt-pay-month")); return; }
+    });
+    if (el.reportDebtCard) {
+      var goDebts = function () { switchTab("debts"); try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (err) { window.scrollTo(0, 0); } };
+      el.reportDebtCard.addEventListener("click", goDebts);
+      el.reportDebtCard.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goDebts(); } });
+    }
+    if (el.reportSummary) {
+      var scrollTargets = ["#account-balance-editor", "#account-balance-editor", "#account-balance-editor", "#category-totals-editor"];
+      el.reportSummary.addEventListener("click", function (e) {
+        var card = e.target && e.target.closest ? e.target.closest(".summary-card") : null;
+        if (!card) return;
+        var idx = Array.prototype.indexOf.call(el.reportSummary.children, card);
+        var sel = scrollTargets[idx];
+        if (!sel) return;
+        var target = document.querySelector(sel);
+        if (target && target.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }
+  setupDebtPanel();  var NEUTRAL_KEYWORDS = ["还款","提现","充值","零钱通","理财通","存取","转账","红包","退款","小荷包","收益发放","借呗","花呗还款","美团金融还款","自动转入"];
   var EXPENSE_RULES = [
     { category:"餐饮", keywords:["美团","饿了么","华莱士","肯德基","麦当劳","炒鸡","烧烤","咖啡","奶茶","茶饮","大米先生","粉店","超意兴","茶颜悦色"] },
     { category:"交通", keywords:["地铁","公交","哈啰","滴滴","青桔","小遛","骑行","12306","打车","通行费"] },
