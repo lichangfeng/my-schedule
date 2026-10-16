@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.6.2";
+  var APP_VERSION = "1.6.3";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -160,6 +160,8 @@
     exportJson: document.getElementById("export-json"),
     importJson: document.getElementById("import-json"),
     printReport: document.getElementById("print-report"),
+    heroVersion: document.getElementById("hero-version"),
+    versionPill: document.getElementById("version-pill"),
     manualUpdate: document.getElementById("manual-update"),
     toast: document.getElementById("toast")
   };
@@ -1965,9 +1967,11 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=27", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=28", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
+  el.heroVersion.textContent = "v" + APP_VERSION;
+  el.versionPill.textContent = "v" + APP_VERSION;
   el.monthPicker.value = monthText();
   resetTxForm();
   resetDebtForm();
