@@ -208,7 +208,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     </section>
   </section>  <section id="tab-annual" class="hidden">
     <div class="card"><div class="card-head"><div><h2>年度汇总</h2><p>12 个月收入、支出、结余与趋势。</p></div><div class="month-bar"><div><label for="year-picker">年份</label><input id="year-picker" type="number" min="2000" max="2100" step="1"></div></div></div>
-    <div class="card-body"><div id="annual-table"></div><div id="annual-trend" class="section"></div><div id="annual-categories" class="section"></div></div></div>
+    <div class="card-body"><div id="annual-table"></div><div id="annual-trend" class="section"></div><div id="annual-income-categories" class="section"></div><div id="annual-categories" class="section"></div></div></div>
   </section>
   <section id="tab-daily" class="hidden">
     <div class="card">
@@ -282,7 +282,24 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     <div class="card-body"><form id="account-form" class="form-grid three"><div><label for="account-name">账户名称</label><input id="account-name" type="text" maxlength="40" required></div><div><label for="account-type">类型</label><input id="account-type" type="text" maxlength="20" placeholder="微信 / 银行卡 / 现金"></div><div class="actions"><button class="btn primary" type="submit">新增账户</button></div></form><div id="account-list" class="section"></div></div></div>
   </section>
   <section id="tab-flows" class="hidden">
-    <div class="card"><div class="card-head"><div><h2>流水备查</h2><p>每筆都可直接改分類（選收入分類就會變收入）；刪除流水會扣回對應的月度合計。</p></div><div class="actions" style="margin:0"><button class="btn small" id="recompute-summaries" type="button">依流水重算月度合計</button></div></div><div class="card-body"><div id="flow-list"></div></div></div>
+    <div class="card">
+      <div class="card-head"><div><h2>流水備查</h2><p>每筆都可直接改分類（選收入分類就會變收入）；刪除流水會扣回對應的月度合計。</p></div><div class="actions" style="margin:0"><button class="btn small" id="recompute-summaries" type="button">依流水重算月度合計</button></div></div>
+      <div class="card-body">
+        <div class="form-grid three">
+          <div><label for="flow-filter-month">月份</label><input id="flow-filter-month" type="month"></div>
+          <div><label for="flow-filter-kind">收支</label><select id="flow-filter-kind"><option value="">全部</option><option value="income">只看收入</option><option value="expense">只看支出</option></select></div>
+          <div><label for="flow-filter-category">分類</label><select id="flow-filter-category"></select></div>
+          <div><label for="flow-filter-source">來源</label><select id="flow-filter-source"></select></div>
+          <div class="field full actions">
+            <button class="btn primary" id="flow-quick-salary" type="button">只看工資／薪資收入</button>
+            <button class="btn" id="flow-quick-income" type="button">只看全部收入</button>
+            <button class="btn" id="flow-filter-reset" type="button">清除篩選</button>
+          </div>
+        </div>
+        <div id="flow-income-summary" class="section"></div>
+        <div id="flow-list" class="section"></div>
+      </div>
+    </div>
   </section>
 </div>
 <nav class="mobile-nav" id="mobile-nav">
@@ -292,7 +309,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.7.0";
+  var APP_VERSION = "1.8.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -442,6 +459,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     dailyNote: document.getElementById("daily-note"), dailyToday: document.getElementById("daily-today"), dailyClear: document.getElementById("daily-clear"),
     classSalaryPanel: document.getElementById("class-salary-panel"), classSalaryList: document.getElementById("class-salary-list"), classSalaryStatus: document.getElementById("class-salary-status"),
     classSalarySync: document.getElementById("class-salary-sync"), classSalaryBook: document.getElementById("class-salary-book"), classSalaryUnbook: document.getElementById("class-salary-unbook"),
+    flowFilterMonth: document.getElementById("flow-filter-month"), flowFilterKind: document.getElementById("flow-filter-kind"), flowFilterCategory: document.getElementById("flow-filter-category"),
+    flowFilterSource: document.getElementById("flow-filter-source"), flowFilterReset: document.getElementById("flow-filter-reset"),
+    flowIncomeSummary: document.getElementById("flow-income-summary"), flowQuickSalary: document.getElementById("flow-quick-salary"), flowQuickIncome: document.getElementById("flow-quick-income"),
+    annualIncomeCategories: document.getElementById("annual-income-categories"),
     reportSummary: document.getElementById("report-summary")
   };
   function uid(prefix) { return (prefix || "id") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
@@ -648,22 +669,106 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       return { name: c.name, total: manual + rec, recurring: rec };
     }).filter(function(x){ return x.total > 0; }).sort(function(a,b){ return b.total - a.total; });
     var maxCat = Math.max.apply(null, catTotals.map(function(x){ return x.total; }).concat([1]));
+    var incomeCats = state.categories.filter(function (c) { return c.type === "income"; }).map(function (c) {
+      var manual = state.summaries.filter(function (s) { return Number(s.year) === y && s.categoryId === c.id; }).reduce(function (a, s) { return a + num(s.amount); }, 0);
+      var sources = {};
+      state.transactions.forEach(function (t) { if (t.categoryId === c.id && String(t.dt || "").slice(0, 4) === String(y)) { var k = t.source || "未知"; sources[k] = (sources[k] || 0) + num(t.amount); } });
+      return { name: c.name, total: manual, sources: sources };
+    }).filter(function (x) { return x.total > 0; }).sort(function (a, b) { return b.total - a.total; });
+    if (el.annualIncomeCategories) {
+      var maxInc = Math.max.apply(null, incomeCats.map(function (x) { return x.total; }).concat([1]));
+      el.annualIncomeCategories.innerHTML = '<h3>全年收入分类</h3>' + (incomeCats.length ? '<div class="trend">' + incomeCats.map(function (x, i) {
+        var srcText = Object.keys(x.sources).sort(function (a, b) { return x.sources[b] - x.sources[a]; }).map(function (s) { return esc(s) + " " + money(x.sources[s]); }).join(" · ");
+        return '<div class="trend-row"><span>' + esc(x.name) + (srcText ? '<br><span class="flow-source">' + srcText + '</span>' : '') + '</span><div class="trend-bar"><i style="width:' + (x.total / maxInc * 100) + '%;background:' + COLORS[i % COLORS.length] + '"></i></div><strong>' + money(x.total) + '</strong></div>';
+      }).join("") + '</div>' : '<div class="empty">這一年尚無收入。</div>');
+    }
     el.annualCategories.innerHTML = '<h3>全年支出分类</h3>' + (catTotals.length ? '<div class="trend">' + catTotals.map(function(x,i){ return '<div class="trend-row"><span>' + esc(x.name) + (x.recurring > 0 ? '<br><span class="flow-source">含定期 ' + money(x.recurring) + '</span>' : '') + '</span><div class="trend-bar"><i style="width:' + (x.total / maxCat * 100) + '%;background:' + COLORS[i % COLORS.length] + '"></i></div><strong>' + money(x.total) + '</strong></div>'; }).join("") + '</div>' : '<div class="empty">這一年尚無支出分类合计。</div>');
   }  function renderCategories() {
     var groups = [{ type: "expense", title: "支出分类" }, { type: "income", title: "收入分类" }];
     el.categoryList.innerHTML = groups.map(function(g){
       var cats = state.categories.filter(function(c){ return c.type === g.type; });
-      return '<div class="subcard section"><h3>' + g.title + '（' + cats.length + '）</h3><div class="table-wrap"><table class="table"><thead><tr><th>名称</th><th>类型</th><th>操作</th></tr></thead><tbody>' + (cats.length ? cats.map(function(c){ return '<tr><td>' + esc(c.name) + '</td><td>' + (c.type === "income" ? "收入" : "支出") + '</td><td><button class="btn small danger" data-delete-category="' + esc(c.id) + '" type="button">删除</button></td></tr>'; }).join("") : '<tr><td colspan="3" class="empty">尚未建立分类。</td></tr>') + '</tbody></table></div></div>';
+      return '<div class="subcard section"><h3>' + g.title + '（' + cats.length + '）</h3><div class="table-wrap"><table class="table"><thead><tr><th>名称</th><th>类型</th><th>操作</th></tr></thead><tbody>' + (cats.length ? cats.map(function(c){ return '<tr><td>' + esc(c.name) + '</td><td>' + '<td>' + (c.type === "income" ? "收入" : "支出") + '</td><td><div class="actions" style="margin:0"><button class="btn small" data-rename-category="' + esc(c.id) + '" type="button">改名</button><button class="btn small danger" data-delete-category="' + esc(c.id) + '" type="button">删除</button></div></td></tr>'; }).join("") : '<tr><td colspan="3" class="empty">尚未建立分类。</td></tr>') + '</tbody></table></div></div>';
     }).join("");
   }
   function renderAccounts() {
     el.accountList.innerHTML = state.accounts.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>账户</th><th>类型</th><th>操作</th></tr></thead><tbody>' + state.accounts.map(function(a){ return '<tr><td>' + esc(a.name) + '</td><td>' + esc(a.type || "") + '</td><td><button class="btn small danger" data-delete-account="' + esc(a.id) + '" type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>' : '<div class="empty">尚未建立账户。</div>';
   }
-  function renderFlows() {
-    if (!state.transactions.length) { el.flowList.innerHTML = '<div class="empty">尚無流水记录。</div>'; return; }
-    el.flowList.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>分类</th><th>账户</th><th class="num">金额</th><th>来源/备注</th><th>操作</th></tr></thead><tbody>' + state.transactions.slice().sort(function(a,b){ return String(b.dt).localeCompare(String(a.dt)); }).map(function(t){ var cat = findCategory(t.categoryId), acc = findAccount(t.accountId); return '<tr><td>' + esc(t.dt) + '</td><td><select data-flow-category="' + esc(t.id) + '">' + optionsForAllCategories(cat ? cat.id : "") + '</select></td><td>' + esc(acc ? acc.name : "未指定") + '</td><td class="num ' + (cat && cat.type === "income" ? "good" : "bad") + '">' + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.ruleName ? ' <span class="status-chip paid">規則：' + esc(t.ruleName) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-delete-flow="' + esc(t.id) + '" type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>';
+  var flowFilter = { month: "", kind: "", categoryId: "", source: "", salaryOnly: false };
+  function isSalaryCategoryName(name) { return /工[资資]|薪[资資水酬]|薪水|薪酬|月薪/.test(String(name || "")); }
+  function flowCategoryOf(t) { return findCategory(t.categoryId); }
+  function flowSourceValues() {
+    var set = {};
+    state.transactions.forEach(function (t) { if (t.source) set[t.source] = true; });
+    return Object.keys(set).sort();
   }
-  function renderAmortList() {
+  function filteredTransactions() {
+    return state.transactions.filter(function (t) {
+      if (flowFilter.month && String(t.dt || "").slice(0, 7) !== flowFilter.month) return false;
+      if (flowFilter.kind && txKind(t) !== flowFilter.kind) return false;
+      if (flowFilter.categoryId && t.categoryId !== flowFilter.categoryId) return false;
+      if (flowFilter.source && (t.source || "") !== flowFilter.source) return false;
+      if (flowFilter.salaryOnly) { var cat = flowCategoryOf(t); if (!cat || cat.type !== "income" || !isSalaryCategoryName(cat.name)) return false; }
+      return true;
+    });
+  }
+  function renderFlowFilterOptions() {
+    if (el.flowFilterCategory) {
+      var exp = state.categories.filter(function (c) { return c.type === "expense"; });
+      var inc = state.categories.filter(function (c) { return c.type === "income"; });
+      var opt = function (c) { return '<option value="' + esc(c.id) + '"' + (c.id === flowFilter.categoryId ? " selected" : "") + '>' + esc(c.name) + '</option>'; };
+      el.flowFilterCategory.innerHTML = '<option value="">全部分類</option><optgroup label="支出">' + exp.map(opt).join("") + '</optgroup><optgroup label="收入">' + inc.map(opt).join("") + '</optgroup>';
+    }
+    if (el.flowFilterSource) el.flowFilterSource.innerHTML = '<option value="">全部來源</option>' + flowSourceValues().map(function (s) { return '<option value="' + esc(s) + '"' + (s === flowFilter.source ? " selected" : "") + '>' + esc(s) + '</option>'; }).join("");
+    if (el.flowFilterKind) el.flowFilterKind.value = flowFilter.kind;
+  }
+  function renderFlowIncomeSummary() {
+    if (!el.flowIncomeSummary) return;
+    var rows = filteredTransactions().filter(function (t) { return txKind(t) === "income"; });
+    if (!rows.length) { el.flowIncomeSummary.innerHTML = ""; return; }
+    var map = {};
+    rows.forEach(function (t) {
+      var cat = flowCategoryOf(t);
+      var name = cat ? cat.name : "未分類";
+      if (!map[name]) map[name] = { name: name, total: 0, count: 0, sources: {} };
+      map[name].total += num(t.amount); map[name].count++;
+      var src = t.source || "未知";
+      map[name].sources[src] = (map[name].sources[src] || 0) + num(t.amount);
+    });
+    var list = Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.total - a.total; });
+    var total = list.reduce(function (s, x) { return s + x.total; }, 0);
+    el.flowIncomeSummary.innerHTML = '<div class="subcard"><h3>收入分類小計（' + (flowFilter.month ? monthLabel(flowFilter.month) : "全部時間") + (flowFilter.source ? " · 來源 " + esc(flowFilter.source) : "") + '）合計 ' + money(total) + '</h3><div class="table-wrap"><table class="table"><thead><tr><th>收入分類</th><th class="num">金額</th><th class="num">筆數</th><th class="num">佔比</th><th>來源明細</th></tr></thead><tbody>' +
+      list.map(function (x) {
+        var srcText = Object.keys(x.sources).sort(function (a, b) { return x.sources[b] - x.sources[a]; }).map(function (s) { return esc(s) + " " + money(x.sources[s]); }).join(" · ");
+        return '<tr><td><strong>' + esc(x.name) + '</strong></td><td class="num good">' + money(x.total) + '</td><td class="num">' + x.count + '</td><td class="num">' + (total ? Math.round(x.total / total * 100) + "%" : "—") + '</td><td>' + srcText + '</td></tr>';
+      }).join("") + '</tbody></table></div><p class="helper">想把某筆收入歸到工資：在下面的清單直接改分類即可；要自動判斷可到「收入認定規則」設定（例：來源微信＋備註含「工資」→ 分類工資）。</p></div>';
+  }
+  function renderFlows() {
+    renderFlowFilterOptions();
+    var all = state.transactions;
+    var list = filteredTransactions().slice().sort(function (a, b) { return String(b.dt).localeCompare(String(a.dt)); });
+    if (!all.length) { el.flowList.innerHTML = '<div class="empty">尚無流水记录。</div>'; return; }
+    if (!list.length) { el.flowList.innerHTML = '<div class="empty">沒有符合目前篩選條件的流水。</div>'; return; }
+    el.flowList.innerHTML = '<p class="helper">顯示 ' + list.length + ' / 全部 ' + all.length + ' 筆' + (flowFilter.salaryOnly ? '（只看工資／薪資收入）' : "") + '</p><div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>分类</th><th>账户</th><th class="num">金额</th><th>来源/备注</th><th>操作</th></tr></thead><tbody>' + list.map(function (t) {
+      var cat = flowCategoryOf(t), acc = findAccount(t.accountId), kind = txKind(t);
+      return '<tr><td>' + esc(t.dt) + '</td><td><select data-flow-category="' + esc(t.id) + '">' + optionsForAllCategories(cat ? cat.id : "") + '</select></td><td>' + esc(acc ? acc.name : "未指定") + '</td><td class="num ' + (kind === "income" ? "good" : "bad") + '">' + (kind === "income" ? "+" : "−") + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.ruleName ? ' <span class="status-chip paid">規則：' + esc(t.ruleName) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-delete-flow="' + esc(t.id) + '" type="button">删除</button></td></tr>';
+    }).join("") + '</tbody></table></div>';
+  }
+  function setupFlowFilters() {
+    var apply = function () { renderFlows(); renderFlowIncomeSummary(); };
+    if (el.flowFilterMonth) el.flowFilterMonth.addEventListener("change", function () { flowFilter.month = el.flowFilterMonth.value || ""; apply(); });
+    if (el.flowFilterKind) el.flowFilterKind.addEventListener("change", function () { flowFilter.kind = el.flowFilterKind.value; flowFilter.salaryOnly = false; apply(); });
+    if (el.flowFilterCategory) el.flowFilterCategory.addEventListener("change", function () { flowFilter.categoryId = el.flowFilterCategory.value; flowFilter.salaryOnly = false; apply(); });
+    if (el.flowFilterSource) el.flowFilterSource.addEventListener("change", function () { flowFilter.source = el.flowFilterSource.value; apply(); });
+    if (el.flowFilterReset) el.flowFilterReset.addEventListener("click", function () { flowFilter = { month: "", kind: "", categoryId: "", source: "", salaryOnly: false }; el.flowFilterMonth.value = ""; apply(); showToast("已清除流水篩選"); });
+    if (el.flowQuickSalary) el.flowQuickSalary.addEventListener("click", function () {
+      flowFilter.kind = "income"; flowFilter.categoryId = ""; flowFilter.salaryOnly = true;
+      var salary = state.categories.filter(function (c) { return c.type === "income" && isSalaryCategoryName(c.name); });
+      apply();
+      showToast(salary.length ? "只看工資／薪資收入：" + salary.map(function (c) { return c.name; }).join("、") : "目前沒有工資／薪資類的收入分類");
+    });
+    if (el.flowQuickIncome) el.flowQuickIncome.addEventListener("click", function () { flowFilter.kind = "income"; flowFilter.categoryId = ""; flowFilter.salaryOnly = false; apply(); showToast("只看全部收入"); });
+  }
+  setupFlowFilters();  function renderAmortList() {
     if (!state.amortizations.length) { el.amortList.innerHTML = '<div class="empty">尚無分摊项目。</div>'; return; }
     el.amortList.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>名称</th><th class="num">总金额</th><th class="num">月数</th><th class="num">每月</th><th>开始月份</th><th>操作</th></tr></thead><tbody>' + state.amortizations.map(function(a){ return '<tr><td>' + esc(a.name) + '</td><td class="num">' + money(a.total) + '</td><td class="num">' + a.months + '</td><td class="num">' + money(a.total / a.months) + '</td><td>' + esc(a.startMonth) + '</td><td><button class="btn small danger" data-delete-amort="' + esc(a.id) + '" type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>';
   }
@@ -692,7 +797,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function ocrGuess(text) {
     var clean = String(text || "");
     var lines = clean.split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
-    var amounts = []; var re = /[+\-]?\s*(?:¥|￥|\$)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g; var m;
+    var amounts = []; var re = /[+\-]?\s*(?:¥|￥|\$)?\s*\d+(?:,\d{3})*(?:\.\d{1,2})?/g; var m;
     while ((m = re.exec(clean)) !== null) { var raw = m[0].replace(/\s/g,""); var value = Math.abs(num(raw.replace(/[¥￥$,+-]/g,""))); if (value > 0 && (raw.indexOf(".") >= 0 || raw.indexOf("¥") >= 0 || raw.indexOf("￥") >= 0 || raw.indexOf("$") >= 0) && value < 1000000) amounts.push(value); }
     var unique = {}; amounts.forEach(function(v){ unique[v] = true; }); amounts = Object.keys(unique).map(Number).sort(function(a,b){ return b - a; });
     var amount = amounts[0] || 0;
@@ -724,7 +829,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); refreshTxOptions();
+    if (el.flowFilterMonth) el.flowFilterMonth.value = flowFilter.month;
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); refreshTxOptions(); renderFlowIncomeSummary();
   }
   function switchTab(tab) {
     ui.tab = tab;
@@ -744,7 +850,20 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   el.ocrRun.addEventListener("click", runOcr);
   el.ocrClear.addEventListener("click", function(){ ocrPastedFile = null; el.ocrResult.innerHTML = ""; el.ocrFile.value = ""; el.ocrStatus.textContent = ""; });
   window.addEventListener("paste", function(e){ var items = e.clipboardData && e.clipboardData.items ? e.clipboardData.items : []; for (var i = 0; i < items.length; i++) { if (items[i].type && items[i].type.indexOf("image") === 0) { ocrPastedFile = items[i].getAsFile(); el.ocrStatus.textContent = "已貼上截圖，按開始辨識即可。"; e.preventDefault(); return; } } });
-  el.categoryList.addEventListener("click", function(e){ var b = e.target.closest("[data-delete-category]"); if (!b) return; var id = b.getAttribute("data-delete-category"); if (!confirm("删除分类会同时移除该分类的月度合计，流水会保留但取消分类。确定？")) return; state.categories = state.categories.filter(function(c){ return c.id !== id; }); state.summaries = state.summaries.filter(function(s){ return s.categoryId !== id; }); state.transactions.forEach(function(t){ if (t.categoryId === id) t.categoryId = ""; }); saveState(); renderAll(); showToast("分类已删除"); });
+  el.categoryList.addEventListener("click", function(e){
+    var rb = e.target.closest("[data-rename-category]");
+    if (rb) {
+      var rid = rb.getAttribute("data-rename-category");
+      var rcat = findCategory(rid);
+      if (!rcat) return;
+      var input = prompt("分類改名（流水、月度合計、定期支出與收入規則都會一起更新）", rcat.name);
+      if (input === null) return;
+      var res = renameCategory(rid, input);
+      if (!res.ok) return alert(res.msg);
+      showToast(res.changed ? "已改名為：" + res.name : "名稱沒有變更");
+      return;
+    }
+    var b = e.target.closest("[data-delete-category]"); if (!b) return; var id = b.getAttribute("data-delete-category"); if (!confirm("删除分类会同时移除该分类的月度合计，流水会保留但取消分类。确定？")) return; state.categories = state.categories.filter(function(c){ return c.id !== id; }); state.summaries = state.summaries.filter(function(s){ return s.categoryId !== id; }); state.transactions.forEach(function(t){ if (t.categoryId === id) t.categoryId = ""; }); saveState(); renderAll(); showToast("分类已删除"); });
   el.accountList.addEventListener("click", function(e){ var b = e.target.closest("[data-delete-account]"); if (!b) return; var id = b.getAttribute("data-delete-account"); if (!confirm("删除账户会移除其月度余额快照，确定？")) return; state.accounts = state.accounts.filter(function(a){ return a.id !== id; }); state.snapshots = state.snapshots.filter(function(s){ return s.accountId !== id; }); state.transactions.forEach(function(t){ if (t.accountId === id) t.accountId = ""; }); saveState(); renderAll(); showToast("账户已删除"); });
   el.flowList.addEventListener("click", function(e){ var b = e.target.closest("[data-delete-flow]"); if (b) deleteFlow(b.getAttribute("data-delete-flow")); });
   var recomputeBtn = document.getElementById("recompute-summaries");
@@ -1731,6 +1850,16 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     return "其他";
   }
   function isNeutralBillLine(line) { return NEUTRAL_KEYWORDS.some(function(k){ return line.indexOf(k) >= 0; }); }
+  function findAmountInText(text) {
+    var s = String(text == null ? "" : text);
+    var m = s.match(/[¥￥]\s*\d[\d,]*(?:\.\d{1,2})?/);
+    if (m) return m[0].replace(/[¥￥\s]/g, "");
+    m = s.match(/(?:^|[^\d.,])(\d[\d,]*(?:\.\d{1,2}))/);
+    if (m) return m[1];
+    m = s.match(/(?:^|[^\d.,])(\d{1,3}(?:,\d{3})+)/);
+    if (m) return m[1];
+    return "";
+  }
   function parseBillRawText(rawText, sourceType) {
     var lines = String(rawText || "").split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
     var headerIndex = -1;
@@ -1742,9 +1871,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var neutralLine = isNeutralBillLine(line);
       var cols = line.split(/\t|\s{2,}|,/).map(function(x){ return x.trim(); }).filter(function(x){ return x !== ""; });
       var text = cols.length > 1 ? cols.join(" ") : line;
-      var amountMatch = text.match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})/);
-      if (!amountMatch) return;
-      var rawAmount = amountMatch[0].replace(/\s/g,"");
+      var rawAmount = findAmountInText(text);
+      if (!rawAmount) return;
       var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g,"")));
       if (!amount) return;
       var type = /收入|入账|收款|退款|工资/.test(line) || /^\+/.test(rawAmount) ? "income" : "expense";
@@ -1775,6 +1903,20 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       map[key].amount += num(t.amount);
     });
     state.summaries = Object.keys(map).map(function(key){ var r = map[key]; r.id = "sum-" + key.replace(/[|]/g,"-"); return r; });
+  }
+  function renameCategory(id, newName) {
+    newName = String(newName || "").trim();
+    if (!newName) return { ok: false, msg: "名稱不能空白" };
+    var cat = findCategory(id);
+    if (!cat) return { ok: false, msg: "找不到這個分類" };
+    if (cat.name === newName) return { ok: true, changed: 0, name: newName };
+    if (state.categories.some(function (c) { return c.id !== id && c.name === newName && c.type === cat.type; })) return { ok: false, msg: "已經有同名分類" };
+    var old = cat.name;
+    cat.name = newName;
+    recurringList().forEach(function (r) { if (r.categoryName === old) r.categoryName = newName; });
+    incomeRuleList().forEach(function (r) { if (r.categoryName === old) r.categoryName = newName; });
+    saveState(); renderAll();
+    return { ok: true, changed: 1, old: old, name: newName };
   }
   function ensureCategory(name, type) {
     var found = state.categories.filter(function(c){ return c.name === name && c.type === type; })[0]; if (found) return found;
@@ -1810,10 +1952,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var dateMatch = String(dateText).match(/(20\d{2})[-\/.年]?(\d{1,2})[-\/.月]?(\d{1,2})/);
       var dt = dateMatch ? dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]) : todayText();
       var amountText = amountIdx >= 0 && cols[amountIdx] ? cols[amountIdx] : "";
-      var amountMatch = String(amountText).match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})/);
-      if (!amountMatch) amountMatch = line.match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})/);
-      if (!amountMatch) return;
-      var rawAmount = amountMatch[0].replace(/\s/g,"");
+      var rawAmount = findAmountInText(amountText) || findAmountInText(line);
+      if (!rawAmount) return;
       var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g,"")));
       if (!amount) return;
       var type = /收入|利息|存入|工资|收款|转入/.test(line) ? "income" : "expense";
