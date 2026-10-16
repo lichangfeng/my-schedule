@@ -152,7 +152,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.1.0";
+  var APP_VERSION = "1.2.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -199,6 +199,22 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     var accounts = DEFAULT_ACCOUNTS.map(function(name){ return { id: "acc-" + name, name: name, type: name }; });
     return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [] };
   }
+  function migrateLegacyState(target) {
+    try {
+      var legacy = JSON.parse(localStorage.getItem('danceFinance.v1') || 'null');
+      if (!legacy || !Array.isArray(legacy.savingsAccounts) || !legacy.savingsAccounts.length) return target;
+      var month = currentMonthKey(); var p = month.split('-'); var changed = false;
+      legacy.savingsAccounts.forEach(function (acc) {
+        var name = acc.name || '旧版账户';
+        var acct = target.accounts.filter(function (a) { return a.name === name; })[0];
+        if (!acct) { acct = { id: 'acc-' + name, name: name, type: acc.type || '其他' }; target.accounts.push(acct); changed = true; }
+        var exists = target.snapshots.some(function (s) { return Number(s.year) === Number(p[0]) && Number(s.month) === Number(p[1]) && s.accountId === acct.id; });
+        if (!exists) { target.snapshots.push({ id: uid('snap'), year: Number(p[0]), month: Number(p[1]), accountId: acct.id, balance: num(acc.balance), note: '从旧版存款迁移' }); changed = true; }
+      });
+      if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(target));
+    } catch (e) {}
+    return target;
+  }
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
@@ -210,6 +226,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
       parsed.summaries = Array.isArray(parsed.summaries) ? parsed.summaries : [];
       parsed.transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
       parsed.amortizations = Array.isArray(parsed.amortizations) ? parsed.amortizations : [];
+      migrateLegacyState(parsed);
       return parsed;
     } catch (e) { return defaultState(); }
   }
@@ -257,7 +274,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     var hasPrev = state.snapshots.some(function(s){ return Number(s.year) === Number(pp[0]) && Number(s.month) === Number(pp[1]); });
     var change = hasPrev ? assets - prevAssets : null;
     el.reportSummary.innerHTML =
-      '<div class="summary-card"><span>本月总资产</span><strong>' + money(assets) + '</strong><small>' + monthLabel(month) + '账户快照合计</small></div>' +
+      '<div class="summary-card"><span>本月总资产</span><strong>' + money(assets) + '</strong><small>' + (state.snapshots.some(function(s){ return Number(s.year)===Number(month.split('-')[0]) && Number(s.month)===Number(month.split('-')[1]); }) ? monthLabel(month) + '账户快照合计' : '尚未录入本月余额，请填写账户余额快照') + '</small></div>' +
       '<div class="summary-card"><span>上月总资产</span><strong>' + (hasPrev ? money(prevAssets) : "—") + '</strong><small>' + (hasPrev ? monthLabel(prev) : "尚未录入上月余额") + '</small></div>' +
       '<div class="summary-card"><span>资产变动</span><strong class="' + (change == null ? "" : change >= 0 ? "good" : "bad") + '">' + (change == null ? "—" : (change >= 0 ? "+" : "") + money(change)) + '</strong><small>' + (hasPrev ? "对比上月" : "缺少上月快照") + '</small></div>' +
       '<div class="summary-card"><span>本月结余</span><strong class="' + (totals.balance >= 0 ? "good" : "bad") + '">' + money(totals.balance) + '</strong><small>收入 ' + money(totals.income) + ' · 支出 ' + money(totals.expense) + '</small></div>';
