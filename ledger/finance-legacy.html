@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1324">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="資金管理">
+<link rel="manifest" href="./finance-manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>資金管理 · 支出、欠款與舞蹈薪資</title>
+<link rel="stylesheet" href="./finance.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <h1>資金管理</h1>
+      <p>把收入、支出、美團／花唄／借唄與每月要還的錢放在同一個地方。</p>
+    </div>
+    <div class="hero-actions no-print">
+      <a class="btn" data-ledger-link href="./">上課紀錄</a>
+      <a class="btn" href="./salary-calendar.html">薪資日曆</a>
+      <button id="print-report" class="btn" type="button">列印／PDF</button>
+      <span class="pill good" id="hero-version">v1.6.4</span>
+      <button id="manual-update" class="btn primary" type="button">更新版本</button>
+    </div>
+  </header>
+
+  <nav class="tabs no-print" aria-label="頁面快速前往">
+    <a class="tab active" href="#overview">總覽</a>
+    <a class="tab" href="#entry">新增記錄</a>
+    <a class="tab" href="#debts">欠款與月還</a>
+    <a class="tab" href="#recurring">週期支出</a>
+    <a class="tab" href="#income-plans">月度收入</a>
+    <a class="tab" href="#savings">存款目標</a>
+    <a class="tab" href="#budget">分類預算</a>
+    <a class="tab" href="#records">明細匯出</a>
+  </nav>
+
+  <section class="card section" id="overview">
+    <div class="card-head">
+      <div>
+        <h2>本月總覽</h2>
+        <p id="overview-hint">資料會自動保存在這台裝置的瀏覽器中。</p>
+      </div>
+      <div class="month-control">
+        <div>
+          <label for="month-picker">查看月份</label>
+          <input id="month-picker" type="month">
+        </div>
+        <button id="prev-month" class="btn small" type="button">上一月</button>
+        <button id="next-month" class="btn small" type="button">下一月</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="metrics" class="metrics"></div>
+      <div class="subcard section" id="cash-overview" data-target="#savings"></div>
+      <div class="subcard" id="salary-panel"></div>
+      <div class="subcard section" id="due-panel"></div>
+
+    </div>
+  </section>
+
+  <main class="layout section">
+    <details class="card entry-card" id="entry">
+      <summary class="card-head entry-summary">
+        <div>
+          <h2>新增／編輯資金記錄</h2>
+          <p>記錄一筆支出或收入；還款可連動到下方欠款帳戶。</p>
+        </div>
+        <span class="entry-toggle-hint">點擊展開</span>
+        <span class="pill muted" id="entry-mode">新增模式</span>
+      </summary>
+      <div class="card-body">
+        <form id="tx-form">
+          <input id="tx-id" type="hidden">
+          <div class="segmented" role="group" aria-label="記錄類型">
+            <label><input type="radio" name="tx-type" value="expense" checked><span>支出</span></label>
+            <label><input type="radio" name="tx-type" value="income"><span>收入</span></label>
+          </div>
+          <div class="form-grid section">
+            <div class="field">
+              <label for="tx-date">日期</label>
+              <input id="tx-date" type="date" required>
+            </div>
+            <div class="field">
+              <label for="tx-amount">金額（¥）</label>
+              <input id="tx-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+            </div>
+            <div class="field">
+              <label for="tx-category">分類</label>
+              <select id="tx-category" required></select>
+            </div>
+            <div class="field">
+              <label for="tx-account">付款／收款方式</label>
+              <select id="tx-account" required></select>
+            </div>
+            <div class="field full">
+              <label for="tx-item">項目名稱／商家</label>
+              <input id="tx-item" type="text" maxlength="80" placeholder="例如：午餐、美團買菜、舞蹈課交通">
+            </div>
+            <div class="field">
+              <label for="tx-status">狀態</label>
+              <select id="tx-status">
+                <option value="paid">已支付／已入帳</option>
+                <option value="pending">待支付</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tx-debt">連動欠款帳戶（選填）</label>
+              <select id="tx-debt"><option value="">不連動</option></select>
+            </div>
+            <div class="field full">
+              <label for="tx-recurring">連動週期性支出（選填）</label>
+              <select id="tx-recurring"><option value="">不連動</option></select>
+            </div>
+            <div class="field full">
+              <label for="tx-income-plan">連動每月收入計劃（選填）</label>
+              <select id="tx-income-plan"><option value="">不連動</option></select>
+            </div>
+            <div class="field full">
+              <label for="tx-note">備註</label>
+              <textarea id="tx-note" placeholder="例如：本期第 3 期、代墊後收回、花唄分期"></textarea>
+            </div>
+          </div>
+          <div class="inline-actions section">
+            <button class="btn primary" type="submit">儲存記錄</button>
+            <button class="btn" id="tx-reset" type="button">清除表單</button>
+            <span class="helper" id="tx-hint"></span>
+          </div>
+        </form>
+      </div>
+    </details>
+
+    <section class="card" id="debts">
+      <div class="card-head">
+        <div>
+          <h2>欠款與每月還款</h2>
+          <p>管理美團月付、花唄、借唄、信用卡，支援次月一次與分期還款。</p>
+        </div>
+        <button id="show-debt-form" class="btn small good" type="button">＋ 新增帳戶</button>
+      </div>
+      <div class="card-body">
+        <div class="subcard">
+          <div class="inline-actions" style="justify-content:space-between;align-items:center">
+            <strong>目前欠款合計</strong>
+            <strong id="debt-total" class="amount-expense">¥0</strong>
+          </div>
+          <div class="progress" id="debt-progress"><i style="width:0%"></i></div>
+          <p class="helper" id="debt-summary">尚未設定欠款帳戶。</p>
+        </div>
+        <div id="debt-list" class="debt-grid section"></div>
+        <details id="debt-form-wrap" class="subcard section">
+          <summary style="cursor:pointer;font-weight:800" id="debt-form-title">新增欠款帳戶</summary>
+          <form id="debt-form" class="form-grid section">
+            <input id="debt-id" type="hidden">
+            <div class="field">
+              <label for="debt-platform">平台</label>
+              <select id="debt-platform">
+                <option>美團月付</option><option>花唄</option><option>借唄</option><option>信用卡</option><option>其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="debt-name">帳戶名稱</label>
+              <input id="debt-name" type="text" maxlength="40" placeholder="例如：我的花唄">
+            </div>
+            <div class="field">
+              <label for="debt-balance">目前欠款（¥）</label>
+              <input id="debt-balance" type="number" min="0" step="0.01" inputmode="decimal" required>
+            </div>
+            <div class="field">
+              <label for="debt-repayment-type">還款方式</label>
+              <select id="debt-repayment-type">
+                <option value="monthly">每月固定還款</option>
+                <option value="next_month">次月一次性還款</option>
+                <option value="installment">分期還款</option>
+                <option value="custom">每月金額不同</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="debt-first-month">首次還款月份</label>
+              <input id="debt-first-month" type="month" required>
+            </div>
+            <div class="field hidden" id="debt-installment-field">
+              <label for="debt-installment-months">分期期數</label>
+              <input id="debt-installment-months" type="number" min="1" max="120" step="1" value="1" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="debt-monthly" id="debt-monthly-label">每月應還（¥）</label>
+              <input id="debt-monthly" type="number" min="0" step="0.01" inputmode="decimal" required>
+            </div>
+            <div class="field">
+              <label for="debt-due-day" id="debt-due-day-label">每月還款日</label>
+              <input id="debt-due-day" type="number" min="1" max="31" step="1" inputmode="numeric" required>
+            </div>
+            <div class="field full hidden" id="debt-custom-schedule-field">
+              <label>每月還款計劃</label>
+              <div id="debt-schedule-list" class="schedule-editor"></div>
+              <div class="inline-actions section">
+                <button class="btn small good" id="debt-add-schedule" type="button">＋ 新增一期</button>
+              </div>
+              <p class="helper">每一期可設定不同月份與不同金額；沒有列出的月份不會列入待繳。</p>
+            </div>
+            <p class="helper full" id="debt-plan-hint">次月一次只會在首次還款月份列入待繳；分期會在指定期數內按月列入。</p>
+
+            <div class="field">
+              <label for="debt-rate">年利率（選填 %）</label>
+              <input id="debt-rate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如：18.25">
+            </div>
+            <div class="field full">
+              <label for="debt-note">備註</label>
+              <input id="debt-note" type="text" maxlength="100" placeholder="例如：分期 12 期，剩 5 期">
+            </div>
+            <div class="inline-actions full">
+              <button class="btn primary" type="submit">儲存帳戶</button>
+              <button id="debt-reset" class="btn" type="button">取消／清除</button>
+            </div>
+          </form>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <section class="card section full" id="recurring">
+    <div class="card-head">
+      <div>
+        <h2>週期性固定支出</h2>
+        <p>支援每月、每 2 個月、每 3 個月等週期；只有到繳費月份才列入待繳。</p>
+      </div>
+      <button id="show-recurring-form" class="btn small good" type="button">＋ 新增項目</button>
+    </div>
+    <div class="card-body">
+      <div id="recurring-list" class="debt-grid"></div>
+      <details id="recurring-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="recurring-form-title">新增週期性支出</summary>
+        <form id="recurring-form" class="form-grid section">
+          <input id="recurring-id" type="hidden">
+          <div class="field">
+            <label for="recurring-name">項目名稱</label>
+            <input id="recurring-name" type="text" maxlength="60" placeholder="例如：房租、水電、健身房" required>
+          </div>
+          <div class="field">
+            <label for="recurring-amount">每次繳款金額（¥）</label>
+            <input id="recurring-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="recurring-cycle-months">繳費週期（月）</label>
+            <input id="recurring-cycle-months" type="number" min="1" max="24" step="1" value="1" inputmode="numeric" required>
+            <p class="helper">1＝每月一次，3＝每 3 個月一次。</p>
+          </div>
+          <div class="field">
+            <label for="recurring-first-month">首次繳費月份</label>
+            <input id="recurring-first-month" type="month" required>
+          </div>
+          <div class="field">
+            <label for="recurring-category">分類</label>
+            <select id="recurring-category"></select>
+          </div>
+          <div class="field">
+            <label for="recurring-account">付款方式</label>
+            <select id="recurring-account"></select>
+          </div>
+          <div class="field">
+            <label for="recurring-due-day">繳費日</label>
+            <input id="recurring-due-day" type="number" min="1" max="31" step="1" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="recurring-active">狀態</label>
+            <select id="recurring-active"><option value="true">啟用</option><option value="false">停用</option></select>
+          </div>
+          <div class="field full">
+            <label for="recurring-note">備註</label>
+            <input id="recurring-note" type="text" maxlength="100">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存項目</button>
+            <button id="recurring-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <section class="card section full" id="income-plans">
+    <div class="card-head">
+      <div>
+        <h2>每月收入計劃</h2>
+        <p>收入日期不固定也能使用；每月只算預計收入，實際到帳後再登記日期。</p>
+      </div>
+      <button id="show-income-plan-form" class="btn small good" type="button">＋ 新增收入</button>
+    </div>
+    <div class="card-body">
+      <div id="income-plan-list" class="debt-grid"></div>
+      <details id="income-plan-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="income-plan-form-title">新增每月收入</summary>
+        <form id="income-plan-form" class="form-grid section">
+          <input id="income-plan-id" type="hidden">
+          <div class="field">
+            <label for="income-plan-name">收入名稱</label>
+            <input id="income-plan-name" type="text" maxlength="60" placeholder="例如：固定合作、分潤、兼職" required>
+          </div>
+          <div class="field">
+            <label for="income-plan-amount">每月預計收入（¥）</label>
+            <input id="income-plan-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="income-plan-start">開始月份</label>
+            <input id="income-plan-start" type="month" required>
+          </div>
+          <div class="field">
+            <label for="income-plan-active">狀態</label>
+            <select id="income-plan-active"><option value="true">啟用</option><option value="false">停用</option></select>
+          </div>
+          <div class="field full">
+            <label for="income-plan-note">備註</label>
+            <input id="income-plan-note" type="text" maxlength="100" placeholder="例如：每月 5～15 日之間到帳">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存收入計劃</button>
+            <button id="income-plan-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  </section>
+  <section class="card section full" id="savings">
+    <div class="card-head">
+      <div>
+        <h2>存款與存款目標</h2>
+        <p>記錄自己的存款帳戶，設定目標金額與期限，查看倒數和每月需存金額。</p>
+      </div>
+      <div class="inline-actions">
+        <button id="show-savings-account-form" class="btn small good" type="button">＋ 新增存款帳戶</button>
+        <button id="show-savings-goal-form" class="btn small primary" type="button">＋ 新增目標</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="subcard">
+        <div class="inline-actions" style="justify-content:space-between;align-items:center">
+          <strong>目前存款合計</strong>
+          <strong id="savings-total" class="amount-income">¥0</strong>
+        </div>
+        <p class="helper" id="savings-summary">尚未設定存款帳戶。</p>
+      </div>
+      <div id="savings-list" class="debt-grid section"></div>
+
+      <details id="savings-account-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="savings-account-form-title">新增存款帳戶</summary>
+        <form id="savings-account-form" class="form-grid section">
+          <input id="savings-account-id" type="hidden">
+          <div class="field">
+            <label for="savings-account-name">帳戶名稱</label>
+            <input id="savings-account-name" type="text" maxlength="60" placeholder="例如：工資卡、支付寶餘額" required>
+          </div>
+          <div class="field">
+            <label for="savings-account-type">帳戶類型</label>
+            <select id="savings-account-type">
+              <option>銀行卡</option><option>微信</option><option>支付寶</option><option>現金</option><option>定期存款</option><option>其他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="savings-account-balance">目前餘額（¥）</label>
+            <input id="savings-account-balance" type="number" min="0" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="savings-account-note">備註</label>
+            <input id="savings-account-note" type="text" maxlength="100" placeholder="例如：緊急備用金">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存存款帳戶</button>
+            <button id="savings-account-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+
+      <details id="savings-movement-form-wrap" class="subcard section">
+        <summary style="cursor:pointer;font-weight:800" id="savings-movement-title">存款變動記錄</summary>
+        <form id="savings-movement-form" class="form-grid section">
+          <input id="savings-movement-id" type="hidden">
+          <div class="field">
+            <label for="savings-movement-account">存款帳戶</label>
+            <select id="savings-movement-account" required></select>
+          </div>
+          <div class="field">
+            <label for="savings-movement-action">動作</label>
+            <select id="savings-movement-action">
+              <option value="deposit">存入／增加</option>
+              <option value="withdraw">取出／減少</option>
+              <option value="adjust">校正餘額</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="savings-movement-amount">金額／新餘額（¥）</label>
+            <input id="savings-movement-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="savings-movement-date">日期</label>
+            <input id="savings-movement-date" type="date" required>
+          </div>
+          <div class="field full">
+            <label for="savings-movement-note">備註</label>
+            <input id="savings-movement-note" type="text" maxlength="100" placeholder="例如：10 月薪資存入">
+          </div>
+          <div class="inline-actions full">
+            <button class="btn primary" type="submit">儲存存款變動</button>
+            <button id="savings-movement-reset" class="btn" type="button">取消／清除</button>
+          </div>
+        </form>
+      </details>
+
+      <div class="subcard section">
+        <div class="inline-actions" style="justify-content:space-between;align-items:center">
+          <h3 style="margin:0;font-size:.95rem">存款目標與倒數</h3>
+        </div>
+        <div id="savings-goal-list" class="debt-grid section"></div>
+        <details id="savings-goal-form-wrap" class="subcard section">
+          <summary style="cursor:pointer;font-weight:800" id="savings-goal-form-title">新增存款目標</summary>
+          <form id="savings-goal-form" class="form-grid section">
+            <input id="savings-goal-id" type="hidden">
+            <div class="field">
+              <label for="savings-goal-name">目標名稱</label>
+              <input id="savings-goal-name" type="text" maxlength="60" placeholder="例如：旅行基金、買電腦" required>
+            </div>
+            <div class="field">
+              <label for="savings-goal-account">連動存款帳戶（選填）</label>
+              <select id="savings-goal-account"><option value="">不連動，手動填目前金額</option></select>
+            </div>
+            <div class="field">
+              <label for="savings-goal-current">目前金額（¥）</label>
+              <input id="savings-goal-current" type="number" min="0" step="0.01" inputmode="decimal" value="0">
+            </div>
+            <div class="field">
+              <label for="savings-goal-target">目標金額（¥）</label>
+              <input id="savings-goal-target" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+            </div>
+            <div class="field">
+              <label for="savings-goal-date">目標日期</label>
+              <input id="savings-goal-date" type="date" required>
+            </div>
+            <div class="field">
+              <label for="savings-goal-active">狀態</label>
+              <select id="savings-goal-active"><option value="true">啟用</option><option value="false">停用</option></select>
+            </div>
+            <div class="field full">
+              <label for="savings-goal-note">備註</label>
+              <input id="savings-goal-note" type="text" maxlength="100">
+            </div>
+            <div class="inline-actions full">
+              <button class="btn primary" type="submit">儲存目標</button>
+              <button id="savings-goal-reset" class="btn" type="button">取消／清除</button>
+            </div>
+          </form>
+        </details>
+      </div>
+
+      <div class="subcard section">
+        <h3 style="margin:0 0 12px;font-size:.95rem">最近存款變動</h3>
+        <div id="savings-history"></div>
+      </div>
+    </div>
+  </section>
+  <section class="card section" id="budget">
+    <div class="card-head">
+      <div>
+        <h2>分類預算與花費分佈</h2>
+        <p>設定每月預算後，會依已支付支出自動計算使用比例。</p>
+      </div>
+      <span class="pill muted" id="budget-month-label"></span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="subcard">
+          <h3 style="margin:0 0 12px;font-size:.95rem">分類預算</h3>
+          <div id="budget-list" class="budget-list"></div>
+        </div>
+        <div class="subcard">
+          <h3 style="margin:0 0 12px;font-size:.95rem">本月支出分佈</h3>
+          <div id="category-chart" class="chart-list"></div>
+        </div>
+      </div>
+      <div class="subcard section">
+        <h3 style="margin:0 0 12px;font-size:.95rem">付款方式／平台</h3>
+        <div id="account-chart" class="chart-list"></div>
+      </div>
+      <div class="subcard section">
+        <h3 style="margin:0 0 12px;font-size:.95rem">近六個月支出</h3>
+        <div id="trend-chart" class="chart-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card section" id="records">
+    <div class="card-head">
+      <div>
+        <h2>資金明細與匯出</h2>
+        <p>搜尋、修改及匯出 CSV／JSON；JSON 可完整備份與還原。</p>
+      </div>
+      <div class="inline-actions no-print">
+        <button id="export-month-csv" class="btn small primary" type="button">匯出本月 CSV</button>
+        <button id="export-all-csv" class="btn small" type="button">匯出全部 CSV</button>
+        <button id="export-json" class="btn small" type="button">匯出 JSON 備份</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="toolbar">
+        <div class="toolbar-fields">
+          <div><label for="filter-type">類型</label><select id="filter-type"><option value="">全部</option><option value="expense">支出</option><option value="income">收入</option></select></div>
+          <div><label for="filter-category">分類</label><select id="filter-category"><option value="">全部分類</option></select></div>
+          <div><label for="filter-search">搜尋</label><input id="filter-search" type="search" placeholder="商家、備註、帳戶"></div>
+        </div>
+        <div class="toolbar-actions no-print">
+          <label class="btn small">匯入 JSON 備份<input id="import-json" type="file" accept=".json,application/json" hidden></label>
+        </div>
+      </div>
+      <div id="records-table"></div>
+      <details id="bill-import-wrap" class="subcard section"><summary style="cursor:pointer;font-weight:800">智能匯入微信／支付寶付款記錄</summary><div class="section" id="bill-import-body">
+          <p class="helper">可直接貼上微信或支付寶付款文字；也可上傳付款截圖，使用瀏覽器本機 OCR 嘗試辨識。辨識結果會先列在下方，確認後才寫入資金記錄。</p>
+          <div class="form-grid">
+            <div class="field">
+              <label for="bill-import-platform">來源平台</label>
+              <select id="bill-import-platform"><option value="auto">自動判斷</option><option value="wechat">微信</option><option value="alipay">支付寶</option></select>
+            </div>
+            <div class="field">
+              <label for="bill-import-image">付款截圖</label>
+              <input id="bill-import-image" type="file" accept="image/*">
+            </div>
+            <div class="field full">
+              <label for="bill-import-text">複製的付款文字</label>
+              <textarea id="bill-import-text" placeholder="例如：2026-10-08 12:30 美團 -25.50 已支付"></textarea>
+            </div>
+          </div>
+          <div class="inline-actions section">
+            <button id="parse-bill-text" class="btn primary small" type="button">解析文字</button>
+            <button id="recognize-bill-image" class="btn small" type="button">辨識截圖</button>
+            <button id="clear-bill-import" class="btn small" type="button">清除候選</button>
+          </div>
+          <p class="helper" id="bill-import-status"></p>
+          <div id="bill-import-preview" class="section"></div>
+          <div class="inline-actions section"><button id="import-bill-records" class="btn primary small" type="button" disabled>匯入全部候選記錄</button></div>
+        </div></details>
+    </div>
+  </section>
+
+  <section class="card section">
+    <div class="card-head">
+      <div>
+        <h2>使用說明與資料安全</h2>
+        <p>此頁不連網也能使用；資料只存在目前瀏覽器。</p>
+      </div>
+      <span class="pill good" id="version-pill">v1.6.4</span>
+    </div>
+    <div class="card-body helper">
+      <p style="margin-top:0">「舞蹈薪資」會自動讀取同一網站上「上課紀錄與薪資統計」的已完成／代課課堂，並依課堂月份延後一個月入帳；如果薪資沒有出現，請先回到上課紀錄頁確認機構薪資與課堂狀態。</p>
+      <p>「手動更新」會清除本頁與上課紀錄的快取後重新載入，不會刪除你的支出或薪資紀錄。換手機、換瀏覽器或清理瀏覽器資料前，請先按「匯出 JSON 備份」。</p>
+    </div>
+  </section>
+</div>
+
+<nav class="mobile-nav no-print" aria-label="手機快速選單">
+  <a href="#overview">總覽</a>
+  <a href="#entry">記一筆</a>
+  <a href="#debts">還款</a>
+  <a href="#records">匯出</a>
+</nav>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="./finance.js?v=12"></script>
+</body>
+</html>
