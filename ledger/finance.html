@@ -167,6 +167,7 @@ summary.card-head::-webkit-details-marker{display:none}
         <div class="actions">
           <button class="btn primary" id="import-debts-json" type="button">匯入負債</button>
           <button class="btn" id="clipboard-debts-json" type="button">從剪貼簿匯入</button>
+          <button class="btn" id="restore-default-debts" type="button">載入預設負債資料</button>
           <button class="btn" id="fill-debt-sample" type="button">填入範例格式</button>
           <button class="btn" id="clear-debt-input" type="button">清空輸入</button>
         </div>
@@ -211,12 +212,108 @@ summary.card-head::-webkit-details-marker{display:none}
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.3.0";
+  var APP_VERSION = "1.4.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
   var DEFAULT_INCOME = ["工资","其他收入"];
   var DEFAULT_ACCOUNTS = ["支付宝","微信","建设银行储蓄卡","现金"];
+  /* 預設負債資料（依使用者提供，2026-10 還款計劃）；只在使用者尚未有負債資料時自動載入一次 */
+  var SEED_DEBTS = {
+    "totalDebt": 12960.91,
+    "debtList": [
+      {
+        "name": "借呗",
+        "total": 1981.49,
+        "unBooked": 147.65,
+        "plan": [
+          {
+            "period": "2026-11",
+            "date": "2026-11-08",
+            "amount": 695.88
+          },
+          {
+            "period": "2026-12",
+            "date": "2026-12-08",
+            "amount": 284.49
+          },
+          {
+            "period": "2027-01",
+            "date": "2027-01-08",
+            "amount": 284.49
+          },
+          {
+            "period": "2027-02",
+            "date": "2027-02-08",
+            "amount": 284.49
+          },
+          {
+            "period": "2027-03",
+            "date": "2027-03-08",
+            "amount": 284.49
+          }
+        ]
+      },
+      {
+        "name": "花呗",
+        "principal": 8514.6,
+        "plan": [
+          {
+            "period": "2026-11",
+            "date": "2026-11-08",
+            "amount": 3586.71
+          },
+          {
+            "period": "2026-12",
+            "date": "2026-12-08",
+            "amount": 1050.99
+          },
+          {
+            "period": "2027-01",
+            "date": "2027-01-08",
+            "amount": 1051.5
+          },
+          {
+            "period": "2027-02",
+            "date": "2027-02-08",
+            "amount": 1052.11
+          },
+          {
+            "period": "2027-03",
+            "date": "2027-03-08",
+            "amount": 1052.86
+          },
+          {
+            "period": "2027-04",
+            "date": "2027-04-08",
+            "amount": 1053.35
+          }
+        ]
+      },
+      {
+        "name": "美团月付",
+        "total": 2464.82,
+        "unBooked": 0,
+        "plan": [
+          {
+            "period": "2026-11",
+            "date": "2026-11-18",
+            "amount": 821.61
+          },
+          {
+            "period": "2026-12",
+            "date": "2026-12-18",
+            "amount": 821.61
+          },
+          {
+            "period": "2027-01",
+            "date": "2027-01-18",
+            "amount": 821.6
+          }
+        ]
+      }
+    ]
+  };
   var state = loadState();
   var ui = { tab: "report", year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
   var ocrPastedFile = null;
@@ -242,7 +339,7 @@ summary.card-head::-webkit-details-marker{display:none}
     debtList: document.getElementById("debt-list-view"), debtSchedule: document.getElementById("debt-schedule"),
     debtJson: document.getElementById("debt-json"), debtFile: document.getElementById("debt-file"), debtStatus: document.getElementById("debt-status"),
     importDebtsJson: document.getElementById("import-debts-json"), clipboardDebtsJson: document.getElementById("clipboard-debts-json"),
-    fillDebtSample: document.getElementById("fill-debt-sample"), clearDebtInput: document.getElementById("clear-debt-input"), clearDebts: document.getElementById("clear-debts"),
+    fillDebtSample: document.getElementById("fill-debt-sample"), clearDebtInput: document.getElementById("clear-debt-input"), clearDebts: document.getElementById("clear-debts"), restoreDefaultDebts: document.getElementById("restore-default-debts"),
     debtQuickForm: document.getElementById("debt-quick-form"), debtQuickName: document.getElementById("debt-quick-name"), debtQuickTotal: document.getElementById("debt-quick-total"),
     debtQuickPeriods: document.getElementById("debt-quick-periods"), debtQuickDate: document.getElementById("debt-quick-date"), debtQuickUnbooked: document.getElementById("debt-quick-unbooked"),
     reportDebts: document.getElementById("report-debts"), reportDebtCard: document.getElementById("report-debt-card"), reportDebtHint: document.getElementById("report-debt-hint"),
@@ -286,7 +383,7 @@ summary.card-head::-webkit-details-marker{display:none}
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") return defaultState();
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -295,9 +392,10 @@ summary.card-head::-webkit-details-marker{display:none}
       parsed.transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
       parsed.amortizations = Array.isArray(parsed.amortizations) ? parsed.amortizations : [];
       parsed.debts = Array.isArray(parsed.debts) ? parsed.debts : [];
+      seedDefaultDebts(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { return defaultState(); }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -507,7 +605,7 @@ summary.card-head::-webkit-details-marker{display:none}
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=30", { updateViaCache: "none" }).catch(function(){});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=38", { updateViaCache: "none" }).catch(function(){});
   window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName };
   el.versionLabel.textContent = "v" + APP_VERSION;
   el.txDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
@@ -731,6 +829,24 @@ summary.card-head::-webkit-details-marker{display:none}
     else if (!state.debts.length) state.debtTotal = null;
     return { added: added, updated: updated };
   }
+  function seedDefaultDebts(target) {
+    if (!target || target.debtsSeeded) return target;
+    target.debtsSeeded = true;
+    if (!Array.isArray(target.debts) || !target.debts.length) {
+      try {
+        var seeded = normalizeDebtPayload(SEED_DEBTS);
+        target.debts = seeded.debts;
+        target.debtTotal = seeded.totalDebt;
+      } catch (e) {}
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    return target;
+  }
+  function restoreDefaultDebts() {
+    var res = mergeDebts(normalizeDebtPayload(SEED_DEBTS));
+    saveState(); renderAll();
+    return res;
+  }
   function importDebtsFromText(text) {
     var parsed = normalizeDebtPayload(parseJsonLoose(text));
     var res = mergeDebts(parsed);
@@ -815,6 +931,12 @@ summary.card-head::-webkit-details-marker{display:none}
       mergeDebts(parsed); saveState();
       el.debtQuickForm.reset(); el.debtQuickPeriods.value = "3"; el.debtQuickDate.value = todayText();
       renderAll(); showToast("已建立還款計劃：" + name); switchTab("debts");
+    });
+    if (el.restoreDefaultDebts) el.restoreDefaultDebts.addEventListener("click", function () {
+      if (state.debts.length && !confirm("會用預設負債資料更新同名欠款的還款計劃（已標記「已還」的期數會保留）。要繼續嗎？")) return;
+      var res = restoreDefaultDebts();
+      el.debtStatus.textContent = "已載入預設負債資料：新增 " + res.added + " 筆、更新 " + res.updated + " 筆，目前共 " + state.debts.length + " 筆負債。";
+      showToast("已載入預設負債資料");
     });
     var tabDebts = document.getElementById("tab-debts");
     if (tabDebts) tabDebts.addEventListener("click", function (e) {
