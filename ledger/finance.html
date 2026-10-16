@@ -34,8 +34,10 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     <div class="hero-actions">
       <span class="pill" id="version-label">v1.0.0</span>
       <a class="btn small" href="./finance-legacy.html">旧版明细</a>
+      <a class="btn small" href="#batch-panel">批量导入账单</a>
+      <label class="btn small">合并导入流水JSON<input id="import-flows-json" type="file" accept=".json,application/json" hidden></label>
       <button class="btn small" id="export-json" type="button">导出备份</button>
-      <label class="btn small">导入备份<input id="import-json" type="file" accept=".json,application/json" hidden></label>
+      <label class="btn small">导入完整备份<input id="import-json" type="file" accept=".json,application/json" hidden></label>
       <button class="btn small" id="manual-update" type="button">更新版本</button>
     </div>
   </header>
@@ -175,6 +177,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     ocrFile: document.getElementById("ocr-file"), ocrRun: document.getElementById("ocr-run"), ocrClear: document.getElementById("ocr-clear"), ocrStatus: document.getElementById("ocr-status"), ocrResult: document.getElementById("ocr-result"),
     batchSource: document.getElementById("batch-source"), batchFile: document.getElementById("batch-file"), batchText: document.getElementById("batch-text"), batchParse: document.getElementById("batch-parse"), batchImport: document.getElementById("batch-import"), batchClear: document.getElementById("batch-clear"), batchStatus: document.getElementById("batch-status"), batchPreview: document.getElementById("batch-preview"),
     clipboardImport: document.getElementById("clipboard-import"),
+    importFlowsJson: document.getElementById("import-flows-json"),
     toast: document.getElementById("toast"), versionLabel: document.getElementById("version-label")
   };
   function uid(prefix) { return (prefix || "id") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
@@ -415,6 +418,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   document.getElementById("next-month").addEventListener("click", function(){ var m = shiftMonth(ui.year + "-" + pad(ui.month), 1); var p=m.split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); renderAll(); });
   document.getElementById("current-month").addEventListener("click", function(){ var p=currentMonthKey().split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); renderAll(); });
   document.getElementById("export-json").addEventListener("click", function(){ var blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="月末记账备份_"+todayText()+".json"; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); });
+  document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=30", { updateViaCache: "none" }).catch(function(){});
