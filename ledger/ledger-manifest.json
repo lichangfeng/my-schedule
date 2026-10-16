@@ -1,9 +1,9 @@
 {
-  "name": "上課紀錄與薪資統計",
-  "short_name": "上課紀錄",
-  "description": "記錄各舞蹈機構課堂，按月統計並分別匯出指定機構的課堂紀錄。",
+  "name": "上课纪录与薪资统计",
+  "short_name": "上课纪录",
+  "description": "记录各舞蹈机构课堂，按月统计并分别汇出指定机构的课堂纪录。",
   "lang": "zh-Hant",
-  "start_url": "./index.html?v=17",
+  "start_url": "./index.html?v=18",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -328,7 +328,7 @@ body.mobile-fit .dh .dt{font-size:12.5px;min-width:22px;height:22px;padding:0 4p
 body.theme-cyber #dayHeader{background:rgba(13,29,49,.97);border-bottom-color:rgba(83,210,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.35)}
 body.theme-cyber #dayHeader .gutter-head,body.theme-cyber #dayBody .gutter{background:rgba(13,29,49,.97)}
 body.mobile-fit.theme-cyber .tl{color:#7ee7fb}
-/* ---- 工具菜單：不超出畫面，可捲動（.29） ---- */
+/* ---- 工具菜单：不超出画面，可卷动（.29） ---- */
 .floating{max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px)}
 .float-panel{max-height:calc(100vh - 118px);max-height:calc(100dvh - 118px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .float-panel::-webkit-scrollbar{width:6px}
@@ -359,7 +359,7 @@ body.mobile-fit .maintitle-wrap{margin:0}
 body.mobile-fit .week-title{font-size:11px}
 body.mobile-fit .weekbar{padding:3px 5px;margin-bottom:5px}
 body.mobile-fit .day-switch{margin-bottom:4px}
-/* ---- 話筒/設置可隱藏（.36） ---- */
+/* ---- 话筒/设置可隐藏（.36） ---- */
 .fab-restore{display:none;position:fixed;right:8px;bottom:8px;z-index:79;width:30px;height:30px;border-radius:50%;border:1px solid #d7dce6;background:rgba(255,255,255,.75);color:#8a93a6;font-size:15px;line-height:1;padding:0;cursor:pointer;opacity:.45}
 .fab-restore:hover{opacity:1}
 body.fab-hidden .floating{display:none!important}
@@ -384,7 +384,7 @@ body.theme-cyber .fab-restore{background:rgba(13,29,49,.85);border-color:rgba(83
   </div>
 
   <div class="hint no-print" id="hint">
-    <span>💡 <b>使用说明</b>：点空白处添加（从本周起每周重复）；修改/拖动/删除某周安排会询问同步到以后第几周。<br>📱 <b>手机上</b>：左右滑动查看整周，点卡片即可修改（手机上不会误拖动卡片）。<br>🔄 <b>换设备</b>：点右下角 ⚙️ →「导出数据」生成文件 → 发到手机 → 手机上点「导入数据」选择该文件，即可在手机上继续修改；改完再导出导回电脑。<br>🗑 <b>批量删除</b>：右下角 ⚙️ →「批量删除卡片」→ 点卡片选中（可先「全选本周」）→「删除所选」→ 选范围；删错了点「↩ 撤销删除」。<br>📚 <b>機構課表</b>：右下角 ⚙️ →「機構課表」，可以看每家機構每天幾點是誰在上課；點「＋加入」就直接做成日程卡片。</span>
+    <span>💡 <b>使用说明</b>：点空白处添加（从本周起每周重复）；修改/拖动/删除某周安排会询问同步到以后第几周。<br>📱 <b>手机上</b>：左右滑动查看整周，点卡片即可修改（手机上不会误拖动卡片）。<br>🔄 <b>换设备</b>：点右下角 ⚙️ →「导出数据」生成文件 → 发到手机 → 手机上点「导入数据」选择该文件，即可在手机上继续修改；改完再导出导回电脑。<br>🗑 <b>批量删除</b>：右下角 ⚙️ →「批量删除卡片」→ 点卡片选中（可先「全选本周」）→「删除所选」→ 选范围；删错了点「↩ 撤销删除」。<br>📚 <b>机构课表</b>：右下角 ⚙️ →「机构课表」，可以看每家机构每天几点是谁在上课；点「＋加入」就直接做成日程卡片。</span>
     <button class="close" id="hintClose" title="关闭">✕</button>
   </div>
 
@@ -1145,12 +1145,12 @@ function loadAliases(){ try{ var raw=localStorage.getItem(ALIAS_KEY); aliases=ra
 function saveAliases(){ try{ localStorage.setItem(ALIAS_KEY,JSON.stringify(aliases)); }catch(e){} }
 function rxEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
 var BUILTIN_ALIASES=[
-  ["世贸","HUK东"],["世茂","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["河西店","HUK西"],["河西","HUK西"],
+  ["世贸","HUK东"],["世茂","HUK东"],["世贸","HUK东"],["世茂店","HUK东"],["河西店","HUK西"],["河西","HUK西"],
   ["小y编舞","HUK东 小y编舞"],["小Y编舞","HUK东 小y编舞"],
   ["小y","HUK东 小y编舞"],["cc","HUK东 CC"],["斑斑","HUK东 斑斑"],["lee","HUK东 Lee编舞"],
   ["泽泽老师","HUK东 zeze"],["泽泽","HUK东 zeze"],["黑发","HIPHOP"],["黑怕","HIPHOP"],["嘻哈","HIPHOP"],["hip","HIPHOP"],
-  ["hk世贸店","HUK东"],["huk世贸店","HUK东"],["世贸店","HUK东"],["世貿店","HUK东"],["hk世贸","HUK东"],["世贸","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],
-  ["武蹈","舞蹈"],["舞導","舞蹈"],["街五","街舞"],
+  ["hk世贸店","HUK东"],["huk世贸店","HUK东"],["世贸店","HUK东"],["世贸店","HUK东"],["hk世贸","HUK东"],["世贸","HUK东"],["世贸","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],
+  ["武蹈","舞蹈"],["舞导","舞蹈"],["街五","街舞"],
   ["哈克西","HUK西"],["哈克东","HUK东"],
   ["huk小付","HUK西 小富"],["huk小富","HUK西 小富"],["huk小腹","HUK西 小富"],["huk小副","HUK西 小富"],
   ["uk小付","HUK西 小富"],["uk小富","HUK西 小富"],["uk小腹","HUK西 小富"],["uk小副","HUK西 小富"],
@@ -1198,7 +1198,7 @@ var BUILTIN_NAMES=[
  "HUK东 siri","HUK东 ad","HUK东 二毛","HUK东 小黑","HUK东 凡凡","HUK东 莉莉","HUK东 泰瑞阳","HUK东 晶晶",
  "HUK东 贝爷","HUK东 美七","HUK东 闫洋","HUK东 henry","HUK东 可欣","HUK东 贺贺","HUK东 一诺","HUK东 惠子",
  "HUK东 海涛","HUK东 艺艺","HUK东 依依","HUK东 josh","HUK东 谭老师","HUK东 金鸣","HUK东 娇子","HUK东 片片",
- "OD 鹏羽","OD ACE","OD Peng","AS","i5 私教","西美","洋湖实验","長郡外國語實驗","早功","练习","隊訓","meta",
+ "OD 鹏羽","OD ACE","OD Peng","AS","i5 私教","西美","洋湖实验","长郡外国语实验","早功","练习","队训","meta",
  "HUK西 小富","HUK西 瑶瑶","HUK西 小雪","HUK西 琳珑","HUK西 融融","HUK西 一诺","HUK西 子莉","HUK西 CC",
  "HUK西 可欣","HUK西 饺子","HUK西 汤汤","HUK西 牛牛","HUK西 小秦","HUK西 八一","HUK西 冰冰","HUK西 五一",
  "HUK西 惠子","HUK西 海涛","HUK西  zeze","HUK西 十一","HUK西 兔子","HUK西 阿卷",
@@ -1225,7 +1225,7 @@ function knownTitles(){
   for(var b=0;b<BUILTIN_NAMES.length;b++){ map[BUILTIN_NAMES[b]]=1; }
   return Object.keys(map);
 }
-var SHOP_KEYS=[["hk世贸","HUK东"],["huk世贸","HUK东"],["世贸店","HUK东"],["世貿店","HUK东"],["世贸","HUK东"],["世貿","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],["huk东","HUK东"],["huk西","HUK西"],["河西店","HUK西"],["河西","HUK西"],["od","OD"],["as","AS"],["i5","i5"],["西美","西美"],["洋湖","洋湖实验"],["长郡","長郡外國語實驗"],["長郡","長郡外國語實驗"]];
+var SHOP_KEYS=[["hk世贸","HUK东"],["huk世贸","HUK东"],["世贸店","HUK东"],["世贸店","HUK东"],["世贸","HUK东"],["世贸","HUK东"],["世茂店","HUK东"],["世茂","HUK东"],["huk东","HUK东"],["huk西","HUK西"],["河西店","HUK西"],["河西","HUK西"],["od","OD"],["as","AS"],["i5","i5"],["西美","西美"],["洋湖","洋湖实验"],["长郡","长郡外国语实验"],["长郡","长郡外国语实验"]];
 var HUKDONG_T=["小y","lee","CC","斑斑","小秦","牛牛","甲甲","柚子","郭虎","一凡","zeze","阿九","椰子","优益c","融融","十一","咩咩","龙荔","treeya","minmi","siri","ad","二毛","小黑","小六","小富","凡凡","莉莉","泰瑞阳","晶晶","贝爷","美七","闫洋","henry","可欣","贺贺","一诺","惠子","海涛","艺艺","依依","josh","谭老师","金鸣","娇子","片片"];
 var HUKXI_PREF=["小富","瑶瑶","小雪","琳珑","子莉","饺子","汤汤","八一","冰冰","五一","阿卷","兔子"];
 var HUKXI_T=["小富","瑶瑶","小雪","琳珑","融融","一诺","子莉","CC","可欣","饺子","汤汤","牛牛","小秦","八一","冰冰","五一","惠子","海涛","zeze","十一","兔子","阿卷"];
@@ -1363,7 +1363,7 @@ function openAliasDialog(){
   attachOverlayClose(ov,closeAl);
 }var AI_KEY="myScheduleAI";
 var aiCfg={provider:"",key:"",model:""};
-var KNOWN_SHOPS="HUK 河西店(简称HUK西)、HUK 世茂店(简称HUK东)、BAD EGGS、O-DOG、i5、AS、西美、洋湖实验、長郡外國語實驗";
+var KNOWN_SHOPS="HUK 河西店(简称HUK西)、HUK 世茂店(简称HUK东)、BAD EGGS、O-DOG、i5、AS、西美、洋湖实验、长郡外国语实验";
 var KNOWN_TEACHERS="HUK西：小富、瑶瑶、小雪、琳珑、融融、一诺、子莉、cc、可欣、饺子、汤汤、牛牛、小秦、八一、冰冰、五一、惠子、海涛、zeze、十一、兔子、阿卷；HUK东：小y、lee、优益c、柚子、甲甲、艺艺、椰子、zeze、凡凡、一凡、娇子、郭虎、小黑、小六、小富、莉莉、依依、闫津、josh、泰瑞阳、贺贺、闫洋、谭老师、henry、金鸣、阿九、咩咩、mimmi、二毛、小六、龙荔、斑斑、贝爷、酸酸、片片；BAD EGGS：CHOCO、TALITA、POPONE、SANER、ZIKEE、JAYE、KATIE、羊儿、WHYWHY、VERNEY、AENNON、DEREK、SHUKI、PENG、7DONG、SHERRY、VIC、QZIKA、MAGGIE、博博、HUI、ATO、琴子、椰紫、根宝、SUNNY、ZILLA、文文、小蟒、橘子、小尤、彬彬、涛涛、小维、叶子、KEVIN、小文、紧张、DANNIE、康康、嘉怡";
 function loadAI(){ try{ var r=localStorage.getItem(AI_KEY); if(r){ var o=JSON.parse(r); if(o){ aiCfg.provider=o.provider||""; aiCfg.key=o.key||""; aiCfg.model=o.model||""; } } }catch(e){} }
 function saveAI(){ try{ localStorage.setItem(AI_KEY,JSON.stringify(aiCfg)); }catch(e){} }
@@ -1786,7 +1786,7 @@ function openDialog(mode,ev){
   document.addEventListener("keydown",esc);
   attachOverlayClose(ov,function(){ closeDialog(); });
 }
-/* ===== 機構課表（行政參考，不占自己的日程） ===== */
+/* ===== 机构课表（行政参考，不占自己的日程） ===== */
 const SCH_VENUES=["HUK 河西店","HUK 世茂店","BAD EGGS","O-DOG（按日期）","常规课 · 安生"];
 const SCH_PREFIX=["HUK西 ","HUK东 ","","O-DOG ",""];
 const SCH_COLOR=["indigo","purple","teal","rose","blue"];
@@ -1878,12 +1878,12 @@ const INST_SCHEDULE=[
     {"v":2,"d":4,"t":"15:00-16:30","c":[["KEVIN","CHOREO"],["叶子","JAZZ 基础强化"]]},
     {"v":2,"d":4,"t":"17:00-18:30","c":[["小文","JAZZ"],["KEVIN","CHOREO 基础入门"]]},
     {"v":2,"d":4,"t":"19:00-20:30","c":[["小蟒","HIPHOP"],["紧张","JAZZ 特训班 基础入门"]]},
-    {"v":2,"d":5,"t":"15:00-16:30","c":[["濤濤","JAZZ入門"],["彬彬","JAZZ強化"],["DANNIE","編舞進階"]]},
-    {"v":2,"d":5,"t":"17:00-18:30","c":[["彬彬","JAZZ入門"],["緊張","JAZZ進階"],["康康","編舞進階"]]},
-    {"v":2,"d":5,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]},
-    {"v":2,"d":6,"t":"15:00-16:30","c":[["濤濤","JAZZ入門"],["彬彬","JAZZ強化"],["DANNIE","編舞進階"]]},
-    {"v":2,"d":6,"t":"17:00-18:30","c":[["彬彬","JAZZ入門"],["緊張","JAZZ進階"],["康康","編舞進階"]]},
-    {"v":2,"d":6,"t":"19:00-20:30","c":[["濤濤","JAZZ強化"],["康康","編舞入門"],["嘉怡","JAZZ入門"]]},
+    {"v":2,"d":5,"t":"15:00-16:30","c":[["涛涛","JAZZ入门"],["彬彬","JAZZ强化"],["DANNIE","编舞进阶"]]},
+    {"v":2,"d":5,"t":"17:00-18:30","c":[["彬彬","JAZZ入门"],["紧张","JAZZ进阶"],["康康","编舞进阶"]]},
+    {"v":2,"d":5,"t":"19:00-20:30","c":[["涛涛","JAZZ强化"],["康康","编舞入门"],["嘉怡","JAZZ入门"]]},
+    {"v":2,"d":6,"t":"15:00-16:30","c":[["涛涛","JAZZ入门"],["彬彬","JAZZ强化"],["DANNIE","编舞进阶"]]},
+    {"v":2,"d":6,"t":"17:00-18:30","c":[["彬彬","JAZZ入门"],["紧张","JAZZ进阶"],["康康","编舞进阶"]]},
+    {"v":2,"d":6,"t":"19:00-20:30","c":[["涛涛","JAZZ强化"],["康康","编舞入门"],["嘉怡","JAZZ入门"]]},
     /* === 常规课 · 安生 === */
     {"v":4,"d":0,"t":"16:00-17:30","c":[["妙舞社雨花亭 安生",""]]},
     {"v":4,"d":0,"t":"18:40-21:30","c":[["Mine 安生","基础+进阶连堂"]]},
@@ -1896,7 +1896,7 @@ const INST_SCHEDULE=[
 ];
 var schV=0, schD=null;
 var schDateVal=null, nextScopeDefault=null;
-/* O-DOG 指定日期課表（10/12–10/31，每天老師不固定） */
+/* O-DOG 指定日期课表（10/12–10/31，每天老师不固定） */
 const ODOG_DAILY={"2026-10-12":[["15:00-16:30","VERNEY",""],["17:00-18:30","CHOCO",""],["19:00-20:30","PETER",""]],"2026-10-13":[["15:00-16:30","KATIE",""],["17:00-18:30","YUNIE",""],["19:00-20:30","羊儿",""]],"2026-10-14":[["15:00-16:30","琴子",""],["17:00-18:30","ZIKEE",""],["19:00-20:30","黑楠",""]],"2026-10-15":[["15:00-16:30","POPONE",""],["17:00-18:30","TALITA",""],["19:00-20:30","椰紫",""]],"2026-10-16":[["15:00-16:30","SANER",""],["17:00-18:30","ZILLA",""],["19:00-20:30","VIC",""]],"2026-10-17":[["15:00-16:30","VERNEY","FOUNDATION"],["17:00-18:30","WHYWHY",""],["19:00-20:30","SUNNY",""]],"2026-10-18":[["15:00-16:30","PENG","FOUNDATION"],["17:00-18:30","JM",""],["19:00-20:30","JM",""]],"2026-10-19":[["15:00-16:30","JM",""],["17:00-18:30","JAYE",""],["19:00-20:30","JM",""]],"2026-10-20":[["15:00-16:30","ZIKEE",""],["17:00-18:30","BONNIE",""],["19:00-20:30","CHOCO",""]],"2026-10-21":[["15:00-16:30","羊儿",""],["17:00-18:30","琴子",""],["19:00-20:30","VIC & KATIE",""]],"2026-10-22":[["15:00-16:30","POPONE",""],["17:00-18:30","WHYWHY",""],["19:00-20:30","椰紫",""]],"2026-10-23":[["15:00-16:30","SANER",""],["17:00-18:30","PENG",""],["19:00-20:30","TALITA",""]],"2026-10-24":[["15:00-16:30","CHOCO","FOUNDATION"],["17:00-18:30","SUNNY",""],["19:00-20:30","ZIKEE",""]],"2026-10-25":[["15:00-16:30","羊儿","FOUNDATION"],["17:00-18:30","YI",""],["19:00-20:30","YI",""]],"2026-10-26":[["15:00-16:30","YI","FOUNDATION"],["17:00-18:30","JAYE",""],["19:00-20:30","YI",""]],"2026-10-27":[["15:00-16:30","YI",""],["17:00-18:30","琴子",""],["19:00-20:30","YI",""]],"2026-10-28":[["15:00-16:30","椰紫",""],["17:00-18:30","VERNEY",""],["19:00-20:30","POPONE",""]],"2026-10-29":[["15:00-16:30","IF",""],["17:00-18:30","PENG",""],["19:00-20:30","CHOCO",""]],"2026-10-30":[["15:00-16:30","JAYE",""],["17:00-18:30","ZIKEE",""],["19:00-20:30","WHYWHY",""]],"2026-10-31":[["15:00-16:30","VIC","FOUNDATION"],["17:00-18:30","SANER",""],["19:00-20:30","TALITA",""]]};
 function escH(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]; }); }
 function schTitle(vi,teacher){ return (SCH_PREFIX[vi]||"")+teacher; }
@@ -1953,7 +1953,7 @@ function renderSchOdog(host){
   var ds=schDateNow();
   var list=ODOG_DAILY[ds]||[];
   if(!list.length){
-    host.innerHTML="<p class=\"dsub\" style=\"padding:12px 6px\">"+escH(ds)+" 這天還沒有 O-DOG 課表。O-DOG 每天老師都不一樣，目前資料是 10/12–10/31，用「前一天 / 后一天」或直接選日期。</p>";
+    host.innerHTML="<p class=\"dsub\" style=\"padding:12px 6px\">"+escH(ds)+" 这天还没有 O-DOG 课表。O-DOG 每天老师都不一样，目前资料是 10/12–10/31，用「前一天 / 后一天」或直接选日期。</p>";
     return;
   }
   host.innerHTML=list.map(function(r){
@@ -1983,7 +1983,7 @@ function addFromOdog(dateText,t,teacher,cls){
   var ti=$("#fTitle"); if(ti) ti.value=schTitle(3,teacher);
   var no=$("#fNote"); if(no) no.value="O-DOG（按日期）"+(cls?(" · "+cls):"");
   var fe=$("#fErr"); if(fe) fe.textContent="";
-  showToast("📅 已切到 "+dateText+" 那一週，保存時預設「僅本周」");
+  showToast("📅 已切到 "+dateText+" 那一周，保存时预设「仅本周」");
 }
 function closeSch(){ var ov=$("#overlay"); ov.classList.add("hidden"); ov.innerHTML=""; if(curEsc){ document.removeEventListener("keydown",curEsc); curEsc=null; } }
 function renderSchChips(){
@@ -2003,7 +2003,7 @@ function renderSchList(){
     if(it.v!==schV||it.d!==schD) continue;
     for(var j=0;j<it.c.length;j++) rows.push({t:it.t,teacher:it.c[j][0],cls:it.c[j][1]||""});
   }
-  if(!rows.length){ host.innerHTML="<p class=\"dsub\" style=\"padding:12px 6px\">這一天這家機構沒有課。</p>"; return; }
+  if(!rows.length){ host.innerHTML="<p class=\"dsub\" style=\"padding:12px 6px\">这一天这家机构没有课。</p>"; return; }
   host.innerHTML=rows.map(function(r){
     var sp=schSpan(r.t);
     var title=schTitle(schV,r.teacher);
@@ -2030,11 +2030,11 @@ function addFromInst(vi,d,t,teacher,cls){
 function openInstSchedule(){
   if(schD===null||schD===undefined){ var nd=new Date(); schD=isCurrentWeek()?((nd.getDay()+6)%7):0; }
   var ov=$("#overlay"); ov.classList.remove("hidden");
-  ov.innerHTML="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>機構課表 · 每天誰在上課</h3>"+
-    "<p class=\"dsub\">這裡只是給你查的參考表，不會占你的日程。看中哪一節，點右邊「＋加入」，就會用那一天的時段幫你開好日程卡片（保存時會問你要同步到第幾周）。</p>"+
+  ov.innerHTML="<div class=\"dialog\" role=\"dialog\" aria-modal=\"true\"><h3>机构课表 · 每天谁在上课</h3>"+
+    "<p class=\"dsub\">这里只是给你查的参考表，不会占你的日程。看中哪一节，点右边「＋加入」，就会用那一天的时段帮你开好日程卡片（保存时会问你要同步到第几周）。</p>"+
     "<div class=\"schchips\" id=\"schV\"></div><div class=\"schchips\" id=\"schD\"></div>"+
     "<div class=\"schlist\" id=\"schL\"></div>"+
-    "<div class=\"dfoot\"><button class=\"btn\" id=\"schClose\">關閉</button></div></div>";
+    "<div class=\"dfoot\"><button class=\"btn\" id=\"schClose\">关闭</button></div></div>";
   renderSchChips(); renderSchList();
   $("#schClose").addEventListener("click",closeSch);
   var esc=function(e){ if(e.key==="Escape") closeSch(); };

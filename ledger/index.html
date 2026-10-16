@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7,10 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="上課紀錄">
+<meta name="apple-mobile-web-app-title" content="上课纪录">
 <link rel="manifest" href="./ledger-manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<title>上課紀錄與薪資統計</title>
+<title>上课纪录与薪资统计</title>
 <style>
 :root{
   color-scheme:light;
@@ -196,24 +196,24 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
 <div class="wrap">
   <header class="hero">
     <div>
-      <h1>上課紀錄與薪資統計</h1>
-      <p>記錄每次授課，按月整理各機構堂數，直接給財務核對。</p>
+      <h1>上课纪录与薪资统计</h1>
+      <p>记录每次授课，按月整理各机构堂数，直接给财务核对。</p>
     </div>
-    <div class="hero-badge">資料自動保存 · v17</div>
+    <div class="hero-badge">资料自动保存 · v18</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
-    <a href="#entry">＋ 記一課</a>
-    <a href="./salary-calendar.html">薪資日曆</a>
-    <a href="./finance.html">資金管理</a>
-    <a href="#summary">統計</a>
-    <a href="#groups">機構匯出</a>
+    <a href="#entry">＋ 记一课</a>
+    <a href="./salary-calendar.html">薪资日历</a>
+    <a href="./finance.html">资金管理</a>
+    <a href="#summary">统计</a>
+    <a href="#groups">机构汇出</a>
   </nav>
   <main class="grid">
     <details class="card entry-card" id="entry">
       <summary class="card-head entry-summary">
-        <h2 id="form-title">新增上課紀錄</h2>
-        <span class="entry-toggle-hint">點擊展開</span>
+        <h2 id="form-title">新增上课纪录</h2>
+        <span class="entry-toggle-hint">点击展开</span>
       </summary>
       <div class="card-body">
         <button id="cancel-edit" class="btn btn-small" type="button" hidden style="margin-bottom:10px">取消修改</button>
@@ -224,59 +224,59 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
               <input id="record-date" type="date" required>
             </div>
             <div class="field full">
-              <label for="record-institution">機構</label>
+              <label for="record-institution">机构</label>
               <select id="record-institution" required></select>
             </div>
             <div class="field full">
-              <label for="record-course">班級（每個機構目前只有一個）</label>
+              <label for="record-course">班级（每个机构目前只有一个）</label>
               <select id="record-course" required></select>
             </div>
 
             <div class="field">
-              <label for="record-count">堂數（同日兩節填 2）</label>
+              <label for="record-count">堂数（同日两节填 2）</label>
               <input id="record-count" type="number" min="0.5" step="0.5" value="1" required>
             </div>
             <div class="field">
-              <label for="record-rate">本節薪資（自動帶入，可修改）</label>
-              <input id="record-rate" type="number" min="0" step="0.01" placeholder="可在機構薪資設定中預填">
+              <label for="record-rate">本节薪资（自动带入，可修改）</label>
+              <input id="record-rate" type="number" min="0" step="0.01" placeholder="可在机构薪资设定中预填">
             </div>
           </div>
           <details class="advanced">
-            <summary>其他選項（通常不用改）</summary>
+            <summary>其他选项（通常不用改）</summary>
             <div class="form-grid">
               <div class="field">
-                <label for="record-status">狀態</label>
+                <label for="record-status">状态</label>
                 <select id="record-status">
                   <option value="completed">已完成</option>
-                  <option value="substitute">代課</option>
-                  <option value="planned">待授課（暫不計）</option>
-                  <option value="leave">請假</option>
+                  <option value="substitute">代课</option>
+                  <option value="planned">待授课（暂不计）</option>
+                  <option value="leave">请假</option>
                   <option value="cancelled">取消</option>
                 </select>
               </div>
               <div class="field full">
-                <label for="record-note">備註</label>
-                <textarea id="record-note" placeholder="代課老師、補課、遲到等"></textarea>
+                <label for="record-note">备注</label>
+                <textarea id="record-note" placeholder="代课老师、补课、迟到等"></textarea>
               </div>
             </div>
           </details>
           <div class="actions">
-            <button class="btn btn-primary" type="submit" id="save-record">儲存紀錄</button>
-            <button class="btn" type="button" id="reset-form">清空表單</button>
+            <button class="btn btn-primary" type="submit" id="save-record">储存纪录</button>
+            <button class="btn" type="button" id="reset-form">清空表单</button>
           </div>
-          <p class="helper">「已完成」和「代課」會計入堂數；同一天兩節課請把堂數填 2，不同機構則分開記錄。</p>
+          <p class="helper">「已完成」和「代课」会计入堂数；同一天两节课请把堂数填 2，不同机构则分开记录。</p>
         </form>
         <details class="advanced rate-settings">
-          <summary>機構薪資設定（每節／發薪日）</summary>
+          <summary>机构薪资设定（每节／发薪日）</summary>
           <div id="rate-settings"></div>
-          <p class="helper">設定每節薪資與每月發薪日。發薪日只顯示在財務資料中，不會出現在微信純日期文字裡。</p>
+          <p class="helper">设定每节薪资与每月发薪日。发薪日只显示在财务资料中，不会出现在微信纯日期文字里。</p>
         </details>
         <details class="help">
-          <summary>備份與還原</summary>
-          <p>建議每月底按「匯出備份」保存一份 JSON。若要換手機或電腦，可在新裝置按「匯入備份」還原全部資料。</p>
+          <summary>备份与还原</summary>
+          <p>建议每月底按「汇出备份」保存一份 JSON。若要换手机或电脑，可在新装置按「汇入备份」还原全部资料。</p>
           <div class="actions">
-            <button class="btn btn-small" type="button" id="export-json">匯出備份</button>
-            <label class="btn btn-small">匯入備份<input id="import-json" type="file" accept=".json,application/json" hidden></label>
+            <button class="btn btn-small" type="button" id="export-json">汇出备份</button>
+            <label class="btn btn-small">汇入备份<input id="import-json" type="file" accept=".json,application/json" hidden></label>
           </div>
         </details>
       </div>
@@ -286,39 +286,39 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <section class="card summary-card" id="summary">
         <div class="summary-top">
           <div class="month-control">
-            <label for="summary-month">選擇月份</label>
+            <label for="summary-month">选择月份</label>
             <div class="month-switch">
               <input id="summary-month" type="month">
               <button id="month-current" class="btn btn-small" type="button">本月</button>
             </div>
           </div>
           <div class="export-picker no-print">
-            <label for="export-institution-select">選擇單獨機構匯出</label>
+            <label for="export-institution-select">选择单独机构汇出</label>
             <div class="export-picker-row">
               <select id="export-institution-select"></select>
-              <button id="export-selected-csv" class="btn btn-small" type="button">匯出</button>
+              <button id="export-selected-csv" class="btn btn-small" type="button">汇出</button>
               <button id="share-selected-csv" class="btn btn-small" type="button">分享</button>
-              <button id="copy-selected-dates" class="btn btn-small btn-primary" type="button">複製文字</button>
+              <button id="copy-selected-dates" class="btn btn-small btn-primary" type="button">复制文字</button>
             </div>
           </div>
           <div class="actions no-print" style="margin:0">
-            <a class="btn btn-small" href="./salary-calendar.html">薪資日曆</a>
-            <a class="btn btn-small" href="./finance.html">資金管理</a>
-            <button id="copy-summary" class="btn btn-small" type="button">複製財務摘要</button>
-            <button id="export-month-csv" class="btn btn-small" type="button">匯出本月 CSV</button>
+            <a class="btn btn-small" href="./salary-calendar.html">薪资日历</a>
+            <a class="btn btn-small" href="./finance.html">资金管理</a>
+            <button id="copy-summary" class="btn btn-small" type="button">复制财务摘要</button>
+            <button id="export-month-csv" class="btn btn-small" type="button">汇出本月 CSV</button>
             <button id="print-summary" class="btn btn-small" type="button">列印／存 PDF</button>
           </div>
         </div>
 
         <div class="metrics">
-          <div class="metric"><span>計薪堂數</span><strong id="metric-classes">0</strong><small id="metric-classes-note">已完成＋代課</small></div>
-          <div class="metric"><span>授課機構</span><strong id="metric-institutions">0</strong><small>本月有計薪紀錄</small></div>
-          <div class="metric"><span>授課天數</span><strong id="metric-days">0</strong><small>同一天只計一天</small></div>
-          <div class="metric"><span>預估薪資</span><strong id="metric-pay">—</strong><small id="metric-pay-note">費率留空則不計算</small></div>
+          <div class="metric"><span>计薪堂数</span><strong id="metric-classes">0</strong><small id="metric-classes-note">已完成＋代课</small></div>
+          <div class="metric"><span>授课机构</span><strong id="metric-institutions">0</strong><small>本月有计薪纪录</small></div>
+          <div class="metric"><span>授课天数</span><strong id="metric-days">0</strong><small>同一天只计一天</small></div>
+          <div class="metric"><span>预估薪资</span><strong id="metric-pay">—</strong><small id="metric-pay-note">费率留空则不计算</small></div>
         </div>
 
         <div class="institution-box">
-          <h3>各機構堂數</h3>
+          <h3>各机构堂数</h3>
           <div id="institution-summary"></div>
         </div>
       </section>
@@ -326,8 +326,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <section class="card records-card" id="groups" style="margin-top:18px">
         <div class="records-head">
           <div>
-            <h2>依機構分組</h2>
-            <div class="text-small" style="color:var(--muted);margin-top:4px">只列已完成與代課，可單獨複製或匯出給指定機構。</div>
+            <h2>依机构分组</h2>
+            <div class="text-small" style="color:var(--muted);margin-top:4px">只列已完成与代课，可单独复制或汇出给指定机构。</div>
           </div>
         </div>
         <div class="records-wrap">
@@ -337,8 +337,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
 
       <section class="card records-card" style="margin-top:18px">
         <div class="records-head">
-          <h2>本月全部紀錄</h2>
-          <button id="export-all-csv" class="btn btn-small" type="button">匯出全部 CSV</button>
+          <h2>本月全部纪录</h2>
+          <button id="export-all-csv" class="btn btn-small" type="button">汇出全部 CSV</button>
         </div>
         <div class="records-wrap">
           <div id="records-table"></div>
@@ -354,18 +354,19 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖實驗", "長郡外國語實驗"];
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "谢业"];
   var COURSE_BY_INSTITUTION = {
     "AS": ["AS"],
     "西美": ["西美"],
     "META": ["META"],
     "i5": ["i5"],
-    "洋湖實驗": ["洋湖實驗"],
-    "長郡外國語實驗": ["長郡外國語實驗"]
+    "洋湖实验": ["洋湖实验"],
+    "跳动全城（吾悦）": ["跳动全城（吾悦）"],
+    "谢业": ["谢业"]
   };
   var STATUS_LABELS = {
-    completed: "已完成", substitute: "代課", planned: "待授課",
-    leave: "請假", cancelled: "取消"
+    completed: "已完成", substitute: "代课", planned: "待授课",
+    leave: "请假", cancelled: "取消"
   };
   var PAYABLE_STATUS = { completed: true, substitute: true };
   var state = loadState();
@@ -437,18 +438,27 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       parsed.institutions = Array.isArray(parsed.institutions) ? parsed.institutions : DEFAULT_INSTITUTIONS.slice();
       parsed.rates = parsed.rates && typeof parsed.rates === "object" ? parsed.rates : {};
       parsed.payDays = parsed.payDays && typeof parsed.payDays === "object" ? parsed.payDays : {};
+      migrateInstitutionState(parsed);
       return parsed;
     } catch (error) {
-      console.warn("無法讀取本機資料", error);
+      console.warn("无法读取本机资料", error);
       return fallback;
     }
+  }
+  function migrateInstitutionState(data) {
+    var rename = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）" };
+    data.records.forEach(function (record) { if (rename[record.institution]) record.institution = rename[record.institution]; });
+    ["rates", "payDays"].forEach(function (field) {
+      if (!data[field] || typeof data[field] !== "object") return;
+      Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
+    });
   }
   function saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.warn("無法儲存本機資料", error);
-      showToast("瀏覽器無法儲存資料，請先匯出備份");
+      console.warn("无法储存本机资料", error);
+      showToast("浏览器无法储存资料，请先汇出备份");
     }
   }
   function defaultInstitutionRate(institution) {
@@ -493,7 +503,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
         totalPay += rate * count;
         ratedClasses += count;
       }
-      var key = record.institution || "未填機構";
+      var key = record.institution || "未填机构";
       if (!map[key]) map[key] = { institution: key, classes: 0, pay: 0, ratedClasses: 0, payableClasses: 0, dates: {} };
       map[key].classes += count;
       map[key].payableClasses += count;
@@ -516,11 +526,11 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     };
   }
   function initEntryOptions(preferredInstitution, preferredCourse) {
-    el.institution.innerHTML = "<option value=\"\">請選擇機構</option>" + DEFAULT_INSTITUTIONS.map(function (item) {
+    el.institution.innerHTML = "<option value=\"\">请选择机构</option>" + DEFAULT_INSTITUTIONS.map(function (item) {
       return "<option value=\"" + esc(item) + "\">" + esc(item) + "</option>";
     }).join("");
     if (preferredInstitution && DEFAULT_INSTITUTIONS.indexOf(preferredInstitution) < 0) {
-      el.institution.insertAdjacentHTML("beforeend", "<option value=\"" + esc(preferredInstitution) + "\">" + esc(preferredInstitution) + "（舊紀錄）</option>");
+      el.institution.insertAdjacentHTML("beforeend", "<option value=\"" + esc(preferredInstitution) + "\">" + esc(preferredInstitution) + "（旧纪录）</option>");
     }
     el.institution.value = preferredInstitution || "";
     renderCourseOptions(preferredCourse);
@@ -529,7 +539,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     var institution = el.institution.value;
     var courses = COURSE_BY_INSTITUTION[institution] || (institution ? [institution] : []);
     if (!courses.length) {
-      el.course.innerHTML = "<option value=\"\">請先選擇機構</option>";
+      el.course.innerHTML = "<option value=\"\">请先选择机构</option>";
       return;
     }
     el.course.innerHTML = courses.map(function (item) {
@@ -544,7 +554,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       var rate = defaultInstitutionRate(institution);
       var payDay = defaultInstitutionPayDay(institution);
       return "<div class=\"rate-row\"><label for=\"rate-" + esc(institution) + "\">" + esc(institution) + "</label>" +
-        "<input id=\"rate-" + esc(institution) + "\" data-rate-institution=\"" + esc(institution) + "\" type=\"number\" min=\"0\" step=\"0.01\" value=\"" + (rate === null ? "" : rate) + "\" placeholder=\"每節薪資\">" +
+        "<input id=\"rate-" + esc(institution) + "\" data-rate-institution=\"" + esc(institution) + "\" type=\"number\" min=\"0\" step=\"0.01\" value=\"" + (rate === null ? "" : rate) + "\" placeholder=\"每节薪资\">" +
         "<div class=\"payday-field\"><span>每月</span><input data-payday-institution=\"" + esc(institution) + "\" type=\"number\" min=\"1\" max=\"31\" step=\"1\" value=\"" + (payDay === null ? "" : payDay) + "\" placeholder=\"15\"><span>日</span></div></div>";
     }).join("") + "</div>";
   }  function initExportInstitutionOptions() {
@@ -557,11 +567,11 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     var records = filteredRecords();
     var summary = summaryData(records);
     document.getElementById("metric-classes").textContent = decimal(summary.totalClasses) + " 堂";
-    document.getElementById("metric-classes-note").textContent = records.length ? "共 " + records.length + " 筆明細" : "本月尚無紀錄";
-    document.getElementById("metric-institutions").textContent = summary.byInstitution.length + " 間";
+    document.getElementById("metric-classes-note").textContent = records.length ? "共 " + records.length + " 笔明细" : "本月尚无纪录";
+    document.getElementById("metric-institutions").textContent = summary.byInstitution.length + " 间";
     document.getElementById("metric-days").textContent = decimal(summary.totalDays) + " 天";
     document.getElementById("metric-pay").textContent = summary.hasAnyRate ? money(summary.totalPay) : "—";
-    document.getElementById("metric-pay-note").textContent = summary.ratesComplete ? "已有完整費率" : (summary.hasAnyRate ? "部分紀錄未填費率" : "費率留空則不計算");
+    document.getElementById("metric-pay-note").textContent = summary.ratesComplete ? "已有完整费率" : (summary.hasAnyRate ? "部分纪录未填费率" : "费率留空则不计算");
     renderInstitutionSummary(summary.byInstitution);
     renderInstitutionGroups(summary.byInstitution, records);
     renderRecords(records);
@@ -569,62 +579,62 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   function renderInstitutionSummary(items) {
     var host = document.getElementById("institution-summary");
     if (!items.length) {
-      host.innerHTML = "<div class=\"empty\" style=\"padding:20px\">本月還沒有可計薪的授課紀錄。</div>";
+      host.innerHTML = "<div class=\"empty\" style=\"padding:20px\">本月还没有可计薪的授课纪录。</div>";
       return;
     }
     var rows = items.map(function (item) {
       var pay = item.ratedClasses === item.payableClasses ? money(item.pay) : "部分未填";
       var payDay = defaultInstitutionPayDay(item.institution);
       var payDayText = payDay === null ? "—" : "每月 " + payDay + " 日";
-      return "<tr><td data-label=\"機構\"><strong>" + esc(item.institution) + "</strong></td>" +
-        "<td data-label=\"堂數\" class=\"num\">" + decimal(item.classes) + " 堂</td>" +
-        "<td data-label=\"天數\" class=\"num\">" + decimal(item.days) + " 天</td>" +
-        "<td data-label=\"預估薪資\" class=\"num\">" + pay + "</td>" +
-        "<td data-label=\"發薪日\" class=\"num\">" + payDayText + "</td></tr>";
+      return "<tr><td data-label=\"机构\"><strong>" + esc(item.institution) + "</strong></td>" +
+        "<td data-label=\"堂数\" class=\"num\">" + decimal(item.classes) + " 堂</td>" +
+        "<td data-label=\"天数\" class=\"num\">" + decimal(item.days) + " 天</td>" +
+        "<td data-label=\"预估薪资\" class=\"num\">" + pay + "</td>" +
+        "<td data-label=\"发薪日\" class=\"num\">" + payDayText + "</td></tr>";
     }).join("");
-    host.innerHTML = "<div class=\"table-wrap\"><table><thead><tr><th>機構</th><th class=\"num\">堂數</th><th class=\"num\">天數</th><th class=\"num\">預估薪資</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+    host.innerHTML = "<div class=\"table-wrap\"><table><thead><tr><th>机构</th><th class=\"num\">堂数</th><th class=\"num\">天数</th><th class=\"num\">预估薪资</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
   }  function renderInstitutionGroups(items, records) {
     var host = document.getElementById("institution-groups");
     if (!host) return;
     if (!items.length) {
-      host.innerHTML = "<div class=\"empty\">本月還沒有可依機構發送的計薪課堂。</div>";
+      host.innerHTML = "<div class=\"empty\">本月还没有可依机构发送的计薪课堂。</div>";
       return;
     }
     var paid = payableRecords(records);
     host.innerHTML = "<div class=\"group-list\">" + items.map(function (item) {
       var groupRecords = paid.filter(function (record) {
-        return String(record.institution || "未填機構") === item.institution;
+        return String(record.institution || "未填机构") === item.institution;
       }).sort(function (a, b) {
         return String(a.date).localeCompare(String(b.date));
       });
       var institutionPayDay = defaultInstitutionPayDay(item.institution);
-      var institutionPayDayText = institutionPayDay === null ? "" : " · 每月 " + institutionPayDay + " 日發薪";
+      var institutionPayDayText = institutionPayDay === null ? "" : " · 每月 " + institutionPayDay + " 日发薪";
       var lines = groupRecords.map(function (record) {
-        var status = record.status === "substitute" ? "代課" : "已完成";
+        var status = record.status === "substitute" ? "代课" : "已完成";
         var rate = effectiveRate(record);
-        var salaryText = rate === null ? "" : " · " + money(rate) + "/節";
+        var salaryText = rate === null ? "" : " · " + money(rate) + "/节";
         var note = record.note ? " · " + esc(record.note) : "";
         return "<div class=\"group-record\">" +
           "<div class=\"group-record-date\">" + esc(record.date) + "</div>" +
-          "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填課程") + "</strong><span>" + status + salaryText + note + "</span></div>" +
+          "<div class=\"group-record-main\"><strong>" + esc(record.course || "未填课程") + "</strong><span>" + status + salaryText + note + "</span></div>" +
           "<div class=\"group-record-count\">" + decimal(record.count || 0) + " 堂</div>" +
           "<div class=\"group-record-actions\"><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button>" +
-          "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></div>" +
+          "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">删除</button></div>" +
           "</div>";
       }).join("");
       return "<details class=\"institution-group\">" +
-        "<summary><div class=\"group-head\"><strong>" + esc(item.institution) + "</strong><span>本月獨立課堂清單" + institutionPayDayText + "</span></div>" +
+        "<summary><div class=\"group-head\"><strong>" + esc(item.institution) + "</strong><span>本月独立课堂清单" + institutionPayDayText + "</span></div>" +
         "<div class=\"group-total\">" + decimal(item.classes) + " 堂<span>" + decimal(item.days) + " 天</span></div></summary>" +
         "<div class=\"group-body\">" + lines +
-        "<div class=\"group-actions\"><button class=\"btn btn-small btn-primary\" type=\"button\" data-copy-institution=\"" + esc(item.institution) + "\">複製日期文字（微信）</button>" +
-        "<button class=\"btn btn-small\" type=\"button\" data-export-institution=\"" + esc(item.institution) + "\">匯出此機構 CSV</button>" +
-        "<button class=\"btn btn-small\" type=\"button\" data-share-institution=\"" + esc(item.institution) + "\">分享／儲存此機構</button></div></div>" +
+        "<div class=\"group-actions\"><button class=\"btn btn-small btn-primary\" type=\"button\" data-copy-institution=\"" + esc(item.institution) + "\">复制日期文字（微信）</button>" +
+        "<button class=\"btn btn-small\" type=\"button\" data-export-institution=\"" + esc(item.institution) + "\">汇出此机构 CSV</button>" +
+        "<button class=\"btn btn-small\" type=\"button\" data-share-institution=\"" + esc(item.institution) + "\">分享／储存此机构</button></div></div>" +
         "</details>";
     }).join("") + "</div>";
   }
   function institutionDateText(institution) {
     var records = payableRecords(filteredRecords()).filter(function (record) {
-      return String(record.institution || "未填機構") === institution;
+      return String(record.institution || "未填机构") === institution;
     });
     var countsByDate = {};
     records.forEach(function (record) {
@@ -640,11 +650,11 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     dates.forEach(function (date) {
       var dateParts = date.split("-");
       var line = Number(dateParts[1]) + "月" + Number(dateParts[2]) + "日";
-      if (countsByDate[date] > 1) line += "（" + decimal(countsByDate[date]) + "節）";
+      if (countsByDate[date] > 1) line += "（" + decimal(countsByDate[date]) + "节）";
       lines.push(line);
     });
-    if (!dates.length) lines.push("本月沒有上課紀錄。");
-    else lines.push("合計：" + decimal(dates.length) + "天，" + decimal(totalClasses) + "堂");
+    if (!dates.length) lines.push("本月没有上课纪录。");
+    else lines.push("合计：" + decimal(dates.length) + "天，" + decimal(totalClasses) + "堂");
     return lines.join("\n");
   }  function copyText(text, message) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -652,68 +662,68 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     } else fallbackCopy(text);
   }
   function copyInstitutionSummary(institution) {
-    copyText(institutionDateText(institution), institution + "日期文字已複製");
+    copyText(institutionDateText(institution), institution + "日期文字已复制");
   }
   function safeFilename(value) {
-    return String(value || "機構").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
+    return String(value || "机构").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, "_");
   }
   function exportInstitutionCsv(institution) {
     var month = el.month.value || monthText();
     var records = payableRecords(filteredRecords()).filter(function (record) {
-      return String(record.institution || "未填機構") === institution;
+      return String(record.institution || "未填机构") === institution;
     });
-    if (!records.length) return showToast("這個機構本月沒有可匯出的計薪課堂");
-    downloadText("上課紀錄_" + month + "_" + safeFilename(institution) + ".csv", csvFor(records, institution), "text/csv;charset=utf-8");
-    showToast(institution + " 的 CSV 已匯出");
+    if (!records.length) return showToast("这个机构本月没有可汇出的计薪课堂");
+    downloadText("上课纪录_" + month + "_" + safeFilename(institution) + ".csv", csvFor(records, institution), "text/csv;charset=utf-8");
+    showToast(institution + " 的 CSV 已汇出");
   }
   function shareInstitutionCsv(institution) {
     var month = el.month.value || monthText();
     var records = payableRecords(filteredRecords()).filter(function (record) {
-      return String(record.institution || "未填機構") === institution;
+      return String(record.institution || "未填机构") === institution;
     });
-    if (!records.length) return showToast("這個機構本月沒有可分享的計薪課堂");
-    var filename = "上課紀錄_" + month + "_" + safeFilename(institution) + ".csv";
+    if (!records.length) return showToast("这个机构本月没有可分享的计薪课堂");
+    var filename = "上课纪录_" + month + "_" + safeFilename(institution) + ".csv";
     var csv = csvFor(records, institution);
     if (navigator.share && typeof File !== "undefined") {
       var file = new File([csv], filename, { type: "text/csv;charset=utf-8" });
-      var payload = { title: institution + "上課紀錄", text: institutionDateText(institution), files: [file] };
+      var payload = { title: institution + "上课纪录", text: institutionDateText(institution), files: [file] };
       if (!navigator.canShare || navigator.canShare({ files: [file] })) {
         navigator.share(payload).catch(function (error) {
           if (!error || error.name !== "AbortError") {
             downloadText(filename, csv, "text/csv;charset=utf-8");
-            showToast(institution + " 的 CSV 已匯出");
+            showToast(institution + " 的 CSV 已汇出");
           }
         });
         return;
       }
     }
     downloadText(filename, csv, "text/csv;charset=utf-8");
-    showToast(institution + " 的 CSV 已匯出");
+    showToast(institution + " 的 CSV 已汇出");
   }
   function renderRecords(records) {
     var host = document.getElementById("records-table");
     if (!records.length) {
-      host.innerHTML = "<div class=\"empty\">這個月份還沒有紀錄。用左邊表單新增第一堂課吧。</div>";
+      host.innerHTML = "<div class=\"empty\">这个月份还没有纪录。用左边表单新增第一堂课吧。</div>";
       return;
     }
     var rows = records.map(function (record) {
       var statusClass = esc(record.status || "completed");
-      var statusText = STATUS_LABELS[record.status] || esc(record.status || "未設定");
+      var statusText = STATUS_LABELS[record.status] || esc(record.status || "未设定");
       var rate = effectiveRate(record);
       var specialRate = rate !== null && numberOrNull(record.rate) !== null && numberOrNull(record.rate) !== defaultInstitutionRate(record.institution);
       return "<tr>" +
         "<td data-label=\"日期\">" + esc(record.date) + "</td>" +
-        "<td data-label=\"機構\"><strong>" + esc(record.institution) + "</strong></td>" +
-        "<td data-label=\"課程／備註\">" + esc(record.course || "未填課程") + (record.note ? "<div style=\"font-size:.84rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
-        "<td data-label=\"狀態\"><span class=\"status " + statusClass + "\">" + statusText + "</span></td>" +
-        "<td data-label=\"堂數\" class=\"num\">" + decimal(record.count || 0) + "</td>" +
-        "<td data-label=\"本節薪資\" class=\"num\">" + (rate === null ? "—" : money(rate) + (specialRate ? " <span class=\"status substitute\">特殊</span>" : "")) + "</td>" +
+        "<td data-label=\"机构\"><strong>" + esc(record.institution) + "</strong></td>" +
+        "<td data-label=\"课程／备注\">" + esc(record.course || "未填课程") + (record.note ? "<div style=\"font-size:.84rem;color:var(--muted);margin-top:4px\">" + esc(record.note) + "</div>" : "") + "</td>" +
+        "<td data-label=\"状态\"><span class=\"status " + statusClass + "\">" + statusText + "</span></td>" +
+        "<td data-label=\"堂数\" class=\"num\">" + decimal(record.count || 0) + "</td>" +
+        "<td data-label=\"本节薪资\" class=\"num\">" + (rate === null ? "—" : money(rate) + (specialRate ? " <span class=\"status substitute\">特殊</span>" : "")) + "</td>" +
         "<td data-label=\"操作\"><button class=\"btn btn-small\" type=\"button\" data-edit=\"" + esc(record.id) + "\">修改</button> " +
-        "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">刪除</button></td>" +
+        "<button class=\"btn btn-small btn-danger\" type=\"button\" data-delete=\"" + esc(record.id) + "\">删除</button></td>" +
         "</tr>";
     }).join("");
     host.innerHTML = "<div class=\"table-wrap\"><table class=\"record-table\"><thead><tr>" +
-      "<th>日期</th><th>機構</th><th>課程／備註</th><th>狀態</th><th class=\"num\">堂數</th><th class=\"num\">本節薪資</th><th>操作</th>" +
+      "<th>日期</th><th>机构</th><th>课程／备注</th><th>状态</th><th class=\"num\">堂数</th><th class=\"num\">本节薪资</th><th>操作</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>";
   }  function resetForm() {
     editingId = null;
@@ -724,9 +734,9 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     el.rate.value = "";
     el.count.value = "1";
     el.status.value = "completed";
-    el.formTitle.textContent = "新增上課紀錄";
+    el.formTitle.textContent = "新增上课纪录";
     el.cancelEdit.hidden = true;
-    document.getElementById("save-record").textContent = "儲存紀錄";
+    document.getElementById("save-record").textContent = "储存纪录";
   }
   function recordFromForm() {
     var institution = el.institution.value.trim();
@@ -751,17 +761,17 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   function saveRecord(event) {
     event.preventDefault();
     var record = recordFromForm();
-    if (!record.date) return showToast("請選擇日期");
-    if (!record.institution) return showToast("請填寫機構");
-    if (!record.course) return showToast("請填寫課程或班級");
-    if (!(record.count > 0)) return showToast("堂數必須大於 0");
+    if (!record.date) return showToast("请选择日期");
+    if (!record.institution) return showToast("请填写机构");
+    if (!record.course) return showToast("请填写课程或班级");
+    if (!(record.count > 0)) return showToast("堂数必须大于 0");
     if (editingId) {
       var index = state.records.findIndex(function (item) { return item.id === editingId; });
       if (index >= 0) {
         record.createdAt = state.records[index].createdAt || record.updatedAt;
         state.records[index] = record;
       }
-      showToast("紀錄已更新");
+      showToast("纪录已更新");
     } else {
       record.createdAt = record.updatedAt;
       state.records.push(record);
@@ -779,7 +789,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     editingId = id;
     el.date.value = record.date || todayText();
     if (record.institution && DEFAULT_INSTITUTIONS.indexOf(record.institution) < 0 && !el.institution.querySelector("option[value=\"" + record.institution.replace(/\"/g, "\\\"") + "\"]")) {
-      el.institution.insertAdjacentHTML("beforeend", "<option value=\"" + esc(record.institution) + "\">" + esc(record.institution) + "（舊紀錄）</option>");
+      el.institution.insertAdjacentHTML("beforeend", "<option value=\"" + esc(record.institution) + "\">" + esc(record.institution) + "（旧纪录）</option>");
     }
     el.institution.value = record.institution || "";
     renderCourseOptions(record.course);
@@ -789,9 +799,9 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     el.rate.value = editRate === null ? "" : editRate;
     el.status.value = record.status || "completed";
     el.note.value = record.note || "";
-    el.formTitle.textContent = "修改上課紀錄";
+    el.formTitle.textContent = "修改上课纪录";
     el.cancelEdit.hidden = false;
-    document.getElementById("save-record").textContent = "儲存修改";
+    document.getElementById("save-record").textContent = "储存修改";
     var entryCard = document.querySelector(".entry-card");
     if (entryCard) entryCard.open = true;
     if (entryCard) entryCard.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -802,10 +812,10 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     if (button.dataset.confirm !== "1") {
       button.dataset.confirm = "1";
       button.textContent = "再按一次";
-      showToast("再按一次即可刪除：" + record.date + " " + record.institution);
+      showToast("再按一次即可删除：" + record.date + " " + record.institution);
       clearTimeout(button.confirmTimer);
       button.confirmTimer = setTimeout(function () {
-        if (button.isConnected) { button.dataset.confirm = ""; button.textContent = "刪除"; }
+        if (button.isConnected) { button.dataset.confirm = ""; button.textContent = "删除"; }
       }, 3500);
       return;
     }
@@ -813,25 +823,25 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     if (editingId === id) resetForm();
     saveState();
     render();
-    showToast("紀錄已刪除");
+    showToast("纪录已删除");
   }
   function financeSummaryText() {
     var records = filteredRecords();
     var summary = summaryData(records);
     var month = el.month.value || monthText();
     var parts = month.split("-");
-    var lines = ["【" + parts[0] + "年" + Number(parts[1]) + "月授課統計】"];
+    var lines = ["【" + parts[0] + "年" + Number(parts[1]) + "月授课统计】"];
     summary.byInstitution.forEach(function (item) {
       var payDay = defaultInstitutionPayDay(item.institution);
-      lines.push(item.institution + "：" + decimal(item.classes) + "堂（" + decimal(item.days) + "天）" + (item.ratedClasses === item.payableClasses ? "，薪資" + money(item.pay) : "") + (payDay === null ? "" : "，每月" + payDay + "日發薪"));
+      lines.push(item.institution + "：" + decimal(item.classes) + "堂（" + decimal(item.days) + "天）" + (item.ratedClasses === item.payableClasses ? "，薪资" + money(item.pay) : "") + (payDay === null ? "" : "，每月" + payDay + "日发薪"));
     });
-    if (!summary.byInstitution.length) lines.push("本月尚無計薪堂數。");
-    lines.push("合計：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）" + (summary.hasAnyRate ? "，薪資" + money(summary.totalPay) : ""));
+    if (!summary.byInstitution.length) lines.push("本月尚无计薪堂数。");
+    lines.push("合计：" + decimal(summary.totalClasses) + "堂（" + decimal(summary.totalDays) + "天）" + (summary.hasAnyRate ? "，薪资" + money(summary.totalPay) : ""));
     var substitutes = records.filter(function (record) { return record.status === "substitute" && isPayable(record); });
-    if (substitutes.length) lines.push("其中代課：" + decimal(substitutes.reduce(function (sum, record) { return sum + Number(record.count || 0); }, 0)) + "堂");
+    if (substitutes.length) lines.push("其中代课：" + decimal(substitutes.reduce(function (sum, record) { return sum + Number(record.count || 0); }, 0)) + "堂");
     return lines.join("\n");
   }  function copySummary() {
-    copyText(financeSummaryText(), "財務摘要已複製");
+    copyText(financeSummaryText(), "财务摘要已复制");
   }
   function fallbackCopy(text) {
     var area = document.createElement("textarea");
@@ -840,8 +850,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     area.style.opacity = "0";
     document.body.appendChild(area);
     area.select();
-    try { document.execCommand("copy"); showToast("財務摘要已複製"); }
-    catch (error) { window.prompt("請手動複製以下摘要：", text); }
+    try { document.execCommand("copy"); showToast("财务摘要已复制"); }
+    catch (error) { window.prompt("请手动复制以下摘要：", text); }
     area.remove();
   }
   function csvCell(value) {
@@ -849,7 +859,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     return "\"" + text.replace(/"/g, "\"\"") + "\"";
   }
   function csvFor(records, label) {
-    var rows = [["日期", "機構", "每月發薪日", "班級", "堂數", "狀態", "本節薪資", "預估薪資", "備註"]];
+    var rows = [["日期", "机构", "每月发薪日", "班级", "堂数", "状态", "本节薪资", "预估薪资", "备注"]];
     records.slice().sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); }).forEach(function (record) {
       var count = Number(record.count) || 0;
       var rate = effectiveRate(record);
@@ -861,7 +871,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     });
     var summary = summaryData(records);
     rows.push([]);
-    rows.push([label + "合計（僅計已完成與代課）", "", "", "", summary.totalClasses, "", "", summary.hasAnyRate ? summary.totalPay.toFixed(2) : "", ""]);
+    rows.push([label + "合计（仅计已完成与代课）", "", "", "", summary.totalClasses, "", "", summary.hasAnyRate ? summary.totalPay.toFixed(2) : "", ""]);
     return "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
   }
   function downloadText(filename, text, type) {
@@ -877,13 +887,13 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   function exportCsv(monthOnly) {
     var month = el.month.value || monthText();
     var records = monthOnly ? filteredRecords() : state.records;
-    if (monthOnly && !records.length) return showToast("本月沒有可匯出的紀錄");
-    downloadText("上課紀錄_" + (monthOnly ? month : "全部") + ".csv", csvFor(records, monthOnly ? month : "全部"), "text/csv;charset=utf-8");
-    showToast(monthOnly ? "本月 CSV 已匯出" : "全部 CSV 已匯出");
+    if (monthOnly && !records.length) return showToast("本月没有可汇出的纪录");
+    downloadText("上课纪录_" + (monthOnly ? month : "全部") + ".csv", csvFor(records, monthOnly ? month : "全部"), "text/csv;charset=utf-8");
+    showToast(monthOnly ? "本月 CSV 已汇出" : "全部 CSV 已汇出");
   }
   function exportJson() {
-    downloadText("上課紀錄備份_" + todayText() + ".json", JSON.stringify(state, null, 2), "application/json;charset=utf-8");
-    showToast("備份已匯出");
+    downloadText("上课纪录备份_" + todayText() + ".json", JSON.stringify(state, null, 2), "application/json;charset=utf-8");
+    showToast("备份已汇出");
   }
   function importJson(file) {
     if (!file) return;
@@ -893,7 +903,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
         var parsed = JSON.parse(reader.result);
         var records = Array.isArray(parsed) ? parsed : parsed.records;
         if (!Array.isArray(records)) throw new Error("缺少 records");
-        if (!window.confirm("匯入會取代目前所有紀錄，是否繼續？")) return;
+        if (!window.confirm("汇入会取代目前所有纪录，是否继续？")) return;
         state = {
           version: 1,
           records: records.filter(function (record) { return record && record.date && record.institution; }).map(function (record) {
@@ -907,9 +917,9 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
           rates: parsed.rates && typeof parsed.rates === "object" ? parsed.rates : {},
           payDays: parsed.payDays && typeof parsed.payDays === "object" ? parsed.payDays : {}
         };
-        saveState(); renderRateSettings(); render(); showToast("備份已匯入");
+        saveState(); renderRateSettings(); render(); showToast("备份已汇入");
       } catch (error) {
-        alert("無法匯入：JSON 格式不正確");
+        alert("无法汇入：JSON 格式不正确");
       }
     };
     reader.readAsText(file);
@@ -940,7 +950,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       state.rates = state.rates || {};
       state.rates[institution] = numberOrNull(rateInput.value);
       if (el.institution.value === institution && !editingId && (el.rate.value === "" || numberOrNull(el.rate.value) === oldDefault)) el.rate.value = rateInput.value;
-      saveState(); render(); showToast(institution + " 預設每節薪資已更新");
+      saveState(); render(); showToast(institution + " 预设每节薪资已更新");
       return;
     }
     var payInput = event.target.closest("[data-payday-institution]");
@@ -948,7 +958,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       var payInstitution = payInput.dataset.paydayInstitution;
       state.payDays = state.payDays || {};
       state.payDays[payInstitution] = normalizePayDay(payInput.value);
-      saveState(); render(); showToast(payInstitution + " 發薪日已更新");
+      saveState(); render(); showToast(payInstitution + " 发薪日已更新");
     }
   });  document.getElementById("export-selected-csv").addEventListener("click", function () { exportInstitutionCsv(document.getElementById("export-institution-select").value); });
   document.getElementById("share-selected-csv").addEventListener("click", function () { shareInstitutionCsv(document.getElementById("export-institution-select").value); });
@@ -982,7 +992,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=17", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=18", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";
@@ -1010,3 +1020,5 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
 </script>
 </body>
 </html>
+
+

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#22d3ee">
-<title>薪資日曆</title>
+<title>薪资日历</title>
 <style>
 :root{color-scheme:dark;--bg:#050b14;--surface:rgba(10,22,38,.95);--line:rgba(83,210,255,.22);--text:#edf9ff;--muted:#87a7bd;--cyan:#22d3ee;--violet:#818cf8;--pink:#f472b6;--green:#34d399;--yellow:#facc15;--danger:#fb7185}
 *{box-sizing:border-box}
@@ -47,30 +47,30 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
 <body>
 <div class="wrap">
   <header class="hero">
-    <div><h1>薪資日曆</h1><p>自動同步上課紀錄與各機構薪資，顯示每天會獲得的薪資。</p></div>
-    <div class="hero-actions"><a class="btn" href="./">回上課紀錄</a><a class="btn" href="./finance.html">資金管理</a><button id="sync-data" class="btn primary" type="button">🔄 同步薪資</button></div>
+    <div><h1>薪资日历</h1><p>自动同步上课纪录与各机构薪资，显示每天会获得的薪资。</p></div>
+    <div class="hero-actions"><a class="btn" href="./">回上课纪录</a><a class="btn" href="./finance.html">资金管理</a><button id="sync-data" class="btn primary" type="button">🔄 同步薪资</button></div>
   </header>
 
   <section class="card controls">
-    <div><label for="calendar-month">選擇月份</label><input id="calendar-month" type="month"></div>
+    <div><label for="calendar-month">选择月份</label><input id="calendar-month" type="month"></div>
     <button id="current-month" class="btn" type="button">本月</button>
   </section>
 
   <section class="metrics">
-    <div class="metric"><span>本月薪資</span><strong id="metric-pay">¥0</strong><small>已設定薪資的課堂</small></div>
-    <div class="metric"><span>授課天數</span><strong id="metric-days">0</strong><small>有薪資紀錄的日期</small></div>
-    <div class="metric"><span>計薪堂數</span><strong id="metric-classes">0</strong><small>已完成＋代課</small></div>
-    <div class="metric"><span>未設薪資</span><strong id="metric-missing">0</strong><small>需要補設定薪資</small></div>
+    <div class="metric"><span>本月薪资</span><strong id="metric-pay">¥0</strong><small>已设定薪资的课堂</small></div>
+    <div class="metric"><span>授课天数</span><strong id="metric-days">0</strong><small>有薪资纪录的日期</small></div>
+    <div class="metric"><span>计薪堂数</span><strong id="metric-classes">0</strong><small>已完成＋代课</small></div>
+    <div class="metric"><span>未设薪资</span><strong id="metric-missing">0</strong><small>需要补设定薪资</small></div>
   </section>
 
   <section class="card calendar-card">
-    <div class="calendar-head"><h2 id="calendar-title"></h2><div class="legend">每格顯示當日薪資</div></div>
+    <div class="calendar-head"><h2 id="calendar-title"></h2><div class="legend">每格显示当日薪资</div></div>
     <div id="calendar" class="calendar"></div>
     <div id="day-detail" class="detail"></div>
   </section>
   <section class="card payroll-card">
     <div class="payroll-head">
-      <div><h2>發薪日日曆</h2><span id="payroll-note">由上月課程與各機構設定的發薪日計算</span></div>
+      <div><h2>发薪日日历</h2><span id="payroll-note">由上月课程与各机构设定的发薪日计算</span></div>
       <div class="payroll-month"><input id="payroll-month" type="month"><button id="payroll-current" class="btn" type="button">本月</button></div>
     </div>
     <div id="pay-calendar" class="calendar"></div>
@@ -101,12 +101,21 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   function money(value) { return "¥" + Number(value || 0).toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
   function decimal(value) { var n = Math.round(Number(value || 0) * 100) / 100; return String(n).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1"); }
   function esc(value) { return String(value === null || typeof value === "undefined" ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
-  function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? parsed : { records: [], rates: {}, payDays: {} }; } catch (error) { return { records: [], rates: {}, payDays: {} }; } }
+  function migrateInstitutionState(data) {
+    var rename = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）" };
+    (data.records || []).forEach(function (record) { if (rename[record.institution]) record.institution = rename[record.institution]; });
+    ["rates", "payDays"].forEach(function (field) {
+      if (!data[field] || typeof data[field] !== "object") return;
+      Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
+    });
+    return data;
+  }
+  function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? migrateInstitutionState(parsed) : { records: [], rates: {}, payDays: {} }; } catch (error) { return { records: [], rates: {}, payDays: {} }; } }
   function isPayable(record) { return record.status === "completed" || record.status === "substitute"; }
   function effectiveRate(record) { var override = numberOrNull(record.rate); if (override !== null) return override; return numberOrNull((state.rates || {})[record.institution]); }
   function colorFor(institution) { var colors = ["#22d3ee", "#818cf8", "#f472b6", "#34d399", "#facc15", "#fb7185"]; var sum = 0; String(institution || "").split("").forEach(function (ch) { sum += ch.charCodeAt(0); }); return colors[sum % colors.length]; }
   function recordsForDate(dateText) { return (state.records || []).filter(function (record) { return record.date === dateText && isPayable(record); }); }
-  function dailySummary(dateText) { var records = recordsForDate(dateText); var total = 0, classes = 0, missing = 0, institutions = {}; records.forEach(function (record) { var count = Number(record.count) || 0; var rate = effectiveRate(record); classes += count; institutions[record.institution || "未填機構"] = true; if (rate === null) missing += count; else total += rate * count; }); return { records: records, total: total, classes: classes, missing: missing, institutions: Object.keys(institutions) }; }
+  function dailySummary(dateText) { var records = recordsForDate(dateText); var total = 0, classes = 0, missing = 0, institutions = {}; records.forEach(function (record) { var count = Number(record.count) || 0; var rate = effectiveRate(record); classes += count; institutions[record.institution || "未填机构"] = true; if (rate === null) missing += count; else total += rate * count; }); return { records: records, total: total, classes: classes, missing: missing, institutions: Object.keys(institutions) }; }
   function monthRecords(month) { return (state.records || []).filter(function (record) { return String(record.date || "").slice(0, 7) === month && isPayable(record); }); }
   function shiftMonthText(month, delta) {
     var parts = String(month || monthText()).split("-");
@@ -122,16 +131,16 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   }
   var payGroups = {};
   function selectPayDate(dateText) {
-    if (!dateText) { el.payDetail.innerHTML = "<h3>發薪明細</h3><div class=\"detail-empty\">點選發薪日曆中的日期，查看當天會收到的機構薪資。</div>"; return; }
+    if (!dateText) { el.payDetail.innerHTML = "<h3>发薪明细</h3><div class=\"detail-empty\">点选发薪日历中的日期，查看当天会收到的机构薪资。</div>"; return; }
     el.payCalendar.querySelectorAll(".day.selected").forEach(function (node) { node.classList.remove("selected"); });
     var cell = el.payCalendar.querySelector(".day[data-pay-date=\"" + dateText + "\"]"); if (cell) cell.classList.add("selected");
     var group = payGroups[dateText];
-    if (!group) { el.payDetail.innerHTML = "<h3>" + dateText.replace(/-/g, "/") + " · 沒有發薪紀錄</h3>"; return; }
+    if (!group) { el.payDetail.innerHTML = "<h3>" + dateText.replace(/-/g, "/") + " · 没有发薪纪录</h3>"; return; }
     var rows = group.records.map(function (record) {
       var rate = effectiveRate(record);
-      return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(record.institution) + "</strong><span>" + decimal(record.count || 0) + " 堂 · 對應 " + String(record.date).slice(0, 7).replace("-", "/") + " 課程</span></div><div class=\"detail-pay" + (rate === null ? " unset" : "") + "\">" + (rate === null ? "未設薪資" : money(rate * (Number(record.count) || 0))) + "</div></div>";
+      return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(record.institution) + "</strong><span>" + decimal(record.count || 0) + " 堂 · 对应 " + String(record.date).slice(0, 7).replace("-", "/") + " 课程</span></div><div class=\"detail-pay" + (rate === null ? " unset" : "") + "\">" + (rate === null ? "未设薪资" : money(rate * (Number(record.count) || 0))) + "</div></div>";
     }).join("");
-    var totalText = group.missing && !group.total ? "部分未設薪資" : money(group.total);
+    var totalText = group.missing && !group.total ? "部分未设薪资" : money(group.total);
     el.payDetail.innerHTML = "<h3>" + dateText.replace(/-/g, "/") + " · " + totalText + "</h3>" + rows;
   }
   function renderPayCalendar() {
@@ -141,7 +150,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     payGroups = {};
     var unassignedClasses = 0;
     records.forEach(function (record) {
-      var institution = record.institution || "未填機構";
+      var institution = record.institution || "未填机构";
       var payDay = numberOrNull((state.payDays || {})[institution]);
       var count = Number(record.count) || 0;
       if (payDay === null) { unassignedClasses += count; return; }
@@ -154,7 +163,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     });
     var parts = payMonth.split("-"), year = Number(parts[0]), mon = Number(parts[1]);
     var first = new Date(year, mon - 1, 1), days = new Date(year, mon, 0).getDate(), offset = (first.getDay() + 6) % 7;
-    var html = ["一", "二", "三", "四", "五", "六", "日"].map(function (day) { return "<div class=\"weekday\">週" + day + "</div>"; }).join("");
+    var html = ["一", "二", "三", "四", "五", "六", "日"].map(function (day) { return "<div class=\"weekday\">周" + day + "</div>"; }).join("");
     for (var blank = 0; blank < offset; blank++) html += "<div class=\"day empty\"></div>";
     for (var day = 1; day <= days; day++) {
       var dateText = year + "-" + pad(mon) + "-" + pad(day), group = payGroups[dateText];
@@ -164,25 +173,25 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     }
     el.payCalendar.innerHTML = html;
     var payTotal = Object.keys(payGroups).reduce(function (sum, key) { return sum + payGroups[key].total; }, 0);
-    el.payrollNote.textContent = payMonth.replace("-", "/") + " 發薪 · 對應 " + sourceMonth.replace("-", "/") + " 課程 · 薪資 " + money(payTotal) + (unassignedClasses ? " · " + decimal(unassignedClasses) + " 堂未設定發薪日" : "");
+    el.payrollNote.textContent = payMonth.replace("-", "/") + " 发薪 · 对应 " + sourceMonth.replace("-", "/") + " 课程 · 薪资 " + money(payTotal) + (unassignedClasses ? " · " + decimal(unassignedClasses) + " 堂未设定发薪日" : "");
     selectPayDate(null);
   }  function render() {
     state = loadState();
     var month = el.month.value || monthText();
     var parts = month.split("-");
     var year = Number(parts[0]), mon = Number(parts[1]);
-    el.title.textContent = year + " 年 " + mon + " 月薪資";
+    el.title.textContent = year + " 年 " + mon + " 月薪资";
     var first = new Date(year, mon - 1, 1);
     var days = new Date(year, mon, 0).getDate();
     var offset = (first.getDay() + 6) % 7;
-    var html = ["一", "二", "三", "四", "五", "六", "日"].map(function (day) { return "<div class=\"weekday\">週" + day + "</div>"; }).join("");
+    var html = ["一", "二", "三", "四", "五", "六", "日"].map(function (day) { return "<div class=\"weekday\">周" + day + "</div>"; }).join("");
     for (var blank = 0; blank < offset; blank++) html += "<div class=\"day empty\"></div>";
     for (var day = 1; day <= days; day++) {
       var dateText = year + "-" + pad(mon) + "-" + pad(day);
       var summary = dailySummary(dateText);
       var pay = summary.total > 0 ? decimal(summary.total) : (summary.missing ? "!" : "—");
       var dots = summary.institutions.slice(0, 5).map(function (institution) { return "<span class=\"dot\" style=\"--dot:" + colorFor(institution) + "\" title=\"" + esc(institution) + "\"></span>"; }).join("");
-      html += "<button type=\"button\" class=\"day" + (dateText === todayText() ? " today" : "") + "\" data-date=\"" + dateText + "\"><div class=\"day-number\"><span>" + day + "</span></div><div class=\"day-pay" + (pay === "!" ? " unset" : "") + "\">" + pay + "</div><div class=\"day-count\">" + (summary.classes ? decimal(summary.classes) + " 堂" : "沒有課") + "</div><div class=\"dots\">" + dots + "</div></button>";
+      html += "<button type=\"button\" class=\"day" + (dateText === todayText() ? " today" : "") + "\" data-date=\"" + dateText + "\"><div class=\"day-number\"><span>" + day + "</span></div><div class=\"day-pay" + (pay === "!" ? " unset" : "") + "\">" + pay + "</div><div class=\"day-count\">" + (summary.classes ? decimal(summary.classes) + " 堂" : "没有课") + "</div><div class=\"dots\">" + dots + "</div></button>";
     }
     el.calendar.innerHTML = html;
     var records = monthRecords(month);
@@ -196,25 +205,25 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     renderPayCalendar();
   }
   function selectDate(dateText) {
-    if (!dateText) { el.detail.innerHTML = "<h3>每日明細</h3><div class=\"detail-empty\">點選日曆中的日期，查看當天各機構與薪資。</div>"; return; }
+    if (!dateText) { el.detail.innerHTML = "<h3>每日明细</h3><div class=\"detail-empty\">点选日历中的日期，查看当天各机构与薪资。</div>"; return; }
     var summary = dailySummary(dateText);
     document.querySelectorAll(".day.selected").forEach(function (node) { node.classList.remove("selected"); });
     var cell = document.querySelector(".day[data-date=\"" + dateText + "\"]"); if (cell) cell.classList.add("selected");
     var parts = dateText.split("-");
-    var rows = summary.records.map(function (record) { var rate = effectiveRate(record); return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(record.institution) + " · " + esc(record.course || "未填班級") + "</strong><span>" + decimal(record.count || 0) + " 堂 · " + (record.status === "substitute" ? "代課" : "已完成") + (record.note ? " · " + esc(record.note) : "") + "</span></div><div class=\"detail-pay" + (rate === null ? " unset" : "") + "\">" + (rate === null ? "未設薪資" : money(rate * (Number(record.count) || 0))) + "</div></div>"; }).join("");
-    el.detail.innerHTML = "<h3>" + Number(parts[1]) + " 月 " + Number(parts[2]) + " 日 · " + (summary.missing ? "部分未設薪資" : money(summary.total)) + "</h3>" + (rows || "<div class=\"detail-empty\">這天沒有可計薪紀錄。</div>");
+    var rows = summary.records.map(function (record) { var rate = effectiveRate(record); return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(record.institution) + " · " + esc(record.course || "未填班级") + "</strong><span>" + decimal(record.count || 0) + " 堂 · " + (record.status === "substitute" ? "代课" : "已完成") + (record.note ? " · " + esc(record.note) : "") + "</span></div><div class=\"detail-pay" + (rate === null ? " unset" : "") + "\">" + (rate === null ? "未设薪资" : money(rate * (Number(record.count) || 0))) + "</div></div>"; }).join("");
+    el.detail.innerHTML = "<h3>" + Number(parts[1]) + " 月 " + Number(parts[2]) + " 日 · " + (summary.missing ? "部分未设薪资" : money(summary.total)) + "</h3>" + (rows || "<div class=\"detail-empty\">这天没有可计薪纪录。</div>");
   }
   el.calendar.addEventListener("click", function (event) { var cell = event.target.closest("[data-date]"); if (cell) selectDate(cell.dataset.date); });
   el.month.addEventListener("change", function () { el.payMonth.value = shiftMonthText(el.month.value, 1); render(); });
   document.getElementById("current-month").addEventListener("click", function () { el.month.value = monthText(); el.payMonth.value = shiftMonthText(monthText(), 1); render(); });
-  document.getElementById("sync-data").addEventListener("click", function () { render(); this.textContent = "✓ 已同步"; var button = this; setTimeout(function () { button.textContent = "🔄 同步薪資"; }, 1200); });
+  document.getElementById("sync-data").addEventListener("click", function () { render(); this.textContent = "✓ 已同步"; var button = this; setTimeout(function () { button.textContent = "🔄 同步薪资"; }, 1200); });
   el.payCalendar.addEventListener("click", function (event) { var cell = event.target.closest("[data-pay-date]"); if (cell) selectPayDate(cell.dataset.payDate); });
   el.payMonth.addEventListener("change", renderPayCalendar);
   document.getElementById("payroll-current").addEventListener("click", function () { el.payMonth.value = monthText(); renderPayCalendar(); });
   window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) render(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=17", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=18", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();
