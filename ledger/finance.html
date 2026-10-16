@@ -114,8 +114,19 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
         <div id="ocr-result" class="section"></div>
       </div>
     </details>
-  </section>
-  <section id="tab-annual" class="hidden">
+    <section class="card section" id="batch-panel">
+      <div class="card-head"><div><h2>批量导入账单文本</h2><p>粘贴支付宝 / 微信 / 美团 / 建设银行账单原始文本；中性交易自动跳过，导入前可预览修改。</p></div></div>
+      <div class="card-body">
+        <div class="form-grid three">
+          <div><label for="batch-source">来源</label><select id="batch-source"><option value="alipay">支付宝</option><option value="wechat">微信</option><option value="meituan">美团</option><option value="ccb">建设银行</option></select></div>
+          <div class="field full"><label for="batch-text">账单原始文本</label><textarea id="batch-text" placeholder="直接粘贴账单表格或复制文本，系统会扫描前 40 行自动定位表头"></textarea></div>
+        </div>
+        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
+        <p class="helper" id="batch-status"></p>
+        <div id="batch-preview" class="section"></div>
+      </div>
+    </section>
+  </section>  <section id="tab-annual" class="hidden">
     <div class="card"><div class="card-head"><div><h2>年度汇总</h2><p>12 个月收入、支出、结余与趋势。</p></div><div class="month-bar"><div><label for="year-picker">年份</label><input id="year-picker" type="number" min="2000" max="2100" step="1"></div></div></div>
     <div class="card-body"><div id="annual-table"></div><div id="annual-trend" class="section"></div><div id="annual-categories" class="section"></div></div></div>
   </section>
@@ -138,12 +149,12 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.0.0";
+  var APP_VERSION = "1.1.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
-  var DEFAULT_EXPENSE = ["餐饮","服饰","兴趣","娱乐","家居","订阅","医疗","生活缴费","交通","其他"];
+  var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
   var DEFAULT_INCOME = ["工资","其他收入"];
-  var DEFAULT_ACCOUNTS = ["微信","支付宝","银行卡","现金"];
+  var DEFAULT_ACCOUNTS = ["支付宝","微信","建设银行储蓄卡","现金"];
   var state = loadState();
   var ui = { tab: "report", year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
   var ocrPastedFile = null;
@@ -161,6 +172,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
     flowList: document.getElementById("flow-list"), txPanel: document.getElementById("tx-panel"),
     manualForm: document.getElementById("manual-tx-form"), txDate: document.getElementById("tx-date"), txAmount: document.getElementById("tx-amount"), txType: document.getElementById("tx-type"), txCategory: document.getElementById("tx-category"), txAccount: document.getElementById("tx-account"), txNote: document.getElementById("tx-note"), txReset: document.getElementById("tx-reset"),
     ocrFile: document.getElementById("ocr-file"), ocrRun: document.getElementById("ocr-run"), ocrClear: document.getElementById("ocr-clear"), ocrStatus: document.getElementById("ocr-status"), ocrResult: document.getElementById("ocr-result"),
+    batchSource: document.getElementById("batch-source"), batchText: document.getElementById("batch-text"), batchParse: document.getElementById("batch-parse"), batchImport: document.getElementById("batch-import"), batchClear: document.getElementById("batch-clear"), batchStatus: document.getElementById("batch-status"), batchPreview: document.getElementById("batch-preview"),
     toast: document.getElementById("toast"), versionLabel: document.getElementById("version-label")
   };
   function uid(prefix) { return (prefix || "id") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
@@ -326,7 +338,7 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   function addTransaction(tx) {
     var cat = findCategory(tx.categoryId); if (!cat) return showToast("請選擇交易分類");
     var item = { id: uid("tx"), dt: tx.dt || todayText(), amount: num(tx.amount), categoryId: tx.categoryId, accountId: tx.accountId || "", note: tx.note || "", source: tx.source || "手动录入", createdAt: new Date().toISOString() };
-    state.transactions.push(item); var month = item.dt.slice(0, 7); addToSummary(month, item.categoryId, cat.type === "income" ? item.amount : item.amount); saveState(); renderAll(); return item;
+    state.transactions.push(item); saveState(); recomputeSummaries(); renderAll(); return item;
   }
   function deleteFlow(id) {
     var tx = state.transactions.filter(function(t){ return t.id === id; })[0]; if (!tx) return;
@@ -404,9 +416,134 @@ label{display:block;color:var(--muted);font-size:.83rem;font-weight:700;margin-b
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=30", { updateViaCache: "none" }).catch(function(){});
+  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName };
   el.versionLabel.textContent = "v" + APP_VERSION;
   el.txDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
   refreshTxOptions(); switchTab("report"); renderAll();
+
+  var NEUTRAL_KEYWORDS = ["还款","提现","充值","零钱通","理财通","存取","转账","红包","退款","小荷包","收益发放","借呗","花呗还款","美团金融还款","自动转入"];
+  var EXPENSE_RULES = [
+    { category:"餐饮", keywords:["美团","饿了么","华莱士","肯德基","麦当劳","炒鸡","烧烤","咖啡","奶茶","茶饮","大米先生","粉店","超意兴","茶颜悦色"] },
+    { category:"交通", keywords:["地铁","公交","哈啰","滴滴","青桔","小遛","骑行","12306","打车","通行费"] },
+    { category:"充值缴费", keywords:["话费","电费","水费","燃气费","宽带","移动","联通","电信","网上国网"] },
+    { category:"医疗", keywords:["药","药房","医院","诊所","体检","阿里健康","得百安"] },
+    { category:"娱乐", keywords:["游戏","电竞","网吧","电影","KTV","Steam","UU加速器","付费影视剧","HUK","街舞"] },
+    { category:"家居", keywords:["家居家装","收纳袋","打包袋","扫把","压缩袋"] },
+    { category:"服饰", keywords:["服饰装扮","裤子","鞋","内衣"] },
+    { category:"数码电器", keywords:["小米","钢化膜","充电宝","大疆","手环","手机壳","充电线"] },
+    { category:"订阅", keywords:["剪映","网易云音乐","QQ音乐","API服务","自动续费"] },
+    { category:"日用百货", keywords:["超市","便利店","拼多多","得物","抖音电商","抖音月付","7-ELEVEN","美宜佳","新佳宜"] },
+    { category:"其他", keywords:[] }
+  ];
+  var ALIPAY_CATEGORY_MAP = { "餐饮美食":"餐饮","交通出行":"交通","充值缴费":"充值缴费","医疗健康":"医疗","家居家装":"家居","服饰装扮":"服饰","数码电器":"数码电器","文化休闲":"娱乐","教育培训":"其他","生活服务":"日用百货" };
+  var billCandidates = [];
+  function guessCategoryName(text, type, alipayCategory) {
+    if (type === "income") return /利息|收益|红包|退款/.test(text) ? "其他收入" : "工资";
+    if (alipayCategory && ALIPAY_CATEGORY_MAP[alipayCategory]) return ALIPAY_CATEGORY_MAP[alipayCategory];
+    for (var i = 0; i < EXPENSE_RULES.length; i++) {
+      var rule = EXPENSE_RULES[i];
+      for (var j = 0; j < rule.keywords.length; j++) if (text.indexOf(rule.keywords[j]) >= 0) return rule.category;
+    }
+    return "其他";
+  }
+  function isNeutralBillLine(line) { return NEUTRAL_KEYWORDS.some(function(k){ return line.indexOf(k) >= 0; }); }
+  function parseBillRawText(rawText, sourceType) {
+    var lines = String(rawText || "").split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    var headerIndex = -1;
+    for (var i = 0; i < Math.min(40, lines.length); i++) { if (lines[i].indexOf("交易时间") >= 0 && (lines[i].indexOf("收/支") >= 0 || lines[i].indexOf("收支") >= 0)) { headerIndex = i; break; } }
+    var dataLines = headerIndex >= 0 ? lines.slice(headerIndex + 1) : lines;
+    if (sourceType === "ccb") return parseCcbRawText(dataLines);
+    var skipped = 0, items = [];
+    dataLines.forEach(function(line){
+      if (isNeutralBillLine(line)) { skipped++; return; }
+      var cols = line.split(/\t|\s{2,}|,/).map(function(x){ return x.trim(); }).filter(function(x){ return x !== ""; });
+      var text = cols.length > 1 ? cols.join(" ") : line;
+      var amountMatch = text.match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})/);
+      if (!amountMatch) return;
+      var rawAmount = amountMatch[0].replace(/\s/g,"");
+      var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g,"")));
+      if (!amount) return;
+      var type = /收入|入账|收款|退款|工资/.test(line) || /^\+/.test(rawAmount) ? "income" : "expense";
+      if (/支出|付款|消费|扣款/.test(line)) type = "expense";
+      var dateMatch = text.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+      var dt = dateMatch ? dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]) : todayText();
+      var alipayCategory = "";
+      var mapped = text.match(/餐饮美食|交通出行|充值缴费|医疗健康|家居家装|服饰装扮|数码电器|文化休闲|教育培训|生活服务/);
+      if (mapped) alipayCategory = mapped[0];
+      var merchant = text.replace(/[¥￥+\-\d.,:：\/]/g," ").replace(/支出|收入|交易时间|收\/支|金额|订单号|交易对方|商品说明|支付方式|当前状态|交易分类/g," ").replace(/\s+/g," ").trim();
+      if (!merchant) merchant = sourceType === "alipay" ? "支付宝交易" : sourceType === "wechat" ? "微信交易" : "美团交易";
+      var orderMatch = text.match(/\b\d{8,}\b/); var originOrderId = orderMatch ? orderMatch[0] : [dt, amount, merchant.slice(0,12), sourceType].join("|");
+      items.push({ dt: dt, amount: amount, type: type, categoryName: guessCategoryName(text, type, alipayCategory), accountHint: sourceType === "alipay" ? "支付宝" : sourceType === "wechat" ? "微信" : "美团", note: merchant.slice(0,60), source: sourceType, originOrderId: originOrderId });
+    });
+    return { items: items, skipped: skipped };
+  }
+  function recomputeSummaries() {
+    var map = {};
+    state.transactions.forEach(function(t){
+      if (!t.categoryId) return;
+      var cat = findCategory(t.categoryId); if (!cat) return;
+      var month = String(t.dt || "").slice(0,7); if (!month) return;
+      var key = month + "|" + cat.id;
+      if (!map[key]) map[key] = { year: Number(month.slice(0,4)), month: Number(month.slice(5,7)), categoryId: cat.id, categoryName: cat.name, type: cat.type, amount: 0 };
+      map[key].amount += num(t.amount);
+    });
+    state.summaries = Object.keys(map).map(function(key){ var r = map[key]; r.id = "sum-" + key.replace(/[|]/g,"-"); return r; });
+  }
+  function ensureCategory(name, type) {
+    var found = state.categories.filter(function(c){ return c.name === name && c.type === type; })[0]; if (found) return found;
+    var cat = { id: uid("cat"), name: name || "其他", type: type || "expense" }; state.categories.push(cat); return cat;
+  }
+  function importTransactions(list) {
+    var existing = {}; state.transactions.forEach(function(t){ if (t.originOrderId) existing[t.originOrderId] = true; });
+    var imported = 0;
+    list.forEach(function(tx){
+      if (tx.originOrderId && existing[tx.originOrderId]) return;
+      var cat = ensureCategory(tx.categoryName, tx.type);
+      state.transactions.push({ id: uid("tx"), dt: tx.dt, amount: num(tx.amount), type: tx.type, categoryId: cat.id, accountId: (state.accounts.filter(function(a){ return a.name === tx.accountHint; })[0] || {}).id || "", note: tx.note || "", source: tx.source || "manual", originOrderId: tx.originOrderId || "" });
+      if (tx.originOrderId) existing[tx.originOrderId] = true; imported++;
+    });
+    recomputeSummaries(); saveState(); renderAll(); return imported;
+  }
+  function parseCcbRawText(lines) {
+    var headerIndex = -1;
+    for (var i = 0; i < Math.min(40, lines.length); i++) { if (lines[i].indexOf("交易日期") >= 0 && (lines[i].indexOf("交易金额") >= 0 || lines[i].indexOf("摘要") >= 0)) { headerIndex = i; break; } }
+    var dataLines = headerIndex >= 0 ? lines.slice(headerIndex + 1) : lines;
+    var headerCols = headerIndex >= 0 ? lines[headerIndex].split(/\t|\s{2,}/).map(function(x){ return x.trim(); }) : [];
+    function headerIndexFor(keys) { for (var k = 0; k < keys.length; k++) { for (var j = 0; j < headerCols.length; j++) { if (headerCols[j].indexOf(keys[k]) >= 0) return j; } } return -1; }
+    var dateIdx = headerIndexFor(["交易日期","交易时间"]), amountIdx = headerIndexFor(["交易金额","发生额","金额"]), noteIdx = headerIndexFor(["对方户名","摘要","交易说明","商品说明"]);
+    var skipped = 0, items = [];
+    dataLines.forEach(function(line){
+      if (isNeutralBillLine(line)) { skipped++; return; }
+      var cols = line.split(/\t|\s{2,}/).map(function(x){ return x.trim(); });
+      var dateText = dateIdx >= 0 && cols[dateIdx] ? cols[dateIdx] : line;
+      var dateMatch = String(dateText).match(/(20\d{2})[-\/.年]?(\d{1,2})[-\/.月]?(\d{1,2})/);
+      var dt = dateMatch ? dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]) : todayText();
+      var amountText = amountIdx >= 0 && cols[amountIdx] ? cols[amountIdx] : "";
+      var amountMatch = String(amountText).match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})/);
+      if (!amountMatch) amountMatch = line.match(/[+\-]?\s*(?:¥|￥)?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})/);
+      if (!amountMatch) return;
+      var rawAmount = amountMatch[0].replace(/\s/g,"");
+      var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g,"")));
+      if (!amount) return;
+      var type = /收入|利息|存入|工资|收款|转入/.test(line) ? "income" : "expense";
+      if (/消费|支出|付款|扣款/.test(line)) type = "expense";
+      var note = noteIdx >= 0 && cols[noteIdx] ? cols[noteIdx] : line.replace(/[¥￥+\-\d.,:：\/]/g," ").replace(/交易日期|交易金额|账户余额|对方账号|交易渠道|摘要|消费|收入|利息|存入/g," ").replace(/\s+/g," ").trim();
+      if (!note) note = "建设银行交易";
+      var originOrderId = [dt, amount, note.slice(0,12), "ccb"].join("|");
+      items.push({ dt: dt, amount: amount, type: type, categoryName: guessCategoryName(line, type, ""), accountHint: "建设银行储蓄卡", note: note.slice(0,60), source: "ccb", originOrderId: originOrderId });
+    });
+    return { items: items, skipped: skipped };
+  }
+  function renderBatchCandidates() {
+    if (!billCandidates.length) { el.batchPreview.innerHTML = '<div class="empty">尚無候選流水，粘貼账单文字後按解析。</div>'; el.batchImport.disabled = true; return; }
+    el.batchPreview.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){ return '<tr data-batch-index="' + i + '"><td><input type="checkbox" data-batch-selected' + (t.selected !== false ? " checked" : "") + '></td><td>' + esc(t.dt) + '</td><td>' + (t.type === "income" ? "收入" : "支出") + '</td><td class="num">' + money(t.amount) + '</td><td><select data-batch-category>' + optionsForCategories(t.type, ensureCategory(t.categoryName, t.type).id) + '</select></td><td>' + esc(t.note) + '</td><td><button class="btn small danger" data-batch-remove type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>';
+    el.batchImport.disabled = !billCandidates.some(function(t){ return t.selected !== false; });
+  }
+  el.batchParse.addEventListener("click", function(){ var res = parseBillRawText(el.batchText.value, el.batchSource.value); billCandidates = res.items; el.batchStatus.textContent = "解析出 " + res.items.length + " 笔，跳过中性交易 " + res.skipped + " 笔。"; renderBatchCandidates(); });
+  el.batchImport.addEventListener("click", function(){ if (!billCandidates.length) return; var chosen = billCandidates.filter(function(t){ return t.selected !== false; }); var imported = importTransactions(chosen); el.batchStatus.textContent = "已导入 " + imported + " 笔流水，并重新计算月度分类合计。"; billCandidates = []; el.batchPreview.innerHTML = ""; el.batchImport.disabled = true; showToast("账单导入完成"); });
+  el.batchClear.addEventListener("click", function(){ billCandidates = []; el.batchText.value = ""; el.batchStatus.textContent = ""; renderBatchCandidates(); });
+  el.batchPreview.addEventListener("change", function(e){ var row = e.target.closest("tr[data-batch-index]"); if (!row) return; var t = billCandidates[Number(row.getAttribute("data-batch-index"))]; if (!t) return; if (e.target.matches("[data-batch-selected]")) t.selected = e.target.checked; if (e.target.matches("[data-batch-category]")) { var cat = findCategory(e.target.value); if (cat) t.categoryName = cat.name; } el.batchImport.disabled = !billCandidates.some(function(x){ return x.selected !== false; }); });
+  el.batchPreview.addEventListener("click", function(e){ var b = e.target.closest("[data-batch-remove]"); if (!b) return; var row = b.closest("tr[data-batch-index]"); billCandidates.splice(Number(row.getAttribute("data-batch-index")), 1); renderBatchCandidates(); });
 })();
 
 </script>
