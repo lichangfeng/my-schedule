@@ -35,6 +35,10 @@ summary.card-head::-webkit-details-marker{display:none}
 .overdue-box{border-color:#f1c7c3;background:#fff7f6}
 .is-current{background:#f0fdfa}
 #report-debt-card{cursor:pointer}
+input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--primary);vertical-align:middle}
+.switch{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:.82rem;font-weight:700;color:var(--muted)}
+.switch input{width:auto}
+.warn-chip{display:inline-block;padding:2px 7px;border-radius:999px;background:#fff4e5;color:#b45309;font-size:.72rem;font-weight:800}
 #report-debt-card:hover{background:var(--surface-2)}@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}}@media(max-width:620px){.debt-summary{padding:12px;flex-direction:column;align-items:flex-start;gap:4px}body{padding:10px}.form-grid,.form-grid.three,.candidate-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary-grid{grid-template-columns:1fr 1fr}.month-bar{grid-template-columns:1fr 1fr}.month-bar .btn{width:100%}.table{min-width:600px}.card-head,.card-body{padding-left:12px;padding-right:12px}.hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.hero-actions .btn,.hero-actions .pill{width:100%}.mobile-nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;position:fixed;z-index:35;left:8px;right:8px;bottom:8px;padding:5px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:.7rem;font-weight:800;padding:8px 2px}.mobile-nav button.active{color:var(--primary)}body{padding-bottom:82px}}@media print{body{background:#fff;padding:0}.hero-actions,.tabs,.mobile-nav,.no-print{display:none!important}.card{box-shadow:none}.grid-2{display:block}.summary-grid{grid-template-columns:repeat(4,1fr)}}
 
 </style>
@@ -92,7 +96,33 @@ summary.card-head::-webkit-details-marker{display:none}
     <div class="card section" id="report-debt-card" role="button" tabindex="0">
       <div class="card-head"><div><h2>負債與還款計劃</h2><p>點一下進入負債頁：標記還款、查看每期明細、匯入新的還款計劃。</p></div><span class="pill">查看負債 →</span></div>
       <div class="card-body"><div class="summary-grid" id="report-debts"></div><p class="helper" id="report-debt-hint"></p></div>
-    </div>    <div class="card section"><div class="card-head"><div><h2>分类月度合计</h2><p>视频核心表：同一月 + 分类只保存一个合计金额。</p></div></div><div class="card-body"><div id="category-totals-editor"></div></div></div>
+    </div>    <div class="card section" id="recurring-panel">
+      <div class="card-head"><div><h2>定期支出（房租等固定費用）</h2><p>每月／每季／每年固定繳的費用會自動計入各月與年度統計；「標記已繳」只是追蹤繳費狀態，不會重複加錢。</p></div><span class="pill" id="recurring-total-pill"></span></div>
+      <div class="card-body">
+        <div class="summary-grid" id="recurring-summary"></div>
+        <div id="recurring-items" class="section"></div>
+        <div id="recurring-schedule" class="section"></div>
+      </div>
+    </div>
+    <details class="card section" id="recurring-add-panel">
+      <summary class="card-head"><div><h2>新增定期支出</h2><p>例如房租每月 1200 元、每季繳一次：週期選「每季（3 個月）」，每期金額會自動變成 3,600。</p></div><span class="pill">展開</span></summary>
+      <div class="card-body">
+        <form id="recurring-form" class="form-grid three">
+          <div><label for="rec-name">名稱</label><input id="rec-name" type="text" maxlength="30" placeholder="例如：房租" required></div>
+          <div><label for="rec-per-month">每月金額</label><input id="rec-per-month" type="number" min="0" step="0.01" placeholder="1200"></div>
+          <div><label for="rec-cycle">週期</label><select id="rec-cycle"><option value="1">每月</option><option value="3" selected>每季（3 個月）</option><option value="6">每半年（6 個月）</option><option value="12">每年</option></select></div>
+          <div><label for="rec-amount">每期金額（自動算，可改）</label><input id="rec-amount" type="number" min="0.01" step="0.01" required></div>
+          <div><label for="rec-start">首次繳費日</label><input id="rec-start" type="date" required></div>
+          <div><label for="rec-periods">產生期數</label><input id="rec-periods" type="number" min="1" max="60" step="1" value="8"></div>
+          <div><label for="rec-category">支出分類</label><input id="rec-category" type="text" list="rec-category-list" maxlength="20" value="房租"></div>
+          <div><label for="rec-note">備註</label><input id="rec-note" type="text" maxlength="60" placeholder="例如：季繳"></div>
+          <div><label for="rec-include">計入統計</label><select id="rec-include"><option value="1" selected>要計入月度／年度支出</option><option value="0">只提醒，不計入統計</option></select></div>
+          <div class="field full actions"><button class="btn primary" type="submit">建立定期支出</button></div>
+        </form>
+        <datalist id="rec-category-list"></datalist>
+        <p class="helper">若你在帳單匯入或月底手動合計裡已經記過同一筆（例如房租），請把該筆的「計入統計」改成「只提醒」，避免重複計算。</p>
+      </div>
+    </details>    <div class="card section"><div class="card-head"><div><h2>分类月度合计</h2><p>视频核心表：同一月 + 分类只保存一个合计金额。</p></div></div><div class="card-body"><div id="category-totals-editor"></div></div></div>
     <div class="card section">
       <div class="card-head"><div><h2>分摊支出</h2><p>大额年费可分摊到多个月，例如 1200 元分 12 个月，每月 +100。</p></div></div>
       <div class="card-body">
@@ -212,7 +242,7 @@ summary.card-head::-webkit-details-marker{display:none}
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.4.0";
+  var APP_VERSION = "1.5.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -314,6 +344,10 @@ summary.card-head::-webkit-details-marker{display:none}
       }
     ]
   };
+  /* 預設定期支出（依使用者提供：房租每月 1200、每季繳一次，下次 2026-11） */
+  var SEED_RECURRING = [
+    { name: "房租", perMonth: 1200, cycleMonths: 3, startDate: "2026-11-01", periods: 8, categoryName: "房租", note: "季繳（每月 1200）" }
+  ];
   var state = loadState();
   var ui = { tab: "report", year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
   var ocrPastedFile = null;
@@ -343,6 +377,10 @@ summary.card-head::-webkit-details-marker{display:none}
     debtQuickForm: document.getElementById("debt-quick-form"), debtQuickName: document.getElementById("debt-quick-name"), debtQuickTotal: document.getElementById("debt-quick-total"),
     debtQuickPeriods: document.getElementById("debt-quick-periods"), debtQuickDate: document.getElementById("debt-quick-date"), debtQuickUnbooked: document.getElementById("debt-quick-unbooked"),
     reportDebts: document.getElementById("report-debts"), reportDebtCard: document.getElementById("report-debt-card"), reportDebtHint: document.getElementById("report-debt-hint"),
+    recurringSummary: document.getElementById("recurring-summary"), recurringItems: document.getElementById("recurring-items"), recurringSchedule: document.getElementById("recurring-schedule"), recurringTotalPill: document.getElementById("recurring-total-pill"),
+    recurringForm: document.getElementById("recurring-form"), recName: document.getElementById("rec-name"), recPerMonth: document.getElementById("rec-per-month"), recCycle: document.getElementById("rec-cycle"),
+    recAmount: document.getElementById("rec-amount"), recStart: document.getElementById("rec-start"), recPeriods: document.getElementById("rec-periods"), recCategory: document.getElementById("rec-category"),
+    recNote: document.getElementById("rec-note"), recInclude: document.getElementById("rec-include"), recCategoryList: document.getElementById("rec-category-list"),
     reportSummary: document.getElementById("report-summary")
   };
   function uid(prefix) { return (prefix || "id") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
@@ -362,7 +400,7 @@ summary.card-head::-webkit-details-marker{display:none}
     DEFAULT_EXPENSE.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "expense" }); });
     DEFAULT_INCOME.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "income" }); });
     var accounts = DEFAULT_ACCOUNTS.map(function(name){ return { id: "acc-" + name, name: name, type: name }; });
-    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [] };
+    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [], recurring: [] };
   }
   function migrateLegacyState(target) {
     try {
@@ -383,7 +421,7 @@ summary.card-head::-webkit-details-marker{display:none}
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); return brandNew; }
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -392,10 +430,12 @@ summary.card-head::-webkit-details-marker{display:none}
       parsed.transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
       parsed.amortizations = Array.isArray(parsed.amortizations) ? parsed.amortizations : [];
       parsed.debts = Array.isArray(parsed.debts) ? parsed.debts : [];
+      parsed.recurring = Array.isArray(parsed.recurring) ? parsed.recurring : [];
       seedDefaultDebts(parsed);
+      seedDefaultRecurring(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); return fallback; }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -429,7 +469,10 @@ summary.card-head::-webkit-details-marker{display:none}
       var cat = findCategory(s.categoryId); if (!cat) return;
       if (cat.type === "income") income += num(s.amount); else expense += num(s.amount);
     });
-    return { income: income, expense: expense, balance: income - expense };
+    var manualExpense = expense;
+    var recurringExpense = recurringMonthTotal(month, null);
+    expense += recurringExpense;
+    return { income: income, expense: expense, balance: income - expense, manualExpense: manualExpense, recurringExpense: recurringExpense };
   }
   function totalAssets(month) {
     var p = month.split("-");
@@ -463,27 +506,55 @@ summary.card-head::-webkit-details-marker{display:none}
     saveState(); renderAll(); showToast("本月账户余额已保存");
   }
   function renderIncomeExpense() {
-    var totals = monthTotals(ui.year + "-" + pad(ui.month));
-    el.incomeExpense.innerHTML = '<div class="summary-grid"><div class="summary-card"><span>本月总收入</span><strong class="good">' + money(totals.income) + '</strong></div><div class="summary-card"><span>本月总支出</span><strong class="bad">' + money(totals.expense) + '</strong></div><div class="summary-card"><span>本月结余</span><strong class="' + (totals.balance >= 0 ? "good" : "bad") + '">' + money(totals.balance) + '</strong></div></div>';
-  }
-  function renderPie() {
-    var month = ui.year + "-" + pad(ui.month); var cats = state.categories.filter(function(c){ return c.type === "expense"; }); var rows = [];
-    cats.forEach(function(c){ var s = summaryFor(month, c.id); if (s && num(s.amount) > 0) rows.push({ name: c.name, value: num(s.amount) }); });
-    var total = rows.reduce(function(sum,r){ return sum + r.value; }, 0);
+    var month = ui.year + "-" + pad(ui.month);
+    var totals = monthTotals(month);
+    var rec = monthlyRecurringRows(month);
+    el.incomeExpense.innerHTML = '<div class="summary-grid"><div class="summary-card"><span>本月总收入</span><strong class="good">' + money(totals.income) + '</strong></div><div class="summary-card"><span>本月总支出</span><strong class="bad">' + money(totals.expense) + '</strong><small>' + (rec.total > 0 ? "手動/帳單 " + money(totals.manualExpense) + " + 定期 " + money(rec.total) : (totals.expense > 0 ? "全部來自手動/帳單合計" : "本月尚無支出")) + '</small></div><div class="summary-card"><span>本月结余</span><strong class="' + (totals.balance >= 0 ? "good" : "bad") + '">' + money(totals.balance) + '</strong><small>收入 − 支出（含定期支出）</small></div></div>' + (rec.total > 0 ? '<p class="helper">本月定期支出：' + rec.detail + '</p>' : "");
+  }  function renderPie() {
+    var month = ui.year + "-" + pad(ui.month);
+    var rows = [];
+    state.categories.filter(function(c){ return c.type === "expense"; }).forEach(function (c) {
+      var s = summaryFor(month, c.id);
+      var manual = s ? num(s.amount) : 0;
+      var rec = recurringMonthTotal(month, c.name);
+      var value = manual + rec;
+      if (value > 0) rows.push({ name: c.name + (rec > 0 ? "（含定期 " + money(rec) + "）" : ""), value: value });
+    });
+    rows.sort(function (a, b) { return b.value - a.value; });
+    var total = rows.reduce(function (sum, r) { return sum + r.value; }, 0);
     if (!rows.length) { el.reportPie.innerHTML = '<p class="helper">本月尚無支出分类合计。</p>'; return; }
     var stops = [], acc = 0;
     rows.forEach(function(r, i){ var start = acc / total * 100; acc += r.value; var end = acc / total * 100; stops.push(COLORS[i % COLORS.length] + " " + start + "% " + end + "%"); });
     el.reportPie.innerHTML = '<div class="donut" style="background:conic-gradient(' + stops.join(",") + ');box-shadow:inset 0 0 0 20px #fff"></div><div class="legend">' + rows.map(function(r,i){ return '<div class="legend-row"><span class="dot" style="background:' + COLORS[i % COLORS.length] + '"></span><span>' + esc(r.name) + '</span><strong>' + money(r.value) + ' · ' + Math.round(r.value / total * 100) + '%</strong></div>'; }).join("") + '</div>';
-  }
-  function renderCategoryTotals() {
-    var month = ui.year + "-" + pad(ui.month); var groups = [{ type: "expense", title: "支出分类" }, { type: "income", title: "收入分类" }];
-    el.categoryTotals.innerHTML = groups.map(function(g){
+  }  function renderCategoryTotals() {
+    var month = ui.year + "-" + pad(ui.month);
+    var groups = [{ type: "expense", title: "支出分类" }, { type: "income", title: "收入分类" }];
+    var rec = monthlyRecurringRows(month);
+    var head = '<div class="subcard section"><h3>本月定期支出（自動計入統計）</h3>' +
+      (rec.total > 0
+        ? '<p class="helper">合計 <strong>' + money(rec.total) + '</strong>：' + rec.detail + '<br>這些金額已經自動算進本月支出與年度統計，下面的手動欄位請不要再填一次，避免重複計算。</p>'
+        : '<p class="helper">本月沒有定期支出。可在上方的「定期支出（房租等固定費用）」卡片新增房租、季繳等固定費用。</p>') + '</div>';
+    el.categoryTotals.innerHTML = head + groups.map(function(g){
       var cats = state.categories.filter(function(c){ return c.type === g.type; });
       if (!cats.length) return '<div class="subcard section"><h3>' + g.title + '</h3><div class="empty">尚未建立分类。</div></div>';
-      return '<div class="subcard section"><h3>' + g.title + '</h3><div class="table-wrap"><table class="table"><thead><tr><th>分类</th><th class="num">本月合计</th><th>备注</th></tr></thead><tbody>' + cats.map(function(c){ var s = summaryFor(month, c.id); return '<tr><td><strong>' + esc(c.name) + '</strong></td><td class="num"><input data-sum-category="' + esc(c.id) + '" type="number" min="0" step="0.01" value="' + (s ? num(s.amount) : "") + '" placeholder="0"></td><td><input data-sum-note="' + esc(c.id) + '" type="text" value="' + esc(s ? s.note : "") + '" placeholder="备注"></td></tr>'; }).join("") + '</tbody></table></div></div>';
+      var manualSum = 0, recSum = 0;
+      var body = cats.map(function(c){
+        var s = summaryFor(month, c.id);
+        var manual = s ? num(s.amount) : 0;
+        var catRec = g.type === "expense" ? recurringMonthTotal(month, c.name) : 0;
+        manualSum += manual; recSum += catRec;
+        var conflict = manual > 0 && catRec > 0;
+        return '<tr><td><strong>' + esc(c.name) + '</strong>' + (conflict ? ' <span class="warn-chip">可能重複</span>' : '') + '</td>' +
+          '<td class="num"><input data-sum-category="' + esc(c.id) + '" type="number" min="0" step="0.01" value="' + (s ? num(s.amount) : "") + '" placeholder="0"></td>' +
+          '<td class="num">' + (catRec > 0 ? '<span class="status-chip due">' + money(catRec) + '</span>' : "—") + '</td>' +
+          '<td class="num"><strong>' + money(manual + catRec) + '</strong></td>' +
+          '<td><input data-sum-note="' + esc(c.id) + '" type="text" value="' + esc(s ? s.note : "") + '" placeholder="备注"></td></tr>';
+      }).join("");
+      return '<div class="subcard section"><h3>' + g.title + '</h3><div class="table-wrap"><table class="table"><thead><tr><th>分类</th><th class="num">手動／帳單合計</th><th class="num">定期支出</th><th class="num">本月合計</th><th>备注</th></tr></thead><tbody>' + body +
+        '<tr><td><strong>合計</strong></td><td class="num"><strong>' + money(manualSum) + '</strong></td><td class="num"><strong>' + money(recSum) + '</strong></td><td class="num"><strong>' + money(manualSum + recSum) + '</strong></td><td></td></tr>' +
+        '</tbody></table></div>' + (recSum > 0 ? '<p class="helper">「定期支出」欄是從定期支出卡片自動帶入的，請不要在手動欄位重複輸入同一筆；若真的重複了，會顯示「可能重複」提醒。</p>' : '') + '</div>';
     }).join("");
-  }
-  function saveCategoryTotals() {
+  }  function saveCategoryTotals() {
     var month = ui.year + "-" + pad(ui.month);
     Array.prototype.forEach.call(el.categoryTotals.querySelectorAll("[data-sum-category]"), function(input){
       var id = input.getAttribute("data-sum-category"); var amount = input.value === "" ? 0 : num(input.value); var noteInput = el.categoryTotals.querySelector('[data-sum-note="' + id + '"]');
@@ -492,15 +563,27 @@ summary.card-head::-webkit-details-marker{display:none}
     saveState(); renderAll(); showToast("本月分类合计已保存");
   }
   function renderAnnual() {
-    var y = Number(el.yearPicker.value) || ui.year; var rows = [], totalIncome = 0, totalExpense = 0, maxAbs = 1;
-    for (var m = 1; m <= 12; m++) { var month = y + "-" + pad(m); var t = monthTotals(month); rows.push({ m: m, month: month, income: t.income, expense: t.expense, balance: t.balance }); totalIncome += t.income; totalExpense += t.expense; maxAbs = Math.max(maxAbs, Math.abs(t.balance)); }
-    el.annualTable.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="num">收入</th><th class="num">支出</th><th class="num">结余</th></tr></thead><tbody>' + rows.map(function(r){ return '<tr><td>' + r.m + ' 月</td><td class="num good">' + money(r.income) + '</td><td class="num bad">' + money(r.expense) + '</td><td class="num ' + (r.balance >= 0 ? "good" : "bad") + '">' + money(r.balance) + '</td></tr>'; }).join("") + '<tr><td><strong>合计</strong></td><td class="num good"><strong>' + money(totalIncome) + '</strong></td><td class="num bad"><strong>' + money(totalExpense) + '</strong></td><td class="num"><strong>' + money(totalIncome - totalExpense) + '</strong></td></tr></tbody></table></div>';
+    var y = Number(el.yearPicker.value) || ui.year;
+    var rows = [], totalIncome = 0, totalExpense = 0, totalRecurring = 0, maxAbs = 1;
+    for (var m = 1; m <= 12; m++) {
+      var month = y + "-" + pad(m); var t = monthTotals(month);
+      rows.push({ m: m, month: month, income: t.income, expense: t.expense, balance: t.balance, recurring: num(t.recurringExpense) });
+      totalIncome += t.income; totalExpense += t.expense; totalRecurring += num(t.recurringExpense); maxAbs = Math.max(maxAbs, Math.abs(t.balance));
+    }
+    el.annualTable.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="num">收入</th><th class="num">支出</th><th class="num">其中定期</th><th class="num">结余</th></tr></thead><tbody>' +
+      rows.map(function(r){ return '<tr' + (r.recurring > 0 ? ' class="is-current"' : '') + '><td>' + r.m + ' 月</td><td class="num good">' + money(r.income) + '</td><td class="num bad">' + money(r.expense) + '</td><td class="num">' + (r.recurring > 0 ? money(r.recurring) : "—") + '</td><td class="num ' + (r.balance >= 0 ? "good" : "bad") + '">' + money(r.balance) + '</td></tr>'; }).join("") +
+      '<tr><td><strong>合计</strong></td><td class="num good"><strong>' + money(totalIncome) + '</strong></td><td class="num bad"><strong>' + money(totalExpense) + '</strong></td><td class="num"><strong>' + money(totalRecurring) + '</strong></td><td class="num"><strong>' + money(totalIncome - totalExpense) + '</strong></td></tr></tbody></table></div>' +
+      (totalRecurring > 0 ? '<p class="helper">「支出」已經包含定期支出（例如房租季繳的月份）；「其中定期」只是讓你知道其中多少來自定期支出。</p>' : '');
     el.annualTrend.innerHTML = '<h3>全年结余趋势</h3><div class="trend">' + rows.map(function(r){ var width = r.balance >= 0 ? Math.max(0, Math.min(100, r.balance / maxAbs * 100)) : 0; return '<div class="trend-row"><span>' + r.m + ' 月</span><div class="trend-bar"><i style="width:' + width + '%"></i></div><strong class="' + (r.balance >= 0 ? "good" : "bad") + '">' + money(r.balance) + '</strong></div>'; }).join("") + '</div>';
-    var catTotals = state.categories.filter(function(c){ return c.type === "expense"; }).map(function(c){ var sum = state.summaries.filter(function(s){ return Number(s.year) === y && s.categoryId === c.id; }).reduce(function(a,s){ return a + num(s.amount); }, 0); return { name: c.name, total: sum }; }).filter(function(x){ return x.total > 0; }).sort(function(a,b){ return b.total - a.total; });
+    var catTotals = state.categories.filter(function(c){ return c.type === "expense"; }).map(function(c){
+      var manual = state.summaries.filter(function(s){ return Number(s.year) === y && s.categoryId === c.id; }).reduce(function(a, s){ return a + num(s.amount); }, 0);
+      var rec = 0;
+      for (var mm = 1; mm <= 12; mm++) rec += recurringMonthTotal(y + "-" + pad(mm), c.name);
+      return { name: c.name, total: manual + rec, recurring: rec };
+    }).filter(function(x){ return x.total > 0; }).sort(function(a,b){ return b.total - a.total; });
     var maxCat = Math.max.apply(null, catTotals.map(function(x){ return x.total; }).concat([1]));
-    el.annualCategories.innerHTML = '<h3>全年支出分类</h3>' + (catTotals.length ? '<div class="trend">' + catTotals.map(function(x,i){ return '<div class="trend-row"><span>' + esc(x.name) + '</span><div class="trend-bar"><i style="width:' + (x.total / maxCat * 100) + '%;background:' + COLORS[i % COLORS.length] + '"></i></div><strong>' + money(x.total) + '</strong></div>'; }).join("") + '</div>' : '<div class="empty">這一年尚無支出分类合计。</div>');
-  }
-  function renderCategories() {
+    el.annualCategories.innerHTML = '<h3>全年支出分类</h3>' + (catTotals.length ? '<div class="trend">' + catTotals.map(function(x,i){ return '<div class="trend-row"><span>' + esc(x.name) + (x.recurring > 0 ? '<br><span class="flow-source">含定期 ' + money(x.recurring) + '</span>' : '') + '</span><div class="trend-bar"><i style="width:' + (x.total / maxCat * 100) + '%;background:' + COLORS[i % COLORS.length] + '"></i></div><strong>' + money(x.total) + '</strong></div>'; }).join("") + '</div>' : '<div class="empty">這一年尚無支出分类合计。</div>');
+  }  function renderCategories() {
     var groups = [{ type: "expense", title: "支出分类" }, { type: "income", title: "收入分类" }];
     el.categoryList.innerHTML = groups.map(function(g){
       var cats = state.categories.filter(function(c){ return c.type === g.type; });
@@ -570,7 +653,7 @@ summary.card-head::-webkit-details-marker{display:none}
   }
   function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); refreshTxOptions();
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); refreshTxOptions();
   }
   function switchTab(tab) {
     ui.tab = tab;
@@ -606,12 +689,233 @@ summary.card-head::-webkit-details-marker{display:none}
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=38", { updateViaCache: "none" }).catch(function(){});
-  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName };
+  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION;
-  el.txDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
+  el.txDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
   refreshTxOptions(); switchTab("report"); renderAll();
 
-  /* ================= 負債 / 還款計劃 ================= */
+  /* ================= 定期支出（房租等固定費用） ================= */
+  function recurringList() { return Array.isArray(state.recurring) ? state.recurring : []; }
+  function recurringIncluded(item) { return item.includeInStats !== false; }
+  function dateWithClamp(year, monthIndex, day) {
+    var last = new Date(year, monthIndex + 1, 0).getDate();
+    var d = Math.min(Math.max(1, Number(day) || 1), last);
+    return year + "-" + pad(monthIndex + 1) + "-" + pad(d);
+  }
+  function buildRecurringOccurrences(startDate, cycleMonths, periods, amount) {
+    var p = String(startDate || todayText()).split("-");
+    var y = Number(p[0]) || new Date().getFullYear(), m = (Number(p[1]) || 1) - 1, d = Number(p[2]) || 1;
+    var step = Math.max(1, Number(cycleMonths) || 1);
+    var out = [];
+    for (var i = 0; i < Math.max(1, Number(periods) || 1); i++) {
+      var ti = m + i * step;
+      var yy = y + Math.floor(ti / 12), mm = ((ti % 12) + 12) % 12;
+      out.push({ id: uid("occ"), date: dateWithClamp(yy, mm, d), amount: Math.round(num(amount) * 100) / 100, paid: false, paidAt: "" });
+    }
+    return out;
+  }
+  function buildRecurringItem(raw) {
+    var cycle = Math.max(1, Number(raw.cycleMonths) || 1);
+    var perMonth = num(raw.perMonth);
+    var amount = num(raw.amount) > 0 ? Math.round(num(raw.amount) * 100) / 100 : Math.round(perMonth * cycle * 100) / 100;
+    var start = String(raw.startDate || todayText());
+    return {
+      id: uid("rec"),
+      name: String(raw.name || "定期支出").trim(),
+      perMonth: perMonth,
+      cycleMonths: cycle,
+      amount: amount,
+      startDate: start,
+      categoryName: String(raw.categoryName || raw.name || "其他").trim(),
+      includeInStats: raw.includeInStats !== false,
+      note: String(raw.note || ""),
+      occurrences: buildRecurringOccurrences(start, cycle, Number(raw.periods) || 8, amount),
+      createdAt: new Date().toISOString()
+    };
+  }
+  function ensureCategoryOn(target, name, type) {
+    var t = type || "expense"; if (!name) return null;
+    var found = target.categories.filter(function (c) { return c.name === name && c.type === t; })[0];
+    if (found) return found;
+    var cat = { id: uid("cat"), name: name, type: t };
+    target.categories.push(cat);
+    return cat;
+  }
+  function seedDefaultRecurring(target) {
+    if (!target || target.recurringSeeded) return target;
+    target.recurringSeeded = true;
+    if (!Array.isArray(target.recurring) || !target.recurring.length) {
+      try {
+        target.recurring = SEED_RECURRING.map(buildRecurringItem);
+        SEED_RECURRING.forEach(function (raw) { ensureCategoryOn(target, raw.categoryName || raw.name, "expense"); });
+      } catch (e) {}
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    return target;
+  }
+  function recurringOccurrencesAll() {
+    var out = [];
+    recurringList().forEach(function (item) {
+      (item.occurrences || []).forEach(function (occ) { out.push({ item: item, occ: occ }); });
+    });
+    return out.sort(function (a, b) { return String(a.occ.date).localeCompare(String(b.occ.date)); });
+  }
+  function recurringMonthRows(month) {
+    var out = [];
+    recurringList().forEach(function (item) {
+      if (!recurringIncluded(item)) return;
+      (item.occurrences || []).forEach(function (occ) {
+        if (String(occ.date).slice(0, 7) === month) out.push({ item: item, occ: occ });
+      });
+    });
+    return out;
+  }
+  function recurringMonthTotal(month, categoryName) {
+    return recurringMonthRows(month).filter(function (x) { return !categoryName || x.item.categoryName === categoryName; })
+      .reduce(function (s, x) { return s + num(x.occ.amount); }, 0);
+  }
+  function monthlyRecurringRows(month) {
+    var rows = recurringMonthRows(month);
+    var total = rows.reduce(function (s, x) { return s + num(x.occ.amount); }, 0);
+    var detail = rows.map(function (x) { return esc(x.item.name) + " " + money(x.occ.amount) + "（" + esc(String(x.occ.date).slice(5)) + "）"; }).join(" · ");
+    return { rows: rows, total: total, detail: detail };
+  }
+  function recurringAveragePerMonth() {
+    return recurringList().filter(recurringIncluded).reduce(function (s, item) {
+      return s + num(item.amount) / Math.max(1, Number(item.cycleMonths) || 1);
+    }, 0);
+  }
+  function cycleLabel(months) {
+    var m = Number(months) || 1;
+    if (m === 1) return "每月";
+    if (m === 3) return "每季";
+    if (m === 6) return "每半年";
+    if (m === 12) return "每年";
+    return "每 " + m + " 個月";
+  }
+  function renderRecurring() {
+    if (!el.recurringSummary) return;
+    var months = recurringList().length ? recurringOccurrencesAll() : [];
+    var today = todayText();
+    var thisMonth = ui.year + "-" + pad(ui.month), nextMonth = shiftMonth(thisMonth, 1);
+    var thisRows = monthlyRecurringRows(thisMonth);
+    var nextRows = monthlyRecurringRows(nextMonth);
+    var unpaid = months.filter(function (x) { return !x.occ.paid; });
+    var overdue = unpaid.filter(function (x) { return x.occ.date < today; });
+    var nextOcc = unpaid[0] || null;
+    var avg = recurringAveragePerMonth();
+
+    el.recurringSummary.innerHTML =
+      '<div class="summary-card"><span>下次繳費</span><strong>' + (nextOcc ? money(nextOcc.occ.amount) : "—") + '</strong><small>' + (nextOcc ? esc(nextOcc.item.name) + " · " + esc(nextOcc.occ.date) + (nextOcc.occ.date < today ? "（已逾期）" : "") : (recurringList().length ? "全部已繳" : "尚無定期支出")) + '</small></div>' +
+      '<div class="summary-card"><span>選定月份固定支出</span><strong>' + money(thisRows.total) + '</strong><small>' + monthLabel(thisMonth) + (thisRows.rows.length ? " · " + thisRows.rows.length + " 筆" : "") + '</small></div>' +
+      '<div class="summary-card"><span>下個月固定支出</span><strong>' + money(nextRows.total) + '</strong><small>' + monthLabel(nextMonth) + (nextRows.rows.length ? " · " + nextRows.rows.length + " 筆" : "") + '</small></div>' +
+      '<div class="summary-card"><span>平均每月 / 未繳</span><strong>' + money(avg) + '</strong><small>未繳合計 ' + money(unpaid.reduce(function (s, x) { return s + num(x.occ.amount); }, 0)) + ' · 逾期 ' + overdue.length + ' 筆</small></div>';
+
+    if (el.recurringTotalPill) el.recurringTotalPill.textContent = recurringList().length ? "平均每月 " + money(avg) : "尚無資料";
+
+    if (!recurringList().length) {
+      el.recurringItems.innerHTML = '<div class="empty">尚無定期支出。展開下方「新增定期支出」加入房租等固定費用。</div>';
+      el.recurringSchedule.innerHTML = "";
+      return;
+    }
+
+    el.recurringItems.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>名稱</th><th class="num">每期金額</th><th>週期</th><th>分類</th><th>下次繳費</th><th>計入統計</th><th>操作</th></tr></thead><tbody>' +
+      recurringList().map(function (item) {
+        var occ = (item.occurrences || []).filter(function (o) { return !o.paid; })[0] || null;
+        var paidCount = (item.occurrences || []).filter(function (o) { return o.paid; }).length;
+        return '<tr><td><strong>' + esc(item.name) + '</strong>' + (item.perMonth > 0 ? '<br><span class="flow-source">每月 ' + money(item.perMonth) + '</span>' : '') + '</td>' +
+          '<td class="num">' + money(item.amount) + '</td><td>' + esc(cycleLabel(item.cycleMonths)) + '</td><td>' + esc(item.categoryName) + '</td>' +
+          '<td>' + (occ ? esc(occ.date) + '<br><span class="flow-source">已繳 ' + paidCount + ' / ' + (item.occurrences || []).length + ' 期</span>' : '<span class="status-chip paid">全部已繳</span>') + '</td>' +
+          '<td><label class="switch"><input type="checkbox" data-rec-include="' + esc(item.id) + '"' + (recurringIncluded(item) ? " checked" : "") + '><span>' + (recurringIncluded(item) ? "是" : "否") + '</span></label></td>' +
+          '<td><div class="actions" style="margin:0"><button class="btn small" data-rec-extend="' + esc(item.id) + '" type="button">+8 期</button><button class="btn small danger" data-rec-del="' + esc(item.id) + '" type="button">刪除</button></div></td></tr>';
+      }).join("") + '</tbody></table></div>';
+
+    var list = months.slice(0, 12);
+    el.recurringSchedule.innerHTML = '<details class="card"><summary class="debt-summary"><span class="debt-head">繳費排程（共 ' + months.length + ' 筆，顯示前 12 筆）</span><span class="debt-meta">點開可標記已繳／取消</span></summary><div class="card-body"><div class="table-wrap"><table class="table"><thead><tr><th>繳費日</th><th>名稱</th><th class="num">金額</th><th>分類</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+      list.map(function (x) {
+        return '<tr><td>' + esc(x.occ.date) + '</td><td><strong>' + esc(x.item.name) + '</strong></td><td class="num">' + money(x.occ.amount) + '</td><td>' + esc(x.item.categoryName) + '</td><td>' + statusChip(x.occ, "已繳") + '</td>' +
+          '<td><button class="btn small' + (x.occ.paid ? "" : " primary") + '" data-rec-paid="' + esc(x.item.id + "::" + x.occ.id) + '" type="button">' + (x.occ.paid ? "取消已繳" : "標記已繳") + '</button></td></tr>';
+      }).join("") + '</tbody></table></div>' + (overdue.length ? '<p class="helper bad">有 ' + overdue.length + ' 筆未繳且已過期：' + overdue.slice(0, 5).map(function (x) { return esc(x.item.name) + " " + esc(x.occ.date); }).join("、") + '</p>' : '<p class="helper">這裡的「標記已繳」只用來追蹤，金額早就已經算進各月統計，不會重複加。</p>') + '</div></details>';
+
+    if (el.recCategoryList) el.recCategoryList.innerHTML = state.categories.filter(function (c) { return c.type === "expense"; }).map(function (c) { return '<option value="' + esc(c.name) + '"></option>'; }).join("");
+  }
+  function toggleRecurringPaid(key) {
+    var parts = String(key).split("::");
+    var item = recurringList().filter(function (x) { return x.id === parts[0]; })[0]; if (!item) return;
+    var occ = (item.occurrences || []).filter(function (o) { return o.id === parts[1]; })[0]; if (!occ) return;
+    occ.paid = !occ.paid;
+    occ.paidAt = occ.paid ? todayText() : "";
+    saveState(); renderAll();
+    showToast(occ.paid ? "已標記繳費：" + item.name + " " + money(occ.amount) : "已取消繳費標記：" + item.name);
+  }
+  function extendRecurring(itemId) {
+    var item = recurringList().filter(function (x) { return x.id === itemId; })[0]; if (!item) return;
+    var occs = item.occurrences || [];
+    var last = occs[occs.length - 1];
+    if (!last) return;
+    var more = buildRecurringOccurrences(last.date, item.cycleMonths, 8, item.amount);
+    more.slice(1).forEach(function (o) { occs.push(o); });
+    item.occurrences = occs;
+    saveState(); renderAll();
+    showToast("已追加 8 期：" + item.name);
+  }
+  function deleteRecurring(itemId) {
+    var item = recurringList().filter(function (x) { return x.id === itemId; })[0]; if (!item) return;
+    if (!confirm("確定刪除定期支出「" + item.name + "」？已產生的繳費紀錄會一起移除（統計也會跟著少掉這筆）。")) return;
+    state.recurring = recurringList().filter(function (x) { return x.id !== itemId; });
+    saveState(); renderAll();
+    showToast("已刪除定期支出：" + item.name);
+  }
+  function setupRecurringPanel() {
+    if (el.recurringForm) {
+      var syncAmount = function () {
+        var perMonth = num(el.recPerMonth.value);
+        var cycle = Number(el.recCycle.value) || 1;
+        el.recAmount.value = perMonth > 0 ? String(Math.round(perMonth * cycle * 100) / 100) : "";
+      };
+      el.recPerMonth.addEventListener("input", syncAmount);
+      el.recCycle.addEventListener("change", syncAmount);
+      el.recurringForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = el.recName.value.trim(); if (!name) return showToast("請填寫名稱");
+        var amount = Math.round(num(el.recAmount.value) * 100) / 100;
+        var start = el.recStart.value;
+        if (!(amount > 0) || !start) return showToast("請填寫每期金額與首次繳費日");
+        var categoryName = el.recCategory.value.trim() || name;
+        var item = buildRecurringItem({
+          name: name, amount: amount, perMonth: num(el.recPerMonth.value), cycleMonths: Number(el.recCycle.value) || 1,
+          startDate: start, periods: Number(el.recPeriods.value) || 8, categoryName: categoryName,
+          includeInStats: el.recInclude.value === "1", note: el.recNote.value.trim()
+        });
+        ensureCategory(categoryName, "expense");
+        state.recurring = recurringList().concat([item]);
+        saveState(); el.recurringForm.reset(); el.recPeriods.value = "8"; el.recStart.value = todayText(); el.recCategory.value = "房租";
+        renderAll();
+        showToast("已建立定期支出：" + name + "（" + cycleLabel(item.cycleMonths) + " " + money(amount) + "）");
+      });
+    }
+    var panel = document.getElementById("recurring-panel");
+    if (panel) panel.addEventListener("click", function (e) {
+      var node = e.target;
+      if (!node || !node.closest) return;
+      var paidBtn = node.closest("[data-rec-paid]");
+      if (paidBtn) { toggleRecurringPaid(paidBtn.getAttribute("data-rec-paid")); return; }
+      var extendBtn = node.closest("[data-rec-extend]");
+      if (extendBtn) { extendRecurring(extendBtn.getAttribute("data-rec-extend")); return; }
+      var delBtn = node.closest("[data-rec-del]");
+      if (delBtn) { deleteRecurring(delBtn.getAttribute("data-rec-del")); return; }
+    });
+    if (panel) panel.addEventListener("change", function (e) {
+      var box = e.target && e.target.closest ? e.target.closest("[data-rec-include]") : null;
+      if (!box) return;
+      var item = recurringList().filter(function (x) { return x.id === box.getAttribute("data-rec-include"); })[0];
+      if (!item) return;
+      item.includeInStats = box.checked;
+      saveState(); renderAll();
+      showToast(box.checked ? "已計入統計：" + item.name : "已取消計入統計：" + item.name);
+    });
+  }
+  setupRecurringPanel();  /* ================= 負債 / 還款計劃 ================= */
   var DEBT_SAMPLE_JSON = [
     "{",
     "  \"totalDebt\": 12960.91,",
@@ -681,8 +985,8 @@ summary.card-head::-webkit-details-marker{display:none}
       return true;
     }).reduce(function (s, x) { return s + num(x.entry.amount); }, 0);
   }
-  function statusChip(entry) {
-    if (entry.paid) return '<span class="status-chip paid">已還</span>';
+  function statusChip(entry, paidLabel) {
+    if (entry.paid) return '<span class="status-chip paid">' + (paidLabel || "已還") + '</span>';
     if (entry.date && entry.date < todayText()) return '<span class="status-chip late">逾期</span>';
     if (debtEntryMonth(entry) === currentMonthKey()) return '<span class="status-chip due">本月應還</span>';
     return '<span class="status-chip wait">未到期</span>';
