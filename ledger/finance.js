@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "1.6.1";
+  var APP_VERSION = "1.6.2";
   var STORAGE_KEY = "danceFinance.v1";
   var SALARY_KEY = "danceClassLedger.v1";
   var EXPENSE_CATEGORIES = ["餐飲", "交通", "舞蹈與訓練", "房租水電", "日常用品", "通訊網路", "醫療", "購物", "娛樂", "美團消費", "人情往來", "手續費／利息", "還款", "其他"];
@@ -22,6 +22,7 @@
     prevMonth: document.getElementById("prev-month"),
     nextMonth: document.getElementById("next-month"),
     metrics: document.getElementById("metrics"),
+    cashOverview: document.getElementById("cash-overview"),
     salaryPanel: document.getElementById("salary-panel"),
     duePanel: document.getElementById("due-panel"),
     savingsGoalSnapshot: document.getElementById("savings-goal-snapshot"),
@@ -1698,9 +1699,23 @@
     });
   }
 
+  function renderCashOverview() {
+    var accounts = state.savingsAccounts.slice().sort(function (a, b) { return numberOrZero(b.balance) - numberOrZero(a.balance); });
+    var total = savingsTotal();
+    if (!accounts.length) {
+      el.cashOverview.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:center"><div><strong>目前現金</strong><div class="helper">尚未設定存款帳戶。</div></div><a class="btn small" href="#savings">新增帳戶</a></div>';
+      return;
+    }
+    var rows = accounts.map(function (account) {
+      var updated = account.updatedAt ? String(account.updatedAt).slice(0, 10) : todayText();
+      return '<div class="due-row"><div class="due-main"><strong>' + esc(account.name) + '</strong><span>' + esc(account.type || "其他") + " · 更新 " + esc(updated) + '</span></div><div class="due-value amount-income">' + money(account.balance) + '</div></div>';
+    }).join("");
+    el.cashOverview.innerHTML = '<div class="inline-actions" style="justify-content:space-between;align-items:flex-start"><div><strong>目前現金</strong><div class="helper">' + accounts.length + ' 個帳戶合計</div></div><div style="text-align:right"><strong class="amount-income">' + money(total) + '</strong><div class="helper">可用餘額</div></div></div><div class="status-timeline section">' + rows + '</div>';
+  }
   function renderAll() {
     var month = el.monthPicker.value || monthText();
     renderMetrics(month);
+    renderCashOverview();
     renderSalary(month);
     renderDue(month);
     renderDebts(month);
@@ -1950,7 +1965,7 @@
   var ledgerLink = document.querySelector("[data-ledger-link]");
   if (ledgerLink) ledgerLink.href = /\/ledger\/[^/]*$/.test(location.pathname) ? "./" : "./上課紀錄與薪資統計.html";
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=26", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
+    navigator.serviceWorker.register("./ledger-sw.js?v=27", { updateViaCache: "none" }).catch(function (error) { console.warn("Service Worker 註冊失敗", error); });
   }
 
   el.monthPicker.value = monthText();
