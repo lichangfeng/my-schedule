@@ -215,7 +215,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           <div><label for="batch-file">账单文件</label><input id="batch-file" type="file" accept=".csv,.txt,text/csv,text/plain"></div>
           <div class="field full"><label for="batch-text">账单原始文本</label><textarea id="batch-text" placeholder="直接粘贴账单表格或复制文本，系统会扫描前 40 行自动定位表头"></textarea></div>
         </div>
-        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="batch-select-income-transfers" type="button">勾選全部轉入收入</button><button class="btn" id="clipboard-import" type="button">从剪贴板合并导入流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
+        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="batch-select-income-transfers" type="button">勾選全部轉入收入</button><button class="btn" id="batch-select-transfers" type="button">全部資金往來（不計統計）</button><button class="btn" id="clipboard-import" type="button">从剪贴板合并导入流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
         <p class="helper" id="batch-status"></p>
         <div id="batch-preview" class="section"></div>
       </div>
@@ -229,7 +229,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       <div class="card-head"><div><h2>每日記帳（支出／收入）</h2><p>隨手記一筆；會自動加到該月的分類合計、年度統計與圓餅圖。</p></div>
         <div class="month-bar">
           <div><label for="daily-month">月份</label><input id="daily-month" type="month"></div>
-          <div><label for="daily-filter">顯示</label><select id="daily-filter"><option value="all">全部</option><option value="income">只看收入</option><option value="expense">只看支出</option></select></div>
+          <div><label for="daily-filter">顯示</label><select id="daily-filter"><option value="all">全部</option><option value="income">只看收入</option><option value="expense">只看支出</option><option value="transfer">只看資金往來</option></select></div>
         </div>
       </div>
       <div class="card-body"><div class="summary-grid" id="daily-summary"></div></div>
@@ -240,7 +240,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         <form id="daily-form" class="form-grid three">
           <div><label for="daily-date">日期</label><input id="daily-date" type="date" required></div>
           <div><label for="daily-amount">金額</label><input id="daily-amount" type="number" min="0.01" step="0.01" required></div>
-          <div><label for="daily-type">收支</label><select id="daily-type"><option value="expense">支出</option><option value="income">收入</option></select></div>
+          <div><label for="daily-type">收支</label><select id="daily-type"><option value="expense">支出</option><option value="income">收入</option><option value="transfer-in">轉入（不計統計）</option><option value="transfer-out">轉出（不計統計）</option></select></div>
           <div><label for="daily-category">分類</label><select id="daily-category"></select></div>
           <div><label for="daily-account">帳戶</label><select id="daily-account"></select></div>
           <div><label for="daily-note">備註</label><input id="daily-note" type="text" maxlength="60" placeholder="例如：午餐"></div>
@@ -327,7 +327,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.9.0";
+  var APP_VERSION = "2.0.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -433,14 +433,16 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   var SEED_RECURRING = [
     { name: "房租", perMonth: 1200, cycleMonths: 3, startDate: "2026-11-01", periods: 8, categoryName: "房租", note: "季繳（每月 1200）" }
   ];
-  var state = loadState();
-  var ui = { tab: "report", year: num(state.ui && state.ui.year) || new Date().getFullYear(), month: num(state.ui && state.ui.month) || (new Date().getMonth() + 1) };
-  var ocrPastedFile = null;
   var openPanels = {};
   var dailyFilter = "all";
   var flowFilter = { month: "", kind: "", categoryId: "", source: "", salaryOnly: false };
   var CLASS_LEDGER_KEY = "danceClassLedger.v1";
   var RULE_SOURCE_LABELS = { any: "不限來源", wechat: "微信", alipay: "支付寶", ccb: "建設銀行", meituan: "美團", manual: "手動輸入", ocr: "截圖 OCR", "截图OCR识别": "截圖 OCR" };
+  var TRANSFER_IN_NAME = "資金往來（轉入）";
+  var TRANSFER_OUT_NAME = "資金往來（轉出）";
+  var state = loadState();
+  var ui = { tab: "report", year: num(state.ui && state.ui.year) || new Date().getFullYear(), month: num(state.ui && state.ui.month) || (new Date().getMonth() + 1) };
+  var ocrPastedFile = null;
   var RULE_MATCH_LABELS = { keyword: "備註／對方名稱包含", amountEq: "金額等於", amountGte: "金額大於或等於", amountLte: "金額小於或等於" };
   var el = {
     tabs: document.getElementById("tabs"), mobileNav: document.getElementById("mobile-nav"),
@@ -535,7 +537,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); return brandNew; }
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -554,9 +556,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       parsed.plannedIncome = Array.isArray(parsed.plannedIncome) ? parsed.plannedIncome : [];
       seedDefaultDebts(parsed);
       seedDefaultRecurring(parsed);
+      migrateRentAndDeposit(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); return fallback; }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -718,7 +721,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     }
     el.annualCategories.innerHTML = '<h3>全年支出分类</h3>' + (catTotals.length ? '<div class="trend">' + catTotals.map(function(x,i){ return '<div class="trend-row"><span>' + esc(x.name) + (x.recurring > 0 ? '<br><span class="flow-source">含定期 ' + money(x.recurring) + '</span>' : '') + '</span><div class="trend-bar"><i style="width:' + (x.total / maxCat * 100) + '%;background:' + COLORS[i % COLORS.length] + '"></i></div><strong>' + money(x.total) + '</strong></div>'; }).join("") + '</div>' : '<div class="empty">這一年尚無支出分类合计。</div>');
   }  function renderCategories() {
-    var groups = [{ type: "expense", title: "支出分类" }, { type: "income", title: "收入分类" }];
+    var groups = [{ type: "expense", title: "支出分类" }, { type: "income", title: "收入分类" }, { type: "transfer-in", title: "資金往來（不計統計）" }, { type: "transfer-out", title: "資金往來（不計統計）" }];
     el.categoryList.innerHTML = groups.map(function(g){
       var cats = state.categories.filter(function(c){ return c.type === g.type; });
       return '<div class="subcard section"><h3>' + g.title + '（' + cats.length + '）</h3><div class="table-wrap"><table class="table"><thead><tr><th>名称</th><th>类型</th><th>操作</th></tr></thead><tbody>' + (cats.length ? cats.map(function(c){ return '<tr><td>' + esc(c.name) + '</td><td>' + '<td>' + (c.type === "income" ? "收入" : "支出") + '</td><td><div class="actions" style="margin:0"><button class="btn small" data-rename-category="' + esc(c.id) + '" type="button">改名</button><button class="btn small danger" data-delete-category="' + esc(c.id) + '" type="button">删除</button></div></td></tr>'; }).join("") : '<tr><td colspan="3" class="empty">尚未建立分类。</td></tr>') + '</tbody></table></div></div>';
@@ -773,7 +776,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       list.map(function (x) {
         var srcText = Object.keys(x.sources).sort(function (a, b) { return x.sources[b] - x.sources[a]; }).map(function (s) { return esc(s) + " " + money(x.sources[s]); }).join(" · ");
         return '<tr><td><strong>' + esc(x.name) + '</strong></td><td class="num good">' + money(x.total) + '</td><td class="num">' + x.count + '</td><td class="num">' + (total ? Math.round(x.total / total * 100) + "%" : "—") + '</td><td>' + srcText + '</td></tr>';
-      }).join("") + '</tbody></table></div><p class="helper">想把某筆收入歸到工資：在下面的清單直接改分類即可；要自動判斷可到「收入認定規則」設定（例：來源微信＋備註含「工資」→ 分類工資）。</p></div>';
+      }).join("") + '</tbody></table></div>' + (function () { var tr = {}; rows.forEach(function (t) { var k = txKind(t); tr[k] = (tr[k] || 0) + num(t.amount); }); if (tr["transfer-in"] || tr["transfer-out"]) { return '<p class="helper">資金往來（不計入統計）：轉入 ' + money(tr["transfer-in"] || 0) + ' · 轉出 ' + money(tr["transfer-out"] || 0) + '</p>'; } return ""; })() + '<p class="helper">想把某筆收入歸到工資：在下面的清單直接改分類即可；要自動判斷可到「收入認定規則」設定（例：來源微信＋備註含「工資」→ 分類工資）。</p></div>';
   }
   function renderFlows() {
     renderFlowFilterOptions();
@@ -783,7 +786,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (!list.length) { el.flowList.innerHTML = '<div class="empty">沒有符合目前篩選條件的流水。</div>'; return; }
     el.flowList.innerHTML = '<p class="helper">顯示 ' + list.length + ' / 全部 ' + all.length + ' 筆' + (flowFilter.salaryOnly ? '（只看工資／薪資收入）' : "") + '</p><div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>分类</th><th>账户</th><th class="num">金额</th><th>来源/备注</th><th>操作</th></tr></thead><tbody>' + list.map(function (t) {
       var cat = flowCategoryOf(t), acc = findAccount(t.accountId), kind = txKind(t);
-      return '<tr><td>' + esc(t.dt) + '</td><td><select data-flow-category="' + esc(t.id) + '">' + optionsForAllCategories(cat ? cat.id : "") + '</select></td><td>' + esc(acc ? acc.name : "未指定") + '</td><td class="num ' + (kind === "income" ? "good" : "bad") + '">' + (kind === "income" ? "+" : "−") + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.ruleName ? ' <span class="status-chip paid">規則：' + esc(t.ruleName) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-delete-flow="' + esc(t.id) + '" type="button">删除</button></td></tr>';
+      return '<tr><td>' + esc(t.dt) + '</td><td><select data-flow-category="' + esc(t.id) + '">' + optionsForAllCategories(cat ? cat.id : "") + '</select></td><td>' + esc(acc ? acc.name : "未指定") + '</td><td class="num ' + (kind === "income" ? "good" : isTransferKind(kind) ? "" : "bad") + '">' + (isTransferKind(kind) ? '<span class="status-chip wait">' + transferLabel(kind) + '</span> ' : kind === "income" ? "+" : "−") + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.ruleName ? ' <span class="status-chip paid">規則：' + esc(t.ruleName) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-delete-flow="' + esc(t.id) + '" type="button">删除</button></td></tr>';
     }).join("") + '</tbody></table></div>';
   }
   function setupFlowFilters() {
@@ -818,12 +821,12 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var cat = findCategory(tx.categoryId); if (!cat) return showToast("請選擇交易分類");
     var item = { id: uid("tx"), dt: tx.dt || todayText(), amount: num(tx.amount), type: cat.type, categoryId: tx.categoryId, accountId: tx.accountId || "", note: tx.note || "", source: tx.source || "手动录入", createdAt: new Date().toISOString() };
     state.transactions.push(item);
-    addToSummary(String(item.dt).slice(0, 7), item.categoryId, item.amount);
+    if (!isTransferKind(cat.type)) addToSummary(String(item.dt).slice(0, 7), item.categoryId, item.amount);
     saveState(); renderAll(); return item;
   }
   function deleteFlow(id) {
     var tx = state.transactions.filter(function(t){ return t.id === id; })[0]; if (!tx) return;
-    var cat = findCategory(tx.categoryId); if (!cat) { state.transactions = state.transactions.filter(function(t){ return t.id !== id; }); saveState(); renderAll(); return; }
+    var cat = findCategory(tx.categoryId); if (!cat || isTransferKind(txKind(tx))) { state.transactions = state.transactions.filter(function(t){ return t.id !== id; }); saveState(); renderAll(); showToast("已刪除（資金往來不影響統計）"); return; }
     var month = tx.dt.slice(0, 7); var s = summaryFor(month, tx.categoryId); if (s) setSummary(month, tx.categoryId, num(s.amount) - num(tx.amount));
     state.transactions = state.transactions.filter(function(t){ return t.id !== id; }); saveState(); renderAll(); showToast("已删除流水并扣减月度合计");
   }
@@ -1029,7 +1032,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=38", { updateViaCache: "none" }).catch(function(){});
-  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
+  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION;
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
   refreshTxOptions(); switchTab("report"); renderAll();
@@ -1052,23 +1055,27 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     return "週" + ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
   }
   function txKind(t) {
+    if (isTransferKind(t && t.type)) return t.type;
     var cat = findCategory(t.categoryId);
     if (cat && cat.type) return cat.type;
     return t.type === "income" ? "income" : "expense";
   }
   function dailySummary(month) {
     var rows = state.transactions.filter(function (t) { return String(t.dt || "").slice(0, 7) === month; });
-    var expense = 0, income = 0, byDay = {};
+    var expense = 0, income = 0, transferIn = 0, transferOut = 0, byDay = {};
     rows.forEach(function (t) {
       var amt = num(t.amount);
-      if (!byDay[t.dt]) byDay[t.dt] = { date: t.dt, expense: 0, income: 0, rows: [] };
+      if (!byDay[t.dt]) byDay[t.dt] = { date: t.dt, expense: 0, income: 0, transferIn: 0, transferOut: 0, rows: [] };
       byDay[t.dt].rows.push(t);
-      if (txKind(t) === "income") { income += amt; byDay[t.dt].income += amt; }
+      var kind = txKind(t);
+      if (kind === "income") { income += amt; byDay[t.dt].income += amt; }
+      else if (kind === "transfer-in") { transferIn += amt; byDay[t.dt].transferIn += amt; }
+      else if (kind === "transfer-out") { transferOut += amt; byDay[t.dt].transferOut += amt; }
       else { expense += amt; byDay[t.dt].expense += amt; }
     });
     var days = Object.keys(byDay);
     var maxDay = days.reduce(function (best, d) { return byDay[d].expense > (best ? byDay[best].expense : 0) ? d : best; }, "");
-    return { rows: rows, expense: expense, income: income, byDay: byDay, days: days, avg: days.length ? expense / days.length : 0, maxDay: maxDay, maxAmount: maxDay ? byDay[maxDay].expense : 0 };
+    return { rows: rows, expense: expense, income: income, transferIn: transferIn, transferOut: transferOut, byDay: byDay, days: days, avg: days.length ? expense / days.length : 0, maxDay: maxDay, maxAmount: maxDay ? byDay[maxDay].expense : 0 };
   }
   function renderDaily() {
     if (!el.dailySummary) return;
@@ -1083,7 +1090,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       '<div class="summary-card"><span>最高單日支出</span><strong>' + money(s.maxAmount) + '</strong><small>' + (s.maxDay ? esc(s.maxDay) + " " + weekdayLabel(s.maxDay) : "尚無資料") + '</small></div>';
     var filteredDays = {};
     Object.keys(s.byDay).forEach(function (d) {
-      var keep = s.byDay[d].rows.filter(function (t) { return dailyFilter === "all" || txKind(t) === dailyFilter; });
+      var keep = s.byDay[d].rows.filter(function (t) { var k = txKind(t); return dailyFilter === "all" || (dailyFilter === "transfer" ? isTransferKind(k) : k === dailyFilter); });
       if (!keep.length) return;
       filteredDays[d] = {
         date: d, rows: keep,
@@ -1265,7 +1272,78 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       showToast("已取消 " + removed + " 筆認列");
     });
   }
-  setupClassSalaryPanel();  /* ================= 收入認定規則（把收到的錢列為收入） ================= */
+  setupClassSalaryPanel();  /* ================= 資金往來分類與房租／押金整理 ================= */
+  function isTransferKind(kind) { return kind === "transfer-in" || kind === "transfer-out"; }
+  function transferLabel(kind) { return kind === "transfer-in" ? "轉入" : kind === "transfer-out" ? "轉出" : ""; }
+  function typeLabel(type) { return type === "income" ? "收入" : type === "expense" ? "支出" : (transferLabel(type) || "支出"); }
+  function ensureTransferCategories(target) {
+    var t = target || state;
+    if (!Array.isArray(t.categories)) t.categories = [];
+    var bad = t.categories.filter(function (c) { return isTransferKind(c.type) && !String(c.name || "").trim(); });
+    if (bad.length) {
+      t.categories = t.categories.filter(function (c) { return bad.indexOf(c) < 0; });
+      (t.transactions || []).forEach(function (tx) { if (bad.some(function (c) { return c.id === tx.categoryId; })) tx.categoryId = ""; });
+    }
+    [[TRANSFER_IN_NAME, "transfer-in"], [TRANSFER_OUT_NAME, "transfer-out"]].forEach(function (pair) {
+      var found = t.categories.filter(function (c) { return c.type === pair[1]; })[0];
+      if (found) { if (!String(found.name || "").trim()) found.name = pair[0]; return; }
+      t.categories.push({ id: uid("cat"), name: pair[0], type: pair[1] });
+    });
+    return t;
+  }
+  function transferCategoryId(kind) {
+    ensureTransferCategories(state);
+    var cat = state.categories.filter(function (c) { return c.type === kind; })[0];
+    return cat ? cat.id : "";
+  }
+  function transferTotals(month) {
+    var out = { in: 0, out: 0, countIn: 0, countOut: 0 };
+    state.transactions.forEach(function (t) {
+      var k = txKind(t);
+      if (!isTransferKind(k)) return;
+      if (month && String(t.dt || "").slice(0, 7) !== month) return;
+      if (k === "transfer-in") { out.in += num(t.amount); out.countIn++; } else { out.out += num(t.amount); out.countOut++; }
+    });
+    return out;
+  }
+  /* 房租：統計每月 1,200（季繳 3,600 分攤）；押金與訂金補登為 2026-08 一次性支出；8/26 的 3,600 為現金流轉出 */
+  function migrateRentAndDeposit(target) {
+    if (!target || target.rentSetupV2 === true) return target;
+    try {
+      ensureTransferCategories(target);
+      var rentCat = ensureCategoryOn(target, "房租", "expense");
+      var rent = (target.recurring || []).filter(function (r) { return r.name === "房租"; })[0];
+      if (rent && Number(rent.cycleMonths) === 3) {
+        rent.cycleMonths = 1;
+        rent.amount = 1200;
+        rent.perMonth = 1200;
+        rent.startDate = "2026-09-01";
+        rent.note = "季繳：每 3 個月現金繳 3,600（2026-08-26 已繳 2026-09~11 月），統計上每月認列 1,200";
+        rent.occurrences = buildRecurringOccurrences("2026-09-01", 1, 24, 1200);
+      }
+      var seeds = [
+        { dt: "2026-08-26", amount: 1200, note: "租房押金（房東 蘇丹丹）", key: "manual|2026-08-26|1200|押金" },
+        { dt: "2026-08-25", amount: 100, note: "租房訂金（A貝殼房產）", key: "manual|2026-08-25|100|訂金" },
+        { dt: "2026-08-26", amount: 3600, note: "3 個月房租（2026-09~11，房東 蘇丹丹）", key: "manual|2026-08-26|3600|房租", transfer: true }
+      ];
+      seeds.forEach(function (s) {
+        if ((target.transactions || []).some(function (t) { return t.originOrderId === s.key; })) return;
+        var cat = s.transfer ? ensureCategoryOn(target, TRANSFER_OUT_NAME, "transfer-out") : rentCat;
+        if (!cat) return;
+        target.transactions.push({ id: uid("tx"), dt: s.dt, amount: s.amount, type: cat.type, categoryId: cat.id, accountId: "", note: s.note, source: "手動補登", originOrderId: s.key, createdAt: new Date().toISOString() });
+        if (!isTransferKind(cat.type)) {
+          var pp = s.dt.split("-");
+          var row = target.summaries.filter(function (x) { return Number(x.year) === Number(pp[0]) && Number(x.month) === Number(pp[1]) && x.categoryId === cat.id; })[0];
+          if (!row) { row = { id: uid("sum"), year: Number(pp[0]), month: Number(pp[1]), categoryId: cat.id, amount: 0, note: "手動補登" }; target.summaries.push(row); }
+          row.amount = num(row.amount) + s.amount;
+        }
+      });
+      target.rentSetupV2 = true;
+      delete target.migrateError;
+    } catch (e) { target.migrateError = String((e && e.message) || e); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    return target;
+  }  /* ================= 收入認定規則（把收到的錢列為收入） ================= */
   function incomeRuleList() { return Array.isArray(state.incomeRules) ? state.incomeRules : []; }
   function ruleSourceLabel(s) { return RULE_SOURCE_LABELS[s || "any"] || (s || "不限來源"); }
   function ruleMatchLabel(t) { return RULE_MATCH_LABELS[t || "keyword"] || RULE_MATCH_LABELS.keyword; }
@@ -1297,6 +1375,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   function adjustSummaryForTransaction(tx, sign) {
     if (!tx || !tx.categoryId) return;
+    if (isTransferKind(txKind(tx))) return;
     var month = String(tx.dt || "").slice(0, 7); if (!month) return;
     var cat = findCategory(tx.categoryId); if (!cat) return;
     var row = summaryFor(month, tx.categoryId);
@@ -1306,10 +1385,11 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var tx = state.transactions.filter(function (t) { return t.id === txId; })[0];
     if (!tx || !categoryId || tx.categoryId === categoryId) return false;
     var cat = findCategory(categoryId); if (!cat) return false;
-    adjustSummaryForTransaction(tx, -1);
+    var wasTransfer = isTransferKind(txKind(tx));
+    if (!wasTransfer) adjustSummaryForTransaction(tx, -1);
     tx.categoryId = categoryId;
     tx.type = cat.type;
-    adjustSummaryForTransaction(tx, 1);
+    if (!isTransferKind(cat.type)) adjustSummaryForTransaction(tx, 1);
     saveState(); renderAll();
     return true;
   }
@@ -1331,10 +1411,13 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     return changed;
   }
   function optionsForAllCategories(selected) {
-    var expense = state.categories.filter(function (c) { return c.type === "expense"; });
-    var income = state.categories.filter(function (c) { return c.type === "income"; });
+    var groups = [["支出", "expense"], ["收入", "income"], ["資金往來（不計統計）", "transfer-in"], ["資金往來（不計統計）", "transfer-out"]];
     var opt = function (c) { return '<option value="' + esc(c.id) + '"' + (c.id === selected ? " selected" : "") + '>' + esc(c.name) + '</option>'; };
-    return '<optgroup label="支出">' + expense.map(opt).join("") + '</optgroup><optgroup label="收入">' + income.map(opt).join("") + '</optgroup>';
+    return groups.map(function (g) {
+      var cats = state.categories.filter(function (c) { return c.type === g[1]; });
+      if (!cats.length) return "";
+      return '<optgroup label="' + g[0] + '">' + cats.map(opt).join("") + '</optgroup>';
+    }).join("");
   }
   function renderIncomeRules() {
     if (!el.ruleListBox) return;
@@ -2048,9 +2131,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var dt = dm ? dm[1] + "-" + pad(dm[2]) + "-" + pad(dm[3]) : todayText();
       var counterpart = (noteText.match(/(?:来自|來自|from)\s*([^,，\s]+)/i) || [])[1] || "";
       var account = sourceType === "wechat" ? "微信" : sourceType === "alipay" ? "支付宝" : sourceType === "ccb" ? "建设银行储蓄卡" : sourceType === "meituan" ? "美团" : sourceType;
+      var transferKind = /转账|轉賬|轉帳|转帐/.test(typeText) ? (isIncome ? "transfer-in" : "transfer-out") : "";
       var item = {
-        dt: dt, amount: amount, type: isIncome ? "income" : "expense",
-        categoryName: isIncome ? "其他收入" : guessCategoryName(lines[i], "expense", ""),
+        dt: dt, amount: amount, type: transferKind || (isIncome ? "income" : "expense"),
+        categoryName: transferKind ? (transferKind === "transfer-in" ? TRANSFER_IN_NAME : TRANSFER_OUT_NAME) : (isIncome ? "其他收入" : guessCategoryName(lines[i], "expense", "")),
         accountHint: account,
         note: (counterpart ? counterpart + (noteText ? " · " : "") : "") + (noteText || typeText).slice(0, 50),
         source: sourceType,
@@ -2101,6 +2185,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     state.transactions.forEach(function(t){
       if (!t.categoryId) return;
       var cat = findCategory(t.categoryId); if (!cat) return;
+      if (isTransferKind(cat.type)) return;
       var month = String(t.dt || "").slice(0,7); if (!month) return;
       var key = month + "|" + cat.id;
       if (!map[key]) map[key] = { year: Number(month.slice(0,4)), month: Number(month.slice(5,7)), categoryId: cat.id, categoryName: cat.name, type: cat.type, amount: 0 };
@@ -2134,7 +2219,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var cat = ensureCategory(tx.categoryName, tx.type);
       var item = { id: uid("tx"), dt: tx.dt, amount: num(tx.amount), type: cat.type, categoryId: cat.id, accountId: (state.accounts.filter(function(a){ return a.name === tx.accountHint; })[0] || {}).id || "", note: tx.note || "", source: tx.source || "manual", originOrderId: tx.originOrderId || "" };
       state.transactions.push(item);
-      added.push({ month: String(tx.dt || "").slice(0, 7), categoryId: cat.id, amount: num(tx.amount) });
+      if (!isTransferKind(cat.type)) added.push({ month: String(tx.dt || "").slice(0, 7), categoryId: cat.id, amount: num(tx.amount) });
       if (tx.originOrderId) existing[tx.originOrderId] = true;
       imported++;
     });
@@ -2174,7 +2259,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   function renderBatchCandidates() {
     if (!billCandidates.length) { el.batchPreview.innerHTML = '<div class="empty">尚無候選流水，粘貼账单文字後按解析。</div>'; el.batchImport.disabled = true; return; }
-    el.batchPreview.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){ return '<tr data-batch-index="' + i + '"><td><input type="checkbox" data-batch-selected' + (t.selected !== false ? " checked" : "") + '></td><td>' + esc(t.dt) + '</td><td>' + (t.type === "income" ? "收入" : "支出") + (t.neutral ? ' <span class="badge">中性</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則</span>' : "") + '</td><td class="num">' + money(t.amount) + '</td><td><select data-batch-category>' + optionsForAllCategories(ensureCategory(t.categoryName, t.type).id) + '</select></td><td>' + esc(t.note) + '</td><td><button class="btn small danger" data-batch-remove type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>';
+    el.batchPreview.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){ return '<tr data-batch-index="' + i + '"><td><input type="checkbox" data-batch-selected' + (t.selected !== false ? " checked" : "") + '></td><td>' + esc(t.dt) + '</td><td>' + typeLabel(t.type) + (t.neutral ? ' <span class="badge">中性</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則</span>' : "") + '</td><td class="num">' + money(t.amount) + '</td><td><select data-batch-category>' + optionsForAllCategories(ensureCategory(t.categoryName, t.type).id) + '</select></td><td>' + esc(t.note) + '</td><td><button class="btn small danger" data-batch-remove type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>';
     el.batchImport.disabled = !billCandidates.some(function(t){ return t.selected !== false; });
   }
   el.batchFile.addEventListener("change", function(){ var f = this.files && this.files[0]; if (!f) return; var name = f.name || ""; var reader = new FileReader(); reader.onload = function(){ el.batchText.value = reader.result || ""; if (/建设|建行|ccb/i.test(name)) el.batchSource.value = "ccb"; else if (/支付宝|alipay/i.test(name)) el.batchSource.value = "alipay"; else if (/微信|wechat/i.test(name)) el.batchSource.value = "wechat"; else if (/美团|meituan/i.test(name)) el.batchSource.value = "meituan"; el.batchStatus.textContent = "已读取文件：" + name + "，请按解析并预览。"; }; reader.readAsText(f); this.value = ""; });
@@ -2193,6 +2278,22 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     renderBatchCandidates();
     el.batchStatus.textContent = n ? ("已勾選 " + n + " 筆轉入／收款，會列為收入（分類可在左邊改成工資、課時費等）。") : "沒有找到「轉入／收款」類型的中性紀錄。";
     showToast(n ? ("已勾選 " + n + " 筆收入") : "沒有可勾選的轉入紀錄");
+  });
+  var batchSelectTransfers = document.getElementById("batch-select-transfers");
+  if (batchSelectTransfers) batchSelectTransfers.addEventListener("click", function(){
+    if (!billCandidates.length) return showToast("請先解析帳單");
+    var nIn = 0, nOut = 0;
+    billCandidates.forEach(function (t) {
+      if (!t.neutral) return;
+      var out = t.type === "expense";
+      t.selected = true;
+      t.categoryName = out ? "資金往來（轉出）" : "資金往來（轉入）";
+      t.type = out ? "transfer-out" : "transfer-in";
+      if (out) nOut++; else nIn++;
+    });
+    renderBatchCandidates();
+    el.batchStatus.textContent = (nIn || nOut) ? ("已把中性紀錄標成資金往來：轉入 " + nIn + " 筆、轉出 " + nOut + " 筆（不計入收入與支出統計，只留在流水備查）。") : "沒有中性紀錄。";
+    showToast((nIn || nOut) ? "已標記為資金往來（不計統計）" : "沒有中性紀錄");
   });
   el.batchClear.addEventListener("click", function(){ billCandidates = []; el.batchText.value = ""; el.batchStatus.textContent = ""; renderBatchCandidates(); });
   el.batchPreview.addEventListener("change", function(e){ var row = e.target.closest("tr[data-batch-index]"); if (!row) return; var t = billCandidates[Number(row.getAttribute("data-batch-index"))]; if (!t) return; if (e.target.matches("[data-batch-selected]")) t.selected = e.target.checked; if (e.target.matches("[data-batch-category]")) { var cat = findCategory(e.target.value); if (cat) { t.categoryName = cat.name; t.type = cat.type; } } el.batchImport.disabled = !billCandidates.some(function(x){ return x.selected !== false; }); });
