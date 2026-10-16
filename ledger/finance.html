@@ -102,9 +102,23 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     </div>
     <div class="card section" id="class-salary-card">
       <div class="card-head"><div><h2>預計收入（上課記錄聯動）</h2><p>自動讀取「上課紀錄與薪資統計」的上課紀錄，薪水次月入帳；可一鍵認列成本月收入。</p></div>
-        <div class="actions" style="margin:0"><button class="btn small" id="class-salary-sync" type="button">重新讀取</button><button class="btn small primary" id="class-salary-book" type="button">認列本月收入</button><button class="btn small" id="class-salary-unbook" type="button">取消認列</button></div>
+        <div class="actions" style="margin:0"><button class="btn small" id="class-salary-sync" type="button">重新讀取</button><button class="btn small primary" id="class-salary-book" type="button">標記為已收到（寫入流水）</button><button class="btn small" id="class-salary-unbook" type="button">取消已收到</button></div>
       </div>
-      <div class="card-body"><div id="class-salary-panel"></div><div id="class-salary-list" class="section"></div><p class="helper" id="class-salary-status"></p></div>
+      <div class="card-body"><div id="class-salary-panel"></div><div id="class-salary-list" class="section"></div><p class="helper" id="class-salary-status"></p>
+        <div id="planned-income-list" class="section"></div>
+        <details class="section">
+          <summary class="card-head" style="padding:14px 0"><div><h3 style="margin:0;font-size:.98rem">新增預計收入（不會進流水）</h3><p style="margin:4px 0 0;color:var(--muted);font-size:.84rem">例如「某某預計轉帳 1,000」「預計課時費 3,600」；只做提醒與規劃，按「標記為已收到」才會寫入真實收入。</p></div><span class="pill">展開</span></summary>
+          <form id="planned-income-form" class="form-grid three">
+            <div><label for="plan-name">名稱</label><input id="plan-name" type="text" maxlength="40" placeholder="例如：某某轉帳 / 課時費" required></div>
+            <div><label for="plan-amount">金額</label><input id="plan-amount" type="number" min="0.01" step="0.01" required></div>
+            <div><label for="plan-date">預計入帳日</label><input id="plan-date" type="date" required></div>
+            <div><label for="plan-category">收入分類</label><input id="plan-category" type="text" list="plan-category-list" maxlength="20" value="其他收入"></div>
+            <div><label for="plan-note">備註</label><input id="plan-note" type="text" maxlength="60" placeholder="例如：學費尾款"></div>
+            <div class="field full actions"><button class="btn primary" type="submit">新增預計收入</button></div>
+          </form>
+          <datalist id="plan-category-list"></datalist>
+        </details>
+      </div>
     </div>    <div class="card section" id="report-debt-card" role="button" tabindex="0">
       <div class="card-head"><div><h2>負債與還款計劃</h2><p>點一下進入負債頁：標記還款、查看每期明細、匯入新的還款計劃。</p></div><span class="pill">查看負債 →</span></div>
       <div class="card-body"><div class="summary-grid" id="report-debts"></div><p class="helper" id="report-debt-hint"></p></div>
@@ -201,7 +215,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           <div><label for="batch-file">账单文件</label><input id="batch-file" type="file" accept=".csv,.txt,text/csv,text/plain"></div>
           <div class="field full"><label for="batch-text">账单原始文本</label><textarea id="batch-text" placeholder="直接粘贴账单表格或复制文本，系统会扫描前 40 行自动定位表头"></textarea></div>
         </div>
-        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="clipboard-import" type="button">从剪贴板合并导入流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
+        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="batch-select-income-transfers" type="button">勾選全部轉入收入</button><button class="btn" id="clipboard-import" type="button">从剪贴板合并导入流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
         <p class="helper" id="batch-status"></p>
         <div id="batch-preview" class="section"></div>
       </div>
@@ -212,8 +226,11 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   </section>
   <section id="tab-daily" class="hidden">
     <div class="card">
-      <div class="card-head"><div><h2>每日支出</h2><p>隨手記一筆（也可以記收入）；會自動加到該月的分類合計、年度統計與圓餅圖。</p></div>
-        <div class="month-bar"><div><label for="daily-month">月份</label><input id="daily-month" type="month"></div></div>
+      <div class="card-head"><div><h2>每日記帳（支出／收入）</h2><p>隨手記一筆；會自動加到該月的分類合計、年度統計與圓餅圖。</p></div>
+        <div class="month-bar">
+          <div><label for="daily-month">月份</label><input id="daily-month" type="month"></div>
+          <div><label for="daily-filter">顯示</label><select id="daily-filter"><option value="all">全部</option><option value="income">只看收入</option><option value="expense">只看支出</option></select></div>
+        </div>
       </div>
       <div class="card-body"><div class="summary-grid" id="daily-summary"></div></div>
     </div>
@@ -227,7 +244,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           <div><label for="daily-category">分類</label><select id="daily-category"></select></div>
           <div><label for="daily-account">帳戶</label><select id="daily-account"></select></div>
           <div><label for="daily-note">備註</label><input id="daily-note" type="text" maxlength="60" placeholder="例如：午餐"></div>
-          <div class="field full actions"><button class="btn primary" type="submit">記一筆</button><button class="btn" id="daily-today" type="button">跳到今天</button><button class="btn" id="daily-clear" type="button">清除</button></div>
+          <div class="field full actions"><button class="btn primary" type="submit">記一筆</button><button class="btn" id="daily-quick-income" type="button">記收入</button><button class="btn" id="daily-today" type="button">跳到今天</button><button class="btn" id="daily-clear" type="button">清除</button></div>
         </form>
       </div>
     </div>
@@ -297,6 +314,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           </div>
         </div>
         <div id="flow-income-summary" class="section"></div>
+        <details class="section"><summary class="card-head" style="padding:14px 0"><div><h3 style="margin:0;font-size:.98rem">月份完整性檢查</h3><p style="margin:4px 0 0;color:var(--muted);font-size:.84rem">檢查每個月各來源的筆數，找出漏匯入或匯入偏少的月份。</p></div><span class="pill">展開</span></summary><div id="flow-month-audit"></div></details>
         <div id="flow-list" class="section"></div>
       </div>
     </div>
@@ -309,7 +327,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "1.8.0";
+  var APP_VERSION = "1.9.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -416,9 +434,14 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     { name: "房租", perMonth: 1200, cycleMonths: 3, startDate: "2026-11-01", periods: 8, categoryName: "房租", note: "季繳（每月 1200）" }
   ];
   var state = loadState();
-  var ui = { tab: "report", year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+  var ui = { tab: "report", year: num(state.ui && state.ui.year) || new Date().getFullYear(), month: num(state.ui && state.ui.month) || (new Date().getMonth() + 1) };
   var ocrPastedFile = null;
   var openPanels = {};
+  var dailyFilter = "all";
+  var flowFilter = { month: "", kind: "", categoryId: "", source: "", salaryOnly: false };
+  var CLASS_LEDGER_KEY = "danceClassLedger.v1";
+  var RULE_SOURCE_LABELS = { any: "不限來源", wechat: "微信", alipay: "支付寶", ccb: "建設銀行", meituan: "美團", manual: "手動輸入", ocr: "截圖 OCR", "截图OCR识别": "截圖 OCR" };
+  var RULE_MATCH_LABELS = { keyword: "備註／對方名稱包含", amountEq: "金額等於", amountGte: "金額大於或等於", amountLte: "金額小於或等於" };
   var el = {
     tabs: document.getElementById("tabs"), mobileNav: document.getElementById("mobile-nav"),
     monthPicker: document.getElementById("month-picker"), yearPicker: document.getElementById("year-picker"),
@@ -457,11 +480,16 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     dailyForm: document.getElementById("daily-form"), dailyDate: document.getElementById("daily-date"), dailyAmount: document.getElementById("daily-amount"),
     dailyType: document.getElementById("daily-type"), dailyCategory: document.getElementById("daily-category"), dailyAccount: document.getElementById("daily-account"),
     dailyNote: document.getElementById("daily-note"), dailyToday: document.getElementById("daily-today"), dailyClear: document.getElementById("daily-clear"),
+    dailyFilter: document.getElementById("daily-filter"), dailyQuickIncome: document.getElementById("daily-quick-income"),
+    batchSelectIncome: document.getElementById("batch-select-income-transfers"), flowMonthAudit: document.getElementById("flow-month-audit"),
     classSalaryPanel: document.getElementById("class-salary-panel"), classSalaryList: document.getElementById("class-salary-list"), classSalaryStatus: document.getElementById("class-salary-status"),
     classSalarySync: document.getElementById("class-salary-sync"), classSalaryBook: document.getElementById("class-salary-book"), classSalaryUnbook: document.getElementById("class-salary-unbook"),
     flowFilterMonth: document.getElementById("flow-filter-month"), flowFilterKind: document.getElementById("flow-filter-kind"), flowFilterCategory: document.getElementById("flow-filter-category"),
     flowFilterSource: document.getElementById("flow-filter-source"), flowFilterReset: document.getElementById("flow-filter-reset"),
     flowIncomeSummary: document.getElementById("flow-income-summary"), flowQuickSalary: document.getElementById("flow-quick-salary"), flowQuickIncome: document.getElementById("flow-quick-income"),
+    plannedIncomeList: document.getElementById("planned-income-list"), plannedIncomeForm: document.getElementById("planned-income-form"),
+    planName: document.getElementById("plan-name"), planAmount: document.getElementById("plan-amount"), planDate: document.getElementById("plan-date"),
+    planCategory: document.getElementById("plan-category"), planNote: document.getElementById("plan-note"), planCategoryList: document.getElementById("plan-category-list"),
     annualIncomeCategories: document.getElementById("annual-income-categories"),
     reportSummary: document.getElementById("report-summary")
   };
@@ -477,12 +505,16 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function shiftMonth(month, delta) { var p = String(month).split("-"); var d = new Date(Number(p[0]), Number(p[1]) - 1 + delta, 1); return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
   function monthLabel(month) { var p = String(month).split("-"); return p[0] + "年" + Number(p[1]) + "月"; }
   function showToast(msg) { el.toast.textContent = msg; el.toast.classList.add("show"); clearTimeout(showToast.timer); showToast.timer = setTimeout(function(){ el.toast.classList.remove("show"); }, 2200); }
+  function persistMonth() {
+    state.ui = { year: ui.year, month: ui.month };
+    saveState();
+  }
   function defaultState() {
     var cats = [];
     DEFAULT_EXPENSE.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "expense" }); });
     DEFAULT_INCOME.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "income" }); });
     var accounts = DEFAULT_ACCOUNTS.map(function(name){ return { id: "acc-" + name, name: name, type: name }; });
-    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [], recurring: [], incomeRules: [] };
+    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [], recurring: [], incomeRules: [], plannedIncome: [] };
   }
   function migrateLegacyState(target) {
     try {
@@ -518,6 +550,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       parsed.debts = Array.isArray(parsed.debts) ? parsed.debts : [];
       parsed.recurring = Array.isArray(parsed.recurring) ? parsed.recurring : [];
       parsed.incomeRules = Array.isArray(parsed.incomeRules) ? parsed.incomeRules : [];
+      parsed.ui = parsed.ui && typeof parsed.ui === "object" ? parsed.ui : {};
+      parsed.plannedIncome = Array.isArray(parsed.plannedIncome) ? parsed.plannedIncome : [];
       seedDefaultDebts(parsed);
       seedDefaultRecurring(parsed);
       migrateLegacyState(parsed);
@@ -693,7 +727,6 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function renderAccounts() {
     el.accountList.innerHTML = state.accounts.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>账户</th><th>类型</th><th>操作</th></tr></thead><tbody>' + state.accounts.map(function(a){ return '<tr><td>' + esc(a.name) + '</td><td>' + esc(a.type || "") + '</td><td><button class="btn small danger" data-delete-account="' + esc(a.id) + '" type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>' : '<div class="empty">尚未建立账户。</div>';
   }
-  var flowFilter = { month: "", kind: "", categoryId: "", source: "", salaryOnly: false };
   function isSalaryCategoryName(name) { return /工[资資]|薪[资資水酬]|薪水|薪酬|月薪/.test(String(name || "")); }
   function flowCategoryOf(t) { return findCategory(t.categoryId); }
   function flowSourceValues() {
@@ -827,10 +860,124 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var file = ocrPastedFile || (el.ocrFile.files && el.ocrFile.files[0]); if (!file) return showToast("請先選擇或貼上账单截图");
     el.ocrStatus.textContent = "正在载入 OCR 元件…"; loadTesseract(function(err){ if (err || !window.Tesseract) { el.ocrStatus.textContent = "OCR 元件載入失敗，请手动新增交易。"; return; } el.ocrStatus.textContent = "正在识别…"; window.Tesseract.recognize(file, "chi_sim+eng", { logger: function(m){ if (m.status === "recognizing text") el.ocrStatus.textContent = "正在识别… " + Math.round((m.progress || 0) * 100) + "%"; } }).then(function(r){ var text = r && r.data ? r.data.text : ""; var base = ocrGuess(text); renderOcrResult(base); el.ocrStatus.textContent = "识别完成，请确认金额与分类。"; }).catch(function(){ el.ocrStatus.textContent = "识别失败，请手动新增交易。"; }); });
   }
-  function renderAll() {
+  /* ================= 預計收入（只做規劃，不進流水） ================= */
+  function plannedIncomeList() { return Array.isArray(state.plannedIncome) ? state.plannedIncome : []; }
+  function renderPlannedIncome() {
+    if (!el.plannedIncomeList) return;
+    var list = plannedIncomeList().slice().sort(function (a, b) { return String(a.expectDate || "").localeCompare(String(b.expectDate || "")); });
+    if (el.planCategoryList) el.planCategoryList.innerHTML = state.categories.filter(function (c) { return c.type === "income"; }).map(function (c) { return '<option value="' + esc(c.name) + '"></option>'; }).join("");
+    if (!list.length) {
+      el.plannedIncomeList.innerHTML = '<div class="empty">還沒有預計收入。展開下方「新增預計收入」可以記「某某預計轉帳」「預計課時費」；這些<b>不會</b>寫進流水與統計，只有按「標記為已收到」才會產生真實收入。</div>';
+      return;
+    }
+    var pending = list.filter(function (p) { return !p.received; });
+    el.plannedIncomeList.innerHTML = '<div class="subcard"><h3>預計收入（未收到 ' + pending.length + ' 筆，合計 ' + money(pending.reduce(function (s, p) { return s + num(p.amount); }, 0)) + '）</h3><p class="helper">預計收入只做提醒與規劃，<b>不會</b>出現在「流水備查」與收入統計；按「標記為已收到」才會寫入真實流水。</p><div class="table-wrap"><table class="table"><thead><tr><th>名稱</th><th class="num">金額</th><th>預計入帳日</th><th>分類</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+      list.map(function (p) {
+        return '<tr><td><strong>' + esc(p.name) + '</strong>' + (p.note ? '<br><span class="flow-source">' + esc(p.note) + '</span>' : '') + '</td>' +
+          '<td class="num good">' + money(p.amount) + '</td><td>' + esc(p.expectDate || "—") + '</td><td>' + esc(p.categoryName || "其他收入") + '</td>' +
+          '<td>' + (p.received ? '<span class="status-chip paid">已收到</span>' : '<span class="status-chip wait">預計中</span>') + '</td>' +
+          '<td><div class="actions" style="margin:0"><button class="btn small' + (p.received ? "" : " primary") + '" data-plan-receive="' + esc(p.id) + '" type="button">' + (p.received ? "取消已收到" : "標記為已收到") + '</button><button class="btn small danger" data-plan-del="' + esc(p.id) + '" type="button">刪除</button></div></td></tr>';
+      }).join("") + '</tbody></table></div></div>';
+  }
+  function receivePlannedIncome(id) {
+    var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0];
+    if (!p) return { ok: false, msg: "找不到這筆預計收入" };
+    var cat = ensureCategory(p.categoryName || "其他收入", "income");
+    var dt = p.expectDate || todayText();
+    var tx = { id: uid("tx"), dt: dt, amount: Math.round(num(p.amount) * 100) / 100, type: "income", categoryId: cat.id, accountId: "", note: p.note ? p.name + "（" + p.note + "）" : p.name, source: "預計收入", originOrderId: "plan|" + p.id, createdAt: new Date().toISOString() };
+    state.transactions.push(tx);
+    addToSummary(String(dt).slice(0, 7), cat.id, tx.amount);
+    p.received = true; p.txId = tx.id; p.receivedAt = todayText();
+    saveState(); renderAll();
+    return { ok: true, tx: tx };
+  }
+  function unreceivePlannedIncome(id) {
+    var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0];
+    if (!p || !p.received) return false;
+    var tx = state.transactions.filter(function (t) { return t.id === p.txId || t.originOrderId === ("plan|" + p.id); })[0];
+    if (tx) { adjustSummaryForTransaction(tx, -1); state.transactions = state.transactions.filter(function (t) { return t.id !== tx.id; }); }
+    p.received = false; p.txId = ""; p.receivedAt = "";
+    saveState(); renderAll();
+    return true;
+  }
+  function deletePlannedIncome(id) {
+    var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0]; if (!p) return;
+    if (p.received && !confirm("「" + p.name + "」已標記為已收到（流水裡有一筆收入）。要一起刪除那筆流水並扣回收入嗎？按取消只刪除預計項目。")) {
+      state.plannedIncome = plannedIncomeList().filter(function (x) { return x.id !== id; });
+      saveState(); renderAll(); showToast("已刪除預計項目（流水保留）");
+      return;
+    }
+    if (p.received) unreceivePlannedIncome(id);
+    state.plannedIncome = plannedIncomeList().filter(function (x) { return x.id !== id; });
+    saveState(); renderAll(); showToast("已刪除預計收入：" + p.name);
+  }
+  function setupPlannedIncome() {
+    if (el.plannedIncomeForm) el.plannedIncomeForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = el.planName.value.trim(); var amount = num(el.planAmount.value);
+      if (!name || !(amount > 0)) return showToast("請填寫名稱與金額");
+      var categoryName = el.planCategory.value.trim() || "其他收入";
+      ensureCategory(categoryName, "income");
+      state.plannedIncome = plannedIncomeList().concat([{ id: uid("plan"), name: name, amount: Math.round(amount * 100) / 100, expectDate: el.planDate.value || todayText(), categoryName: categoryName, note: el.planNote.value.trim(), received: false, txId: "", createdAt: new Date().toISOString() }]);
+      saveState(); el.plannedIncomeForm.reset(); el.planCategory.value = "其他收入"; el.planDate.value = todayText();
+      renderAll(); showToast("已新增預計收入：" + name);
+    });
+    var card = document.getElementById("class-salary-card");
+    if (card) card.addEventListener("click", function (e) {
+      var node = e.target; if (!node || !node.closest) return;
+      var rec = node.closest("[data-plan-receive]");
+      if (rec) {
+        var id = rec.getAttribute("data-plan-receive");
+        var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0];
+        if (p && p.received) { if (unreceivePlannedIncome(id)) showToast("已取消「已收到」，流水與收入已扣回"); return; }
+        var res = receivePlannedIncome(id);
+        showToast(res.ok ? ("已寫入真實收入：" + res.tx.note + " " + money(res.tx.amount)) : res.msg);
+        return;
+      }
+      var del = node.closest("[data-plan-del]");
+      if (del) { deletePlannedIncome(del.getAttribute("data-plan-del")); return; }
+    });
+  }
+  setupPlannedIncome();  /* ================= 月份完整性檢查 ================= */
+  function renderFlowMonthAudit() {
+    if (!el.flowMonthAudit) return;
+    var byMonth = {}, srcMonths = {};
+    state.transactions.forEach(function (t) {
+      var m = String(t.dt || "").slice(0, 7); if (!m) return;
+      var src = t.source || "其他";
+      if (!byMonth[m]) byMonth[m] = { total: 0, income: 0, expense: 0, sources: {} };
+      byMonth[m].total++;
+      if (txKind(t) === "income") byMonth[m].income += num(t.amount); else byMonth[m].expense += num(t.amount);
+      byMonth[m].sources[src] = (byMonth[m].sources[src] || 0) + 1;
+      (srcMonths[src] = srcMonths[src] || {})[m] = true;
+    });
+    var keys = Object.keys(byMonth).sort();
+    if (!keys.length) { el.flowMonthAudit.innerHTML = '<div class="empty">還沒有流水可以檢查。</div>'; return; }
+    var first = keys[0], last = keys[keys.length - 1];
+    var list = [], cursor = last;
+    for (var i = 0; i < 24 && cursor >= first; i++) { list.push(cursor); cursor = shiftMonth(cursor, -1); }
+    list.reverse();
+    var srcList = Object.keys(srcMonths).sort();
+    var rows = list.map(function (m) {
+      var d = byMonth[m];
+      var cells = srcList.map(function (s) { return '<td class="num">' + (d && d.sources[s] ? d.sources[s] : "—") + '</td>'; }).join("");
+      var status = !d ? '<span class="status-chip late">缺</span>' : (d.total < 3 ? '<span class="status-chip due">偏少</span>' : '<span class="status-chip paid">有</span>');
+      return '<tr' + (!d ? ' class="is-current"' : '') + '><td><strong>' + esc(m) + '</strong></td>' + cells + '<td class="num">' + (d ? d.total : 0) + '</td><td class="num good">' + money(d ? d.income : 0) + '</td><td class="num bad">' + money(d ? d.expense : 0) + '</td><td>' + status + '</td></tr>';
+    }).join("");
+    var gaps = srcList.map(function (s) {
+      var ms = Object.keys(srcMonths[s]).sort();
+      var missing = [], c = ms[0];
+      while (c <= ms[ms.length - 1]) { if (!srcMonths[s][c]) missing.push(c); c = shiftMonth(c, 1); }
+      return { source: s, months: ms, missing: missing };
+    }).filter(function (g) { return g.missing.length; });
+    el.flowMonthAudit.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>月份</th>' + srcList.map(function (s) { return '<th class="num">' + esc(s) + '</th>'; }).join("") + '<th class="num">總筆數</th><th class="num">收入</th><th class="num">支出</th><th>狀態</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      (gaps.length
+        ? '<p class="helper bad">來源缺月：' + gaps.map(function (g) { return esc(g.source) + " 缺 " + g.missing.map(function (m) { return esc(m); }).join("、"); }).join("；") + '（紅色「缺」代表整個月都沒有任何流水）</p>'
+        : '<p class="helper">沒有偵測到中間缺月的來源（紅色「缺」代表整個月都沒有任何流水）。</p>');
+  }  function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
     if (el.flowFilterMonth) el.flowFilterMonth.value = flowFilter.month;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); refreshTxOptions(); renderFlowIncomeSummary();
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
   }
   function switchTab(tab) {
     ui.tab = tab;
@@ -872,19 +1019,19 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   el.amortList.addEventListener("click", function(e){ var b = e.target.closest("[data-delete-amort]"); if (!b) return; var row = state.amortizations.filter(function(a){ return a.id === b.getAttribute("data-delete-amort"); })[0]; if (!row || !confirm("删除分摊会从月度合计中扣回，确定？")) return; row.entries.forEach(function(en){ var s = summaryFor(en.month, row.categoryId); if (s) setSummary(en.month, row.categoryId, num(s.amount) - num(en.amount)); }); state.amortizations = state.amortizations.filter(function(a){ return a.id !== row.id; }); saveState(); renderAll(); showToast("分摊已删除并扣回"); });
   el.tabs.addEventListener("click", function(e){ var b = e.target.closest("[data-tab]"); if (b) switchTab(b.getAttribute("data-tab")); });
   el.mobileNav.addEventListener("click", function(e){ var b = e.target.closest("[data-tab]"); if (b) switchTab(b.getAttribute("data-tab")); });
-  el.monthPicker.addEventListener("change", function(){ var p = el.monthPicker.value.split("-"); ui.year = Number(p[0]); ui.month = Number(p[1]); renderAll(); });
-  el.yearPicker.addEventListener("change", function(){ ui.year = Number(el.yearPicker.value) || ui.year; renderAll(); });
-  document.getElementById("prev-month").addEventListener("click", function(){ var m = shiftMonth(ui.year + "-" + pad(ui.month), -1); var p=m.split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); renderAll(); });
-  document.getElementById("next-month").addEventListener("click", function(){ var m = shiftMonth(ui.year + "-" + pad(ui.month), 1); var p=m.split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); renderAll(); });
-  document.getElementById("current-month").addEventListener("click", function(){ var p=currentMonthKey().split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); renderAll(); });
+  el.monthPicker.addEventListener("change", function(){ var p = el.monthPicker.value.split("-"); ui.year = Number(p[0]); ui.month = Number(p[1]); persistMonth(); renderAll(); });
+  el.yearPicker.addEventListener("change", function(){ ui.year = Number(el.yearPicker.value) || ui.year; persistMonth(); renderAll(); });
+  document.getElementById("prev-month").addEventListener("click", function(){ var m = shiftMonth(ui.year + "-" + pad(ui.month), -1); var p=m.split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); persistMonth(); renderAll(); });
+  document.getElementById("next-month").addEventListener("click", function(){ var m = shiftMonth(ui.year + "-" + pad(ui.month), 1); var p=m.split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); persistMonth(); renderAll(); });
+  document.getElementById("current-month").addEventListener("click", function(){ var p=currentMonthKey().split("-"); ui.year=Number(p[0]); ui.month=Number(p[1]); persistMonth(); renderAll(); });
   document.getElementById("export-json").addEventListener("click", function(){ var blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="月末记账备份_"+todayText()+".json"; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); });
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=38", { updateViaCache: "none" }).catch(function(){});
-  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
+  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION;
-  el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
+  el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
   refreshTxOptions(); switchTab("report"); renderAll();
 
   /* ================= 展開狀態記憶（重繪後不收起） ================= */
@@ -927,13 +1074,25 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (!el.dailySummary) return;
     var month = ui.year + "-" + pad(ui.month);
     if (el.dailyMonth) el.dailyMonth.value = month;
+    if (el.dailyFilter) el.dailyFilter.value = dailyFilter;
     var s = dailySummary(month);
     el.dailySummary.innerHTML =
       '<div class="summary-card"><span>本月支出</span><strong class="bad">' + money(s.expense) + '</strong><small>' + monthLabel(month) + ' · 共 ' + s.rows.filter(function (t) { return txKind(t) !== "income"; }).length + ' 筆</small></div>' +
       '<div class="summary-card"><span>本月收入</span><strong class="good">' + money(s.income) + '</strong><small>含上課記錄認列</small></div>' +
       '<div class="summary-card"><span>有記帳天數</span><strong>' + s.days.length + ' 天</strong><small>每日平均支出 ' + money(s.avg) + '</small></div>' +
       '<div class="summary-card"><span>最高單日支出</span><strong>' + money(s.maxAmount) + '</strong><small>' + (s.maxDay ? esc(s.maxDay) + " " + weekdayLabel(s.maxDay) : "尚無資料") + '</small></div>';
-    var days = s.days.slice().sort().reverse();
+    var filteredDays = {};
+    Object.keys(s.byDay).forEach(function (d) {
+      var keep = s.byDay[d].rows.filter(function (t) { return dailyFilter === "all" || txKind(t) === dailyFilter; });
+      if (!keep.length) return;
+      filteredDays[d] = {
+        date: d, rows: keep,
+        expense: dailyFilter === "income" ? 0 : s.byDay[d].expense,
+        income: dailyFilter === "expense" ? 0 : s.byDay[d].income
+      };
+    });
+    var days = Object.keys(filteredDays).sort().reverse();
+    s = { byDay: filteredDays, days: days };
     if (!days.length) { el.dailyList.innerHTML = '<div class="empty">' + monthLabel(month) + '還沒有記錄。用上面的表單記一筆，或到「流水備查」看全部。</div>'; return; }
     el.dailyList.innerHTML = days.map(function (d) {
       var day = s.byDay[d];
@@ -965,10 +1124,12 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       el.dailyType.addEventListener("change", function () {
         el.dailyCategory.innerHTML = optionsForCategories(el.dailyType.value, "");
       });
-      if (el.dailyToday) el.dailyToday.addEventListener("click", function () { el.dailyDate.value = todayText(); var p = todayText().split("-"); ui.year = Number(p[0]); ui.month = Number(p[1]); renderAll(); });
+      if (el.dailyToday) el.dailyToday.addEventListener("click", function () { el.dailyDate.value = todayText(); var p = todayText().split("-"); ui.year = Number(p[0]); ui.month = Number(p[1]); persistMonth(); renderAll(); });
+      if (el.dailyQuickIncome) el.dailyQuickIncome.addEventListener("click", function () { el.dailyType.value = "income"; el.dailyCategory.innerHTML = optionsForCategories("income", ""); el.dailyAmount.focus(); showToast("切到收入模式，填金額後按記一筆"); });
+      if (el.dailyFilter) el.dailyFilter.addEventListener("change", function () { dailyFilter = el.dailyFilter.value || "all"; renderDaily(); });
       if (el.dailyClear) el.dailyClear.addEventListener("click", function () { el.dailyForm.reset(); el.dailyDate.value = todayText(); renderAll(); });
     }
-    if (el.dailyMonth) el.dailyMonth.addEventListener("change", function () { var p = el.dailyMonth.value.split("-"); if (p.length < 2) return; ui.year = Number(p[0]); ui.month = Number(p[1]); renderAll(); });
+    if (el.dailyMonth) el.dailyMonth.addEventListener("change", function () { var p = el.dailyMonth.value.split("-"); if (p.length < 2) return; ui.year = Number(p[0]); ui.month = Number(p[1]); persistMonth(); renderAll(); });
     var tab = document.getElementById("tab-daily");
     if (tab) {
       tab.addEventListener("click", function (e) {
@@ -986,7 +1147,6 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   setupDailyPanel();
 
   /* ================= 上課記錄聯動（預計收入） ================= */
-  var CLASS_LEDGER_KEY = "danceClassLedger.v1";
   function readClassLedger() {
     try {
       var raw = localStorage.getItem(CLASS_LEDGER_KEY);
@@ -1043,7 +1203,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         '<div class="summary-card"><span>' + monthLabel(shiftMonth(month, 1)) + '預計</span><strong>' + money(nextSalary.total) + '</strong><small>來源 ' + monthLabel(nextSalary.sourceMonth) + ' · ' + decimal(nextSalary.classes) + ' 堂</small></div>' +
       '</div>';
     if (!canRead) {
-      el.classSalaryList.innerHTML = '<div class="empty">讀不到上課記錄資料。<br>請用<b>同一台裝置、同一個網址</b>先開啟「上課紀錄與薪資統計」建立紀錄（例：都在 lichangfeng.github.io/my-schedule/ledger/ 底下），資料才會共用。</div>';
+      el.classSalaryList.innerHTML = '<div class="empty">讀不到上課記錄資料。<br>請用<b>同一台裝置、同一個網址</b>先開啟「上課紀錄與薪資統計」建立紀錄（例：都在 lichangfeng.github.io/my-schedule/ledger/ 底下），資料才會共用。也可以改用下面的「新增預計收入」手動記錄。</div>';
+      if (el.classSalaryStatus) el.classSalaryStatus.textContent = "讀不到上課記錄資料（可能不同瀏覽器或不同網址）；可下滑到「新增預計收入」手動記錄。";
       return;
     }
     el.classSalaryList.innerHTML = rows.length
@@ -1053,7 +1214,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       : '<div class="empty">' + monthLabel(salary.sourceMonth) + '沒有可計算的上課紀錄（只算「已完成／代課」的紀錄）。</div>';
     if (el.classSalaryStatus) {
       el.classSalaryStatus.textContent = rows.length
-        ? "認列後會以「舞蹈薪資」新增收入流水（每間機構一筆，日期＝發薪日），並加進 " + monthLabel(month) + " 的收入合計；重複按不會重複計算。"
+        ? "這裡只是「預計」，不會出現在流水與統計；按「標記為已收到（寫入流水）」才會以「舞蹈薪資」建立真實收入（每間機構一筆、日期＝發薪日）並加進 " + monthLabel(month) + " 的收入；重複按不會重複計算。"
         : "先在「上課紀錄與薪資統計」建立上課紀錄，這裡就會自動算出次月入帳金額。";
     }
   }
@@ -1105,8 +1266,6 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     });
   }
   setupClassSalaryPanel();  /* ================= 收入認定規則（把收到的錢列為收入） ================= */
-  var RULE_SOURCE_LABELS = { any: "不限來源", wechat: "微信", alipay: "支付寶", ccb: "建設銀行", meituan: "美團", manual: "手動輸入", ocr: "截圖 OCR", "截图OCR识别": "截圖 OCR" };
-  var RULE_MATCH_LABELS = { keyword: "備註／對方名稱包含", amountEq: "金額等於", amountGte: "金額大於或等於", amountLte: "金額小於或等於" };
   function incomeRuleList() { return Array.isArray(state.incomeRules) ? state.incomeRules : []; }
   function ruleSourceLabel(s) { return RULE_SOURCE_LABELS[s || "any"] || (s || "不限來源"); }
   function ruleMatchLabel(t) { return RULE_MATCH_LABELS[t || "keyword"] || RULE_MATCH_LABELS.keyword; }
@@ -1860,11 +2019,56 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (m) return m[1];
     return "";
   }
-  function parseBillRawText(rawText, sourceType) {
+  /* ================= 通用 CSV 帳單（微信轉帳明細等） ================= */
+  function parseGenericCsvBill(rawText, sourceType) {
+    var lines = String(rawText || "").split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    if (lines.length < 2) return { items: [], neutral: [], skipped: 0 };
+    var delim = lines[0].indexOf("\t") >= 0 ? "\t" : ",";
+    var header = lines[0].split(delim).map(function (s) { return s.trim().replace(/^"|"$/g, ""); });
+    function colIndex(names) {
+      for (var i = 0; i < names.length; i++) for (var j = 0; j < header.length; j++) if (header[j].indexOf(names[i]) >= 0) return j;
+      return -1;
+    }
+    var idxType = colIndex(["类型", "類型", "收支"]), idxAmount = colIndex(["金额", "金額"]), idxNote = colIndex(["备注", "備註", "商品", "对方", "對方"]), idxDate = colIndex(["日期", "时间", "時間"]);
+    var skipped = 0, items = [], neutralItems = [];
+    for (var i = 1; i < lines.length; i++) {
+      var cols = lines[i].split(delim).map(function (s) { return s.trim().replace(/^"|"$/g, ""); });
+      if (cols.length < 2) continue;
+      var typeText = idxType >= 0 ? cols[idxType] : "";
+      var noteText = idxNote >= 0 ? cols[idxNote] : "";
+      var rawAmount = findAmountInText(idxAmount >= 0 ? cols[idxAmount] : "") || findAmountInText(lines[i]);
+      if (!rawAmount) continue;
+      var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g, "")));
+      if (!amount) continue;
+      var isExpense = /支|出账|出賬|付款|扣款|消费|消費/.test(typeText);
+      var isIncome = !isExpense && /收|入账|入賬|收款|红包|紅包|收入/.test(typeText);
+      var neutral = /还款|還款|提现|提現|充值|零钱通|零錢通|理财通|理財通|借呗|借唄|花呗|花唄|存取|自动转入|自動轉入/.test(typeText + " " + noteText);
+      var dateText = idxDate >= 0 ? cols[idxDate] : (lines[i].match(/20\d{2}[-\/.]\d{1,2}[-\/.]\d{1,2}/) || [])[0] || "";
+      var dm = String(dateText).match(/(20\d{2})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+      var dt = dm ? dm[1] + "-" + pad(dm[2]) + "-" + pad(dm[3]) : todayText();
+      var counterpart = (noteText.match(/(?:来自|來自|from)\s*([^,，\s]+)/i) || [])[1] || "";
+      var account = sourceType === "wechat" ? "微信" : sourceType === "alipay" ? "支付宝" : sourceType === "ccb" ? "建设银行储蓄卡" : sourceType === "meituan" ? "美团" : sourceType;
+      var item = {
+        dt: dt, amount: amount, type: isIncome ? "income" : "expense",
+        categoryName: isIncome ? "其他收入" : guessCategoryName(lines[i], "expense", ""),
+        accountHint: account,
+        note: (counterpart ? counterpart + (noteText ? " · " : "") : "") + (noteText || typeText).slice(0, 50),
+        source: sourceType,
+        originOrderId: [dt, amount, (counterpart || noteText).slice(0, 12), sourceType].join("|"),
+        raw: lines[i]
+      };
+      if (applyIncomeRuleToItem(item)) { items.push(item); continue; }
+      if (neutral) { item.neutral = true; skipped++; neutralItems.push(item); continue; }
+      items.push(item);
+    }
+    return { items: items, neutral: neutralItems, skipped: skipped };
+  }  function parseBillRawText(rawText, sourceType) {
     var lines = String(rawText || "").split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
     var headerIndex = -1;
     for (var i = 0; i < Math.min(40, lines.length); i++) { if (lines[i].indexOf("交易时间") >= 0 && (lines[i].indexOf("收/支") >= 0 || lines[i].indexOf("收支") >= 0)) { headerIndex = i; break; } }
     var dataLines = headerIndex >= 0 ? lines.slice(headerIndex + 1) : lines;
+    var headText = lines.length ? lines[0] : "";
+    if (/(类型|類型)/.test(headText) && /(金额|金額)/.test(headText) && /(备注|備註|日期|序号|序號)/.test(headText)) return parseGenericCsvBill(rawText, sourceType);
     if (sourceType === "ccb") return parseCcbRawText(dataLines);
     var skipped = 0, items = [], neutralItems = [];
     dataLines.forEach(function(line){
@@ -1977,9 +2181,25 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   el.batchParse.addEventListener("click", function(){ var res = parseBillRawText(el.batchText.value, el.batchSource.value); billCandidates = res.items.concat((res.neutral || []).map(function (n) { n.selected = false; return n; })); el.batchStatus.textContent = "解析出 " + res.items.length + " 筆可匯入，另有 " + ((res.neutral || []).length) + " 筆還款／轉帳等中性交易（預設不勾選；勾選後可指定收入分類，把它列為收入）。" + (incomeRuleList().length ? " 已套用 " + incomeRuleList().length + " 條收入規則。" : " 也可到「收入認定規則」設定自動判斷。"); renderBatchCandidates(); });
   el.batchImport.addEventListener("click", function(){ if (!billCandidates.length) return; var chosen = billCandidates.filter(function(t){ return t.selected !== false; }); var imported = importTransactions(chosen); el.batchStatus.textContent = "已导入 " + imported + " 笔流水，并重新计算月度分类合计。"; billCandidates = []; el.batchPreview.innerHTML = ""; el.batchImport.disabled = true; showToast("账单导入完成"); });
   el.clipboardImport.addEventListener("click", function(){ if (!navigator.clipboard || !navigator.clipboard.readText) return showToast("此浏览器不支持读取剪贴板"); navigator.clipboard.readText().then(function(text){ var d = JSON.parse(text); var list = Array.isArray(d) ? d : d.transactions; if (!Array.isArray(list)) throw new Error("缺少 transactions"); var imported = importTransactions(list); showToast("已从剪贴板合并导入 " + imported + " 笔流水"); el.batchStatus.textContent = "已从剪贴板合并导入 " + imported + " 笔流水。"; }).catch(function(){ alert("剪贴板内容不是可用的账单流水 JSON"); }); });
+  if (el.batchSelectIncome) el.batchSelectIncome.addEventListener("click", function(){
+    if (!billCandidates.length) return showToast("請先解析帳單");
+    var n = 0;
+    billCandidates.forEach(function (t) {
+      if (!t.neutral || t.type !== "income") return;
+      t.selected = true;
+      if (!t.categoryName || t.categoryName === "工资") t.categoryName = "其他收入";
+      n++;
+    });
+    renderBatchCandidates();
+    el.batchStatus.textContent = n ? ("已勾選 " + n + " 筆轉入／收款，會列為收入（分類可在左邊改成工資、課時費等）。") : "沒有找到「轉入／收款」類型的中性紀錄。";
+    showToast(n ? ("已勾選 " + n + " 筆收入") : "沒有可勾選的轉入紀錄");
+  });
   el.batchClear.addEventListener("click", function(){ billCandidates = []; el.batchText.value = ""; el.batchStatus.textContent = ""; renderBatchCandidates(); });
   el.batchPreview.addEventListener("change", function(e){ var row = e.target.closest("tr[data-batch-index]"); if (!row) return; var t = billCandidates[Number(row.getAttribute("data-batch-index"))]; if (!t) return; if (e.target.matches("[data-batch-selected]")) t.selected = e.target.checked; if (e.target.matches("[data-batch-category]")) { var cat = findCategory(e.target.value); if (cat) { t.categoryName = cat.name; t.type = cat.type; } } el.batchImport.disabled = !billCandidates.some(function(x){ return x.selected !== false; }); });
   el.batchPreview.addEventListener("click", function(e){ var b = e.target.closest("[data-batch-remove]"); if (!b) return; var row = b.closest("tr[data-batch-index]"); billCandidates.splice(Number(row.getAttribute("data-batch-index")), 1); renderBatchCandidates(); });
+
+  /* 所有模組載入完成後再渲染一次，避免首畫面缺漏 */
+  renderAll();
 })();
 
 </script>
