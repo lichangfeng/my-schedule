@@ -370,7 +370,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.15.0";
+  var APP_VERSION = "2.16.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -588,7 +588,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); migrateRentCashV32(brandNew); migrateBalancesV33(brandNew); return brandNew; }
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); migrateRentCashV32(brandNew); migrateBalancesV33(brandNew); migrateGroupTrainingV34(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -616,9 +616,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       migratePlanNoTxV31(parsed);
       migrateRentCashV32(parsed);
       migrateBalancesV33(parsed);
+      migrateGroupTrainingV34(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); migrateRentCashV32(fallback); migrateBalancesV33(fallback); return fallback; }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); migrateRentCashV32(fallback); migrateBalancesV33(fallback); migrateGroupTrainingV34(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -1869,6 +1870,22 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       state.savingsGoal = { name: g.name, amount: num(amount) || g.amount, deadline: deadline || g.deadline };
       saveState(); renderAll(); showToast("已更新存款目標");
     });
+  }
+
+  /* 一次性：加入團訓費（每 3 個月 600，首次已於 2026-09-15 繳） */
+  function migrateGroupTrainingV34(target) {
+    if (!target || target.groupTrainingV34) return target;
+    try {
+      var has = (target.recurring || []).some(function (r) { return r.name === "團訓費"; });
+      if (!has) {
+        ensureCategoryOn(target, "進修", "expense");
+        var item = buildRecurringItem({ name: "團訓費", amount: 600, perMonth: 200, cycleMonths: 3, startDate: "2026-12-15", periods: 8, categoryName: "進修", includeInStats: true, note: "每 3 個月 600（2026-09-15 已繳第一次）" });
+        (target.recurring = target.recurring || []).push(item);
+      }
+      target.groupTrainingV34 = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    } catch (e) { target.groupTrainingError = String(e && e.message || e); }
+    return target;
   }
   /* ================= 資金往來分類與房租／押金整理 ================= */
   function isTransferKind(kind) { return kind === "transfer-in" || kind === "transfer-out"; }
