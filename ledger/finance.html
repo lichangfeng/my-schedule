@@ -267,6 +267,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           <div><label for="daily-category">分類</label><select id="daily-category"></select></div>
           <div><label for="daily-account">帳戶</label><select id="daily-account"></select></div>
           <div><label for="daily-note">備註</label><input id="daily-note" type="text" maxlength="60" placeholder="例如：午餐"></div>
+          <div><label for="daily-pay">付款方式</label><select id="daily-pay"><option value="">不指定</option><option value="現金">現金</option><option value="微信零錢">微信零錢</option><option value="餘額寶">餘額寶</option><option value="建設銀行儲蓄卡">建設銀行儲蓄卡</option><option value="美團月付">美團月付（信用）</option><option value="花唄">花唄（信用）</option><option value="借唄">借唄（信用）</option></select></div>
           <div class="field full actions"><button class="btn primary" type="submit">記一筆</button><button class="btn" id="daily-quick-income" type="button">記收入</button><button class="btn" id="daily-today" type="button">跳到今天</button><button class="btn" id="daily-clear" type="button">清除</button></div>
         </form>
       </div>
@@ -274,8 +275,12 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     <div id="daily-list" class="section"></div>
   </section>  <section id="tab-debts" class="hidden">
     <div class="card">
-      <div class="card-head"><div><h2>負債總覽</h2><p>借唄 / 花唄 / 美團月付等欠款與每期應還金額；還款本身不重複計入支出（消費發生時已計過）。</p></div></div>
-      <div class="card-body"><div class="summary-grid" id="debt-summary"></div><div id="debt-overdue" class="section"></div></div>
+      <div class="card-head"><div><h2>應還款（信用／月付，自動統計）</h2><p>美團月付、花唄這類付款：消費照記、不扣現金，還款時這裡自動減少。</p></div></div>
+      <div class="card-body"><div id="credit-summary"></div></div>
+    </div>
+    <div class="card section">
+      <div class="card-head"><div><h2>負債與應還款（信用付款自動統計）</h2><p>借唄 / 花唄 / 美團月付等欠款與每期應還金額；還款本身不重複計入支出（消費發生時已計過）。</p></div></div>
+      <div class="card-body"><div id="credit-summary" class="section"></div><div class="summary-grid" id="debt-summary"></div><div id="debt-overdue" class="section"></div></div>
     </div>
     <details class="card section" id="debt-import-panel">
       <summary class="card-head"><div><h2>匯入／更新還款計劃</h2><p>貼上 JSON（totalDebt + debtList）按匯入；同名欠款會更新計劃並保留已標記「已還」的期數。</p></div><span class="pill">展開</span></summary>
@@ -362,7 +367,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.4.0";
+  var APP_VERSION = "2.5.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -527,6 +532,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     plannedIncomeList: document.getElementById("planned-income-list"), plannedIncomeForm: document.getElementById("planned-income-form"),
     planName: document.getElementById("plan-name"), planAmount: document.getElementById("plan-amount"), planDate: document.getElementById("plan-date"),
     planCategory: document.getElementById("plan-category"), planNote: document.getElementById("plan-note"), planCategoryList: document.getElementById("plan-category-list"),
+    creditSummary: document.getElementById("credit-summary"), dailyPay: document.getElementById("daily-pay"),
     drillModal: document.getElementById("drill-modal"), drillTitle: document.getElementById("drill-title"), drillBody: document.getElementById("drill-body"), drillClose: document.getElementById("drill-close"),
     annualIncomeCategories: document.getElementById("annual-income-categories"),
     reportSummary: document.getElementById("report-summary")
@@ -825,7 +831,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (!list.length) { el.flowList.innerHTML = '<div class="empty">沒有符合目前篩選條件的流水。</div>'; return; }
     el.flowList.innerHTML = '<p class="helper">顯示 ' + list.length + ' / 全部 ' + all.length + ' 筆' + (flowFilter.salaryOnly ? '（只看工資／薪資收入）' : "") + '</p><div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>分类</th><th>账户</th><th class="num">金额</th><th>来源/备注</th><th>操作</th></tr></thead><tbody>' + list.map(function (t) {
       var cat = flowCategoryOf(t), acc = findAccount(t.accountId), kind = txKind(t);
-      return '<tr><td>' + esc(t.dt) + '</td><td><select data-flow-category="' + esc(t.id) + '">' + optionsForAllCategories(cat ? cat.id : "") + '</select></td><td>' + esc(acc ? acc.name : "未指定") + '</td><td class="num ' + (kind === "income" ? "good" : isTransferKind(kind) ? "" : "bad") + '">' + (isTransferKind(kind) ? '<span class="status-chip wait">' + transferLabel(kind) + '</span> ' : kind === "income" ? "+" : "−") + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.ruleName ? ' <span class="status-chip paid">規則：' + esc(t.ruleName) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-delete-flow="' + esc(t.id) + '" type="button">删除</button></td></tr>';
+      return '<tr><td>' + esc(t.dt) + '</td><td><select data-flow-category="' + esc(t.id) + '">' + optionsForAllCategories(cat ? cat.id : "") + '</select></td><td>' + esc(acc ? acc.name : "未指定") + '</td><td class="num ' + (kind === "income" ? "good" : isTransferKind(kind) ? "" : "bad") + '">' + (isTransferKind(kind) ? '<span class="status-chip wait">' + transferLabel(kind) + '</span> ' : kind === "income" ? "+" : "−") + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.pay ? ' <span class="badge' + (isCreditChannel(payChannelLabel(t.pay)) ? ' bank' : '') + '">' + esc(payChannelLabel(t.pay)) + '</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則：' + esc(t.ruleName) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-delete-flow="' + esc(t.id) + '" type="button">删除</button></td></tr>';
     }).join("") + '</tbody></table></div>';
   }
   function setupFlowFilters() {
@@ -858,7 +864,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   function addTransaction(tx) {
     var cat = findCategory(tx.categoryId); if (!cat) return showToast("請選擇交易分類");
-    var item = { id: uid("tx"), dt: tx.dt || todayText(), amount: num(tx.amount), type: cat.type, categoryId: tx.categoryId, accountId: tx.accountId || "", note: tx.note || "", source: tx.source || "手动录入", createdAt: new Date().toISOString() };
+    var item = { id: uid("tx"), dt: tx.dt || todayText(), amount: num(tx.amount), type: cat.type, categoryId: tx.categoryId, accountId: tx.accountId || "", note: tx.note || "", source: tx.source || "手动录入", pay: tx.pay || "", createdAt: new Date().toISOString() };
     state.transactions.push(item);
     if (!isTransferKind(cat.type)) addToSummary(String(item.dt).slice(0, 7), item.categoryId, item.amount);
     saveState(); renderAll(); return item;
@@ -1019,7 +1025,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }  function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
     if (el.flowFilterMonth) el.flowFilterMonth.value = flowFilter.month;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); renderCreditSummary(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
   }
   function switchTab(tab) {
     ui.tab = tab;
@@ -1071,7 +1077,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=38", { updateViaCache: "none" }).catch(function(){});
-  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
+  window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, creditSummary: creditSummary, payChannelLabel: payChannelLabel, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION;
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
   refreshTxOptions(); switchTab("report"); renderAll();
@@ -1161,7 +1167,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         var amount = num(el.dailyAmount.value);
         if (!(amount > 0)) return showToast("請填寫金額");
         if (!el.dailyCategory.value) return showToast("請選擇分類");
-        var item = addTransaction({ dt: el.dailyDate.value || todayText(), amount: amount, categoryId: el.dailyCategory.value, accountId: el.dailyAccount.value, note: el.dailyNote.value.trim(), source: "每日記帳" });
+        var item = addTransaction({ dt: el.dailyDate.value || todayText(), amount: amount, categoryId: el.dailyCategory.value, accountId: el.dailyAccount.value, note: el.dailyNote.value.trim(), source: "每日記帳", pay: el.dailyPay ? el.dailyPay.value : "" });
         if (!item) return;
         el.dailyAmount.value = ""; el.dailyNote.value = "";
         el.dailyAmount.focus();
@@ -1444,7 +1450,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           var m = String(t.dt).slice(0, 7);
           if (m !== lastMonth) { monthTag = '<div class="drill-month">' + esc(monthLabel(m)) + '</div>'; lastMonth = m; }
         }
-        return monthTag + '<tr><td>' + esc(t.dt) + '</td><td class="num">' + money(t.amount) + '</td><td>' + esc(acc ? acc.name : "—") + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-drill-del="' + esc(t.id) + '" type="button">刪除</button></td></tr>';
+        return monthTag + '<tr><td>' + esc(t.dt) + '</td><td class="num">' + money(t.amount) + '</td><td>' + esc(acc ? acc.name : "—") + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.pay ? ' <span class="badge">' + esc(payChannelLabel(t.pay)) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-drill-del="' + esc(t.id) + '" type="button">刪除</button></td></tr>';
       }).join("");
       body += '<div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th class="num">金額</th><th>帳戶</th><th>來源／備註</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     }
@@ -1483,7 +1489,85 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       else if (year) renderCategoryDrill(id, { year: Number(year) });
     });
   }
-  setupDrill();  /* ================= 資金往來分類與房租／押金整理 ================= */
+  setupDrill();  /* ================= 信用付款（美團月付／花唄等）→ 消費照記，但不扣現金，計入應還款 ================= */
+  function payChannelLabel(pay) {
+    var s = String(pay || "");
+    if (!s) return "";
+    if (/美团月付|美團月付/.test(s)) return "美團月付";
+    if (/借呗|借唄|信用贷|信用貸/.test(s)) return "借唄";
+    if (/花呗|花唄/.test(s)) return "花唄";
+    if (/白条|白條/.test(s)) return "京東白條";
+    if (/抖音月付/.test(s)) return "抖音月付";
+    if (/信用卡/.test(s)) return "信用卡";
+    if (/建设银行|建行/.test(s)) return "建行卡";
+    if (/工商|工行/.test(s)) return "工行卡";
+    if (/农业|農行/.test(s)) return "農行卡";
+    if (/招商/.test(s)) return "招行卡";
+    if (/邮政|郵政/.test(s)) return "郵儲卡";
+    if (/余额宝|餘額寶/.test(s)) return "餘額寶";
+    if (/零钱|零錢/.test(s)) return "微信零錢";
+    if (/银行卡|銀行卡/.test(s)) return "銀行卡";
+    return s.slice(0, 10);
+  }
+  function isCreditChannel(name) { return /美團月付|花唄|借唄|京東白條|抖音月付|信用卡/.test(String(name || "")); }
+  function repaymentChannel(text) {
+    var s = String(text || "");
+    if (/美团月付|美團月付|美团金融|美團金融/.test(s)) return "美團月付";
+    if (/借呗|借唄|信用贷|信用貸/.test(s)) return "借唄";
+    if (/花呗|花唄/.test(s)) return "花唄";
+    if (/白条|白條/.test(s)) return "京東白條";
+    if (/抖音月付/.test(s)) return "抖音月付";
+    if (/信用卡/.test(s)) return "信用卡";
+    return "";
+  }
+  function creditSummary(month) {
+    var map = {};
+    function row(ch) { if (!map[ch]) map[ch] = { channel: ch, spend: 0, repaid: 0, spendMonth: 0, repaidMonth: 0, count: 0 }; return map[ch]; }
+    state.transactions.forEach(function (t) {
+      var m = String(t.dt || "").slice(0, 7);
+      var inMonth = !!month && m === month;
+      var kind = txKind(t);
+      var ch = payChannelLabel(t.pay);
+      var spendText = [t.note || "", t.pay || ""].join(" ");
+      var isCreditSpend = !!ch && isCreditChannel(ch) && kind === "expense" && !/还款|還款/.test(t.note || "");
+      if (isCreditSpend) {
+        var r = row(ch);
+        r.spend += num(t.amount); r.count++;
+        if (inMonth) r.spendMonth += num(t.amount);
+      } else if (!/放款|放款至|借款|借出/.test(spendText)) {
+        var rc = repaymentChannel(spendText);
+        if (rc) { var r2 = row(rc); r2.repaid += num(t.amount); if (inMonth) r2.repaidMonth += num(t.amount); }
+      }
+    });
+    var rows = Object.keys(map).map(function (k) { return map[k]; }).filter(function (r) { return r.spend > 0 || r.repaid > 0; })
+      .sort(function (a, b) { return (b.spend - b.repaid) - (a.spend - a.repaid); });
+    rows.forEach(function (r) { r.owing = Math.round((r.spend - r.repaid) * 100) / 100; });
+    return { rows: rows, owing: rows.reduce(function (s, r) { return s + Math.max(0, r.owing); }, 0), spendMonth: rows.reduce(function (s, r) { return s + r.spendMonth; }, 0), repaidMonth: rows.reduce(function (s, r) { return s + r.repaidMonth; }, 0) };
+  }
+  function renderCreditSummary() {
+    if (!el.creditSummary) return;
+    var month = ui.year + "-" + pad(ui.month);
+    var c = creditSummary(null);
+    var m = creditSummary(month);
+    if (!c.rows.length) {
+      el.creditSummary.innerHTML = '<div class="empty">還沒有「信用付款」紀錄。當帳單裡的付款方式是「美團月付」「花唄」這類時，消費一樣會計入當月支出，但不會扣現金；這裡會自動算出還欠多少。</div>';
+      return;
+    }
+    el.creditSummary.innerHTML =
+      '<div class="summary-grid">' +
+        '<div class="summary-card"><span>應還款合計</span><strong class="bad">' + money(c.owing) + '</strong><small>累計消費 − 累計已還</small></div>' +
+        '<div class="summary-card"><span>' + monthLabel(month) + '新增（信用消費）</span><strong>' + money(m.spendMonth) + '</strong><small>已計入當月支出，未扣現金</small></div>' +
+        '<div class="summary-card"><span>' + monthLabel(month) + '已還</span><strong class="good">' + money(m.repaidMonth) + '</strong><small>從現金帳戶扣款</small></div>' +
+        '<div class="summary-card"><span>管道數</span><strong>' + c.rows.length + ' 個</strong><small>' + c.rows.map(function (r) { return esc(r.channel); }).join("、") + '</small></div>' +
+      '</div>' +
+      '<div class="table-wrap section"><table class="table"><thead><tr><th>信用管道</th><th class="num">累計消費</th><th class="num">累計已還</th><th class="num">目前應還</th><th class="num">本月新增</th><th class="num">本月已還</th></tr></thead><tbody>' +
+      (function () { var mMap = {}; m.rows.forEach(function (x) { mMap[x.channel] = x; }); return c.rows.map(function (r) {
+        var mm = mMap[r.channel] || { spendMonth: 0, repaidMonth: 0 };
+        return '<tr><td><strong>' + esc(r.channel) + '</strong></td><td class="num">' + money(r.spend) + '</td><td class="num">' + money(r.repaid) + '</td><td class="num bad">' + money(Math.max(0, r.owing)) + '</td><td class="num">' + money(mm.spendMonth) + '</td><td class="num">' + money(mm.repaidMonth) + '</td></tr>';
+      }).join(""); })() +
+      '</tbody></table></div>' +
+      '<p class="helper">信用付款（美團月付／花唄…）的消費會照常算進「當月支出」，但<b>不會</b>動到現金；還款時（記為資金往來轉出）這裡的「應還款」就會自動減少。現金流請用「本月帳戶餘額快照」掌握。</p>';
+  }  /* ================= 資金往來分類與房租／押金整理 ================= */
   function isTransferKind(kind) { return kind === "transfer-in" || kind === "transfer-out"; }
   function transferLabel(kind) { return kind === "transfer-in" ? "轉入" : kind === "transfer-out" ? "轉出" : ""; }
   function typeLabel(type) { return type === "income" ? "收入" : type === "expense" ? "支出" : (transferLabel(type) || "支出"); }
@@ -2466,7 +2550,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     list.forEach(function(tx){
       if (tx.originOrderId && existing[tx.originOrderId]) return;
       var cat = ensureCategory(tx.categoryName, tx.type);
-      var item = { id: uid("tx"), dt: tx.dt, amount: num(tx.amount), type: cat.type, categoryId: cat.id, accountId: (state.accounts.filter(function(a){ return a.name === tx.accountHint; })[0] || {}).id || "", note: tx.note || "", source: tx.source || "manual", originOrderId: tx.originOrderId || "" };
+      var item = { id: uid("tx"), dt: tx.dt, amount: num(tx.amount), type: cat.type, categoryId: cat.id, accountId: (state.accounts.filter(function(a){ return a.name === tx.accountHint; })[0] || {}).id || "", note: tx.note || "", source: tx.source || "manual", originOrderId: tx.originOrderId || "", pay: tx.payHint || tx.pay || "" };
       state.transactions.push(item);
       if (!isTransferKind(cat.type)) added.push({ month: String(tx.dt || "").slice(0, 7), categoryId: cat.id, amount: num(tx.amount) });
       if (tx.originOrderId) existing[tx.originOrderId] = true;
