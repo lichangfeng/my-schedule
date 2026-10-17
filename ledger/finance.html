@@ -361,7 +361,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.2.0";
+  var APP_VERSION = "2.3.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -536,6 +536,9 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function money(v) { return "¥" + num(v).toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
   function decimal(v) { var n = Math.round(num(v) * 100) / 100; return String(n).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1"); }
   function pad(v) { return String(v).padStart(2, "0"); }
+  function normalizeDashes(text) {
+    return String(text == null ? "" : text).replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFF0D\uFE63]/g, "-").replace(/\uFF0F/g, "/").replace(/\uFF1A/g, ":");
+  }
   function todayText() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function currentMonthKey() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
   function monthKey(y, m) { return String(y) + "-" + pad(m); }
@@ -1307,7 +1310,42 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       showToast("已取消 " + removed + " 筆認列");
     });
   }
-  setupClassSalaryPanel();  /* ================= 分類鑽取（點分類看每一筆） ================= */
+  setupClassSalaryPanel();  /* ================= 跨來源重複偵測（微信/支付寶 用銀行卡付的，別跟銀行流水重複） ================= */
+  function txnDupKey(dt, amount) { return String(dt || "").slice(0, 10) + "|" + (Math.round(num(amount) * 100) / 100).toFixed(2); }
+  function isBankSourceName(name) { return /建行|建设银行|建設銀行|储蓄卡|儲蓄卡|工商|工行|农业|農行|中国银行|中國銀行|招商|邮政|郵政|交通银行|交通銀行|银行卡|銀行卡/i.test(String(name || "")); }
+  function dayDiff(a, b) {
+    var da = new Date(String(a).slice(0, 10) + "T00:00:00"), db = new Date(String(b).slice(0, 10) + "T00:00:00");
+    if (isNaN(da.getTime()) || isNaN(db.getTime())) return 99;
+    return Math.abs(Math.round((da - db) / 86400000));
+  }
+  function isSameMoney(t, x) {
+    if (!t.amount || !x.amount) return false;
+    if (Math.abs(num(t.amount) - num(x.amount)) > 0.005) return false;
+    var diff = dayDiff(t.dt, x.dt);
+    if (diff === 0) return true;
+    return diff === 1 && num(t.amount) >= 20;
+  }
+  function findDuplicateFor(t, batch) {
+    if (!t.amount) return null;
+    var found = null;
+    state.transactions.forEach(function (x) {
+      if (found) return;
+      if (!isSameMoney(t, x)) return;
+      if ((x.source || "") === (t.source || "")) return;
+      if (x.originOrderId && t.originOrderId && x.originOrderId === t.originOrderId) return;
+      found = { source: x.source || "已匯入", dt: x.dt, amount: num(x.amount), note: x.note || "", from: "已匯入" };
+    });
+    (batch || []).forEach(function (x) {
+      if (found || x === t) return;
+      if (!isSameMoney(t, x)) return;
+      if ((x.source || "") === (t.source || "")) return;
+      found = { source: x.source || "本次批次", dt: x.dt, amount: num(x.amount), note: x.note || "", from: "本次批次" };
+    });
+    return found;
+  }
+  function sourceLabel(src) {
+    return ({ wechat: "微信", alipay: "支付寶", ccb: "建設銀行", meituan: "美團", manual: "手動", ocr: "OCR", "上課記錄": "上課記錄", "預計收入": "預計收入", "每日記帳": "每日記帳", "手動補登": "手動補登", "截图OCR识别": "截圖 OCR" })[src] || src || "其他";
+  }  /* ================= 分類鑽取（點分類看每一筆） ================= */
   function scopeLabel(scope) {
     if (scope.month) return monthLabel(scope.month);
     return String(scope.year) + "年";
@@ -2296,10 +2334,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         note: (counterpart ? counterpart + (noteText ? " · " : "") : "") + (noteText || typeText).slice(0, 50),
         source: sourceType,
         originOrderId: [dt, amount, (counterpart || noteText).slice(0, 12), sourceType].join("|"),
-        raw: lines[i]
+        raw: lines[i], payHint: "", defaultSelected: isIncome
       };
       if (applyIncomeRuleToItem(item)) { items.push(item); continue; }
-      if (neutral) { item.neutral = true; skipped++; neutralItems.push(item); continue; }
+      if (neutral) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); continue; }
       items.push(item);
     }
     return { items: items, neutral: neutralItems, skipped: skipped };
@@ -2335,8 +2373,9 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var dirText = cols && iType >= 0 && cols[iType] ? cols[iType] : "";
       var kindText = cols && iKind >= 0 && cols[iKind] ? cols[iKind] : "";
       var dateText = cols && iDate >= 0 && cols[iDate] ? cols[iDate] : line;
-      var dateMatch = String(dateText).match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
-      if (!dateMatch) dateMatch = line.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+      var normLine = normalizeDashes(line);
+      var dateMatch = normalizeDashes(dateText).match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+      if (!dateMatch) dateMatch = normLine.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
       if (!dateMatch) return;
       var dt = dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]);
       var rawAmount = (cols && iAmount >= 0 ? findAmountInText(cols[iAmount]) : "") || findAmountInText(line);
@@ -2350,6 +2389,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var alipayCategory = "";
       var mapped = text.match(/餐饮美食|交通出行|充值缴费|医疗健康|家居家装|服饰装扮|数码电器|文化休闲|教育培训|生活服务/);
       if (mapped) alipayCategory = mapped[0];
+      var payText = cols && iPay >= 0 && cols[iPay] ? cols[iPay] : "";
       var merchant = (noteText || text.replace(/[¥￥+\-\d.,:：\/]/g, " ").replace(/支出|收入|交易时间|收\/支|金额|订单号|交易对方|商品说明|支付方式|当前状态|交易分类/g, " ").replace(/\s+/g, " ")).trim();
       if (!merchant) merchant = sourceType === "alipay" ? "支付宝交易" : sourceType === "wechat" ? "微信交易" : sourceType === "meituan" ? "美团交易" : "交易";
       merchant = merchant.replace(/\s*订单详情\s*$/, "").replace(/\s*免密扣款\s*$/, "").replace(/美团月付|美團月付|美团支付|微信支付|支付宝支付|支付方式|零钱|零錢|余额宝|餘額寶|云闪付/g, " ").replace(/\s+/g, " ").trim();
@@ -2361,11 +2401,11 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         categoryName: guessCategoryName([noteText, peerText, kindText].filter(Boolean).join(" ") || merchant, type, alipayCategory),
         accountHint: account,
         note: merchant.slice(0, 60),
-        source: sourceType, originOrderId: originOrderId, raw: line
+        source: sourceType, originOrderId: originOrderId, raw: line, payHint: payText, defaultSelected: true
       };
       var neutralLine = isNeutralBillLine(line) || /还款|還款|提现|提現|充值/.test(kindText);
       if (applyIncomeRuleToItem(item)) { items.push(item); return; }
-      if (neutralLine) { item.neutral = true; skipped++; neutralItems.push(item); return; }
+      if (neutralLine) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); return; }
       items.push(item);
     });
     return { items: items, neutral: neutralItems, skipped: skipped };
@@ -2423,12 +2463,17 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     function headerIndexFor(keys) { for (var k = 0; k < keys.length; k++) { for (var j = 0; j < headerCols.length; j++) { if (headerCols[j].indexOf(keys[k]) >= 0) return j; } } return -1; }
     var dateIdx = headerIndexFor(["交易日期","交易时间"]), amountIdx = headerIndexFor(["交易金额","发生额","金额"]), noteIdx = headerIndexFor(["对方户名","摘要","交易说明","商品说明"]);
     var skipped = 0, items = [], neutralItems = [];
-    dataLines.forEach(function(line){
+    var currentDate = "";
+    dataLines.forEach(function(rawLine){
+      var line = normalizeDashes(rawLine);
+      var lineAmount = findAmountInText(line);
+      var headDate = line.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+      if (headDate && !lineAmount) { currentDate = headDate[1] + "-" + pad(headDate[2]) + "-" + pad(headDate[3]); return; }
       var neutralLine = isNeutralBillLine(line);
       var cols = line.split(/\t|\s{2,}/).map(function(x){ return x.trim(); });
       var dateText = dateIdx >= 0 && cols[dateIdx] ? cols[dateIdx] : line;
       var dateMatch = String(dateText).match(/(20\d{2})[-\/.年]?(\d{1,2})[-\/.月]?(\d{1,2})/);
-      var dt = dateMatch ? dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]) : todayText();
+      var dt = dateMatch ? dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]) : (currentDate || todayText());
       var amountText = amountIdx >= 0 && cols[amountIdx] ? cols[amountIdx] : "";
       var rawAmount = findAmountInText(amountText) || findAmountInText(line);
       if (!rawAmount) return;
@@ -2439,20 +2484,30 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var note = noteIdx >= 0 && cols[noteIdx] ? cols[noteIdx] : line.replace(/[¥￥+\-\d.,:：\/]/g," ").replace(/交易日期|交易金额|账户余额|对方账号|交易渠道|摘要|消费|收入|利息|存入/g," ").replace(/\s+/g," ").trim();
       if (!note) note = "建设银行交易";
       var originOrderId = [dt, amount, note.slice(0,12), "ccb"].join("|");
-      var item = { dt: dt, amount: amount, type: type, categoryName: guessCategoryName(line, type, ""), accountHint: "建设银行储蓄卡", note: note.slice(0,60), source: "ccb", originOrderId: originOrderId, raw: line };
+      var item = { dt: dt, amount: amount, type: type, categoryName: guessCategoryName(line, type, ""), accountHint: "建设银行储蓄卡", note: note.slice(0,60), source: "ccb", originOrderId: originOrderId, raw: line, payHint: "建設銀行", defaultSelected: true };
       if (applyIncomeRuleToItem(item)) { items.push(item); return; }
-      if (neutralLine) { item.neutral = true; skipped++; neutralItems.push(item); return; }
+      if (neutralLine) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); return; }
       items.push(item);
     });
     return { items: items, neutral: neutralItems, skipped: skipped };
   }
   function renderBatchCandidates() {
     if (!billCandidates.length) { el.batchPreview.innerHTML = '<div class="empty">尚無候選流水，粘貼账单文字後按解析。</div>'; el.batchImport.disabled = true; return; }
-    el.batchPreview.innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){ return '<tr data-batch-index="' + i + '"><td><input type="checkbox" data-batch-selected' + (t.selected !== false ? " checked" : "") + '></td><td>' + esc(t.dt) + '</td><td>' + typeLabel(t.type) + (t.neutral ? ' <span class="badge">中性</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則</span>' : "") + '</td><td class="num">' + money(t.amount) + '</td><td><select data-batch-category>' + optionsForAllCategories(ensureCategory(t.categoryName, t.type).id) + '</select></td><td>' + esc(t.note) + '</td><td><button class="btn small danger" data-batch-remove type="button">删除</button></td></tr>'; }).join("") + '</tbody></table></div>';
+    var dupCount = 0;
+    billCandidates.forEach(function (t) {
+      t.dup = findDuplicateFor(t, billCandidates);
+      if (t.dup) dupCount++;
+      if (t.userSelected === true || t.userSelected === false) t.selected = t.userSelected;
+      else t.selected = t.dup ? false : (t.defaultSelected !== false);
+    });
+    el.batchPreview.innerHTML = (dupCount ? '<p class="helper bad">偵測到 ' + dupCount + ' 筆疑似重複（同一天、同金額，但來自另一個來源，例如微信用建行卡付款又匯入了建行流水）→ 已自動取消勾選，確認不是同一筆再自己勾起來。</p>' : "") + '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){
+      var badges = (t.neutral ? ' <span class="badge">中性</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則</span>' : "") + (isBankSourceName(t.payHint) ? ' <span class="badge">' + esc(String(t.payHint).slice(0, 10)) + '</span>' : "") + (t.dup ? ' <span class="status-chip late">疑似重複</span>' : "");
+      var dupNote = t.dup ? '<br><span class="flow-source">與 ' + esc(sourceLabel(t.dup.source)) + " " + esc(t.dup.dt) + " " + money(t.dup.amount) + "（" + esc(t.dup.from) + "）同金額</span>" : "";
+      return '<tr data-batch-index="' + i + '"' + (t.dup ? ' style="background:#fff7f6"' : "") + '><td><input type="checkbox" data-batch-selected' + (t.selected !== false ? " checked" : "") + '></td><td>' + esc(t.dt) + '</td><td>' + typeLabel(t.type) + badges + '</td><td class="num">' + money(t.amount) + '</td><td><select data-batch-category>' + optionsForAllCategories(ensureCategory(t.categoryName, t.type).id) + '</select></td><td>' + esc(t.note) + dupNote + '</td><td><button class="btn small danger" data-batch-remove type="button">删除</button></td></tr>';
+    }).join("") + '</tbody></table></div>';
     el.batchImport.disabled = !billCandidates.some(function(t){ return t.selected !== false; });
-  }
-  el.batchFile.addEventListener("change", function(){ var f = this.files && this.files[0]; if (!f) return; var name = f.name || ""; var reader = new FileReader(); reader.onload = function(){ el.batchText.value = reader.result || ""; if (/建设|建行|ccb/i.test(name)) el.batchSource.value = "ccb"; else if (/支付宝|alipay/i.test(name)) el.batchSource.value = "alipay"; else if (/微信|wechat/i.test(name)) el.batchSource.value = "wechat"; else if (/美团|meituan/i.test(name)) el.batchSource.value = "meituan"; el.batchStatus.textContent = "已读取文件：" + name + "，请按解析并预览。"; }; reader.readAsText(f); this.value = ""; });
-  el.batchParse.addEventListener("click", function(){ var res = parseBillRawText(el.batchText.value, el.batchSource.value); billCandidates = res.items.concat((res.neutral || []).map(function (n) { n.selected = false; return n; })); el.batchStatus.textContent = "解析出 " + res.items.length + " 筆可匯入，另有 " + ((res.neutral || []).length) + " 筆還款／轉帳等中性交易（預設不勾選；勾選後可指定收入分類，把它列為收入）。" + (incomeRuleList().length ? " 已套用 " + incomeRuleList().length + " 條收入規則。" : " 也可到「收入認定規則」設定自動判斷。"); renderBatchCandidates(); });
+  } el.batchFile.addEventListener("change", function(){ var f = this.files && this.files[0]; if (!f) return; var name = f.name || ""; var reader = new FileReader(); reader.onload = function(){ el.batchText.value = reader.result || ""; if (/建设|建行|ccb/i.test(name)) el.batchSource.value = "ccb"; else if (/支付宝|alipay/i.test(name)) el.batchSource.value = "alipay"; else if (/微信|wechat/i.test(name)) el.batchSource.value = "wechat"; else if (/美团|meituan/i.test(name)) el.batchSource.value = "meituan"; el.batchStatus.textContent = "已读取文件：" + name + "，请按解析并预览。"; }; reader.readAsText(f); this.value = ""; });
+  el.batchParse.addEventListener("click", function(){ var res = parseBillRawText(el.batchText.value, el.batchSource.value); billCandidates = res.items.concat(res.neutral || []); el.batchStatus.textContent = "解析出 " + res.items.length + " 筆消費／收入，另有 " + ((res.neutral || []).length) + " 筆還款／轉帳等中性交易（預設不勾選）。疑似與其他來源重複的會自動取消勾選並標紅。" + (incomeRuleList().length ? " 已套用 " + incomeRuleList().length + " 條收入規則。" : ""); renderBatchCandidates(); });
   el.batchImport.addEventListener("click", function(){ if (!billCandidates.length) return; var chosen = billCandidates.filter(function(t){ return t.selected !== false; }); var imported = importTransactions(chosen); el.batchStatus.textContent = "已导入 " + imported + " 笔流水，并重新计算月度分类合计。"; billCandidates = []; el.batchPreview.innerHTML = ""; el.batchImport.disabled = true; showToast("账单导入完成"); });
   el.clipboardImport.addEventListener("click", function(){ if (!navigator.clipboard || !navigator.clipboard.readText) return showToast("此浏览器不支持读取剪贴板"); navigator.clipboard.readText().then(function(text){ var d = JSON.parse(text); var list = Array.isArray(d) ? d : d.transactions; if (!Array.isArray(list)) throw new Error("缺少 transactions"); var imported = importTransactions(list); showToast("已从剪贴板合并导入 " + imported + " 笔流水"); el.batchStatus.textContent = "已从剪贴板合并导入 " + imported + " 笔流水。"; }).catch(function(){ alert("剪贴板内容不是可用的账单流水 JSON"); }); });
   if (el.batchSelectIncome) el.batchSelectIncome.addEventListener("click", function(){
@@ -2460,7 +2515,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var n = 0;
     billCandidates.forEach(function (t) {
       if (!t.neutral || t.type !== "income") return;
-      t.selected = true;
+      if (t.dup) return;
+      t.selected = true; t.userSelected = true;
       if (!t.categoryName || t.categoryName === "工资") t.categoryName = "其他收入";
       n++;
     });
@@ -2474,8 +2530,9 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var nIn = 0, nOut = 0;
     billCandidates.forEach(function (t) {
       if (!t.neutral) return;
+      if (t.dup) return;
       var out = t.type === "expense";
-      t.selected = true;
+      t.selected = true; t.userSelected = true;
       t.categoryName = out ? "資金往來（轉出）" : "資金往來（轉入）";
       t.type = out ? "transfer-out" : "transfer-in";
       if (out) nOut++; else nIn++;
@@ -2485,7 +2542,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     showToast((nIn || nOut) ? "已標記為資金往來（不計統計）" : "沒有中性紀錄");
   });
   el.batchClear.addEventListener("click", function(){ billCandidates = []; el.batchText.value = ""; el.batchStatus.textContent = ""; renderBatchCandidates(); });
-  el.batchPreview.addEventListener("change", function(e){ var row = e.target.closest("tr[data-batch-index]"); if (!row) return; var t = billCandidates[Number(row.getAttribute("data-batch-index"))]; if (!t) return; if (e.target.matches("[data-batch-selected]")) t.selected = e.target.checked; if (e.target.matches("[data-batch-category]")) { var cat = findCategory(e.target.value); if (cat) { t.categoryName = cat.name; t.type = cat.type; } } el.batchImport.disabled = !billCandidates.some(function(x){ return x.selected !== false; }); });
+  el.batchPreview.addEventListener("change", function(e){ var row = e.target.closest("tr[data-batch-index]"); if (!row) return; var t = billCandidates[Number(row.getAttribute("data-batch-index"))]; if (!t) return; if (e.target.matches("[data-batch-selected]")) { t.selected = e.target.checked; t.userSelected = e.target.checked; } if (e.target.matches("[data-batch-category]")) { var cat = findCategory(e.target.value); if (cat) { t.categoryName = cat.name; t.type = cat.type; } } el.batchImport.disabled = !billCandidates.some(function(x){ return x.selected !== false; }); });
   el.batchPreview.addEventListener("click", function(e){ var b = e.target.closest("[data-batch-remove]"); if (!b) return; var row = b.closest("tr[data-batch-index]"); billCandidates.splice(Number(row.getAttribute("data-batch-index")), 1); renderBatchCandidates(); });
 
   /* 所有模組載入完成後再渲染一次，避免首畫面缺漏 */
