@@ -66,6 +66,7 @@ summary.card-head::-webkit-details-marker{display:none}
 input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--primary);vertical-align:middle}
 .switch{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:.82rem;font-weight:700;color:var(--muted)}
 .switch input{width:auto}
+.badge.bank{background:#eef6ff;color:#1d4ed8;border:1px solid #cfe3ff}
 .warn-chip{display:inline-block;padding:2px 7px;border-radius:999px;background:#fff4e5;color:#b45309;font-size:.72rem;font-weight:800}
 #report-debt-card:hover{background:var(--surface-2)}@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}}@media(max-width:620px){.debt-summary{padding:12px;flex-direction:column;align-items:flex-start;gap:4px}body{padding:10px}.form-grid,.form-grid.three,.candidate-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary-grid{grid-template-columns:1fr 1fr}.month-bar{grid-template-columns:1fr 1fr}.month-bar .btn{width:100%}.table{min-width:600px}.card-head,.card-body{padding-left:12px;padding-right:12px}.hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.hero-actions .btn,.hero-actions .pill{width:100%}.mobile-nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;position:fixed;z-index:35;left:8px;right:8px;bottom:8px;padding:5px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:.66rem;font-weight:800;padding:8px 2px}.mobile-nav button.active{color:var(--primary)}body{padding-bottom:82px}}@media print{body{background:#fff;padding:0}.hero-actions,.tabs,.mobile-nav,.no-print{display:none!important}.card{box-shadow:none}.grid-2{display:block}.summary-grid{grid-template-columns:repeat(4,1fr)}}
 
@@ -237,7 +238,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
           <div><label for="batch-file">账单文件</label><input id="batch-file" type="file" accept=".csv,.txt,text/csv,text/plain"></div>
           <div class="field full"><label for="batch-text">账单原始文本</label><textarea id="batch-text" placeholder="直接粘贴账单表格或复制文本，系统会扫描前 40 行自动定位表头"></textarea></div>
         </div>
-        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="batch-select-income-transfers" type="button">勾選全部轉入收入</button><button class="btn" id="batch-select-transfers" type="button">全部資金往來（不計統計）</button><button class="btn" id="clipboard-import" type="button">从剪贴板合并导入流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
+        <div class="actions"><button class="btn primary" id="batch-parse" type="button">解析并预览</button><button class="btn" id="batch-import" type="button" disabled>确认导入候选流水</button><button class="btn" id="batch-select-income-transfers" type="button">勾選全部轉入收入</button><button class="btn" id="batch-select-transfers" type="button">全部資金往來（不計統計）</button><button class="btn" id="batch-skip-bank" type="button">跳過銀行卡付款</button><button class="btn" id="clipboard-import" type="button">从剪贴板合并导入流水</button><button class="btn" id="batch-clear" type="button">清除</button></div>
         <p class="helper" id="batch-status"></p>
         <div id="batch-preview" class="section"></div>
       </div>
@@ -361,7 +362,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.3.0";
+  var APP_VERSION = "2.4.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -1312,6 +1313,25 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   setupClassSalaryPanel();  /* ================= 跨來源重複偵測（微信/支付寶 用銀行卡付的，別跟銀行流水重複） ================= */
   function txnDupKey(dt, amount) { return String(dt || "").slice(0, 10) + "|" + (Math.round(num(amount) * 100) / 100).toFixed(2); }
+  function isBankCardPay(pay) { return /建设银行|建行|工商|工行|农业|農行|中国银行|中國銀行|招商|邮政|郵政|交通银行|信用卡|银行卡|銀行卡|储蓄卡|儲蓄卡/.test(String(pay || "")); }
+  function payKindLabel(pay) {
+    var s = String(pay || "");
+    if (!s) return "";
+    if (/建设银行|建行/.test(s)) return "建行卡";
+    if (/工商|工行/.test(s)) return "工行卡";
+    if (/农业|農行/.test(s)) return "农行卡";
+    if (/中国银行|中國銀行/.test(s)) return "中行卡";
+    if (/招商/.test(s)) return "招行卡";
+    if (/邮政|郵政/.test(s)) return "邮储卡";
+    if (/交通银行/.test(s)) return "交行卡";
+    if (/信用卡/.test(s)) return "信用卡";
+    if (/花呗|花唄/.test(s)) return "花呗";
+    if (/分期/.test(s)) return "花呗分期";
+    if (/余额宝|餘額寶/.test(s)) return "余额宝";
+    if (/零钱|零錢/.test(s)) return "微信零钱";
+    if (/银行卡|銀行卡/.test(s)) return "银行卡";
+    return s.slice(0, 8);
+  }
   function isBankSourceName(name) { return /建行|建设银行|建設銀行|储蓄卡|儲蓄卡|工商|工行|农业|農行|中国银行|中國銀行|招商|邮政|郵政|交通银行|交通銀行|银行卡|銀行卡/i.test(String(name || "")); }
   function dayDiff(a, b) {
     var da = new Date(String(a).slice(0, 10) + "T00:00:00"), db = new Date(String(b).slice(0, 10) + "T00:00:00");
@@ -2271,14 +2291,14 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     { category:"日用百货", keywords:["超市","便利店","便利","松鼠便利","快乐惠","百貨","百货","生鲜","拼多多","得物","抖音电商","抖音月付","7-ELEVEN","美宜佳","新佳宜"] },
     { category:"其他", keywords:[] }
   ];
-  var ALIPAY_CATEGORY_MAP = { "餐饮美食":"餐饮","交通出行":"交通","充值缴费":"充值缴费","医疗健康":"医疗","家居家装":"家居","服饰装扮":"服饰","数码电器":"数码电器","文化休闲":"娱乐","教育培训":"其他","生活服务":"日用百货" };
+  var ALIPAY_CATEGORY_MAP = { "餐饮美食":"餐饮","交通出行":"交通","充值缴费":"充值缴费","医疗健康":"医疗","家居家装":"家居","服饰装扮":"服饰","数码电器":"数码电器","文化休闲":"娱乐","教育培训":"其他","生活服务":"日用百货","日用百货":"日用百货","美容美发":"其他","投资理财":"其他","账户存取":"其他","信用借还":"其他","收入":"其他收入","转账":"其他" };
   var billCandidates = [];
   function guessCategoryName(text, type, alipayCategory) {
     if (type !== "income") {
       if (/骑行|單車|单车|共享|打车|出行|地铁|公交|哈啰|哈囉|青桔|小遛|松果/.test(text)) return "交通";
       if (/超市|便利店|商场|商場|百货|百貨|生鲜|生鮮/.test(text)) return "日用百货";
     }
-    if (type === "income") return /利息|收益|红包|退款/.test(text) ? "其他收入" : "工资";
+    if (type === "income") return /工资|工資|薪资|薪資|薪水|代发|代發|月薪|劳务|勞務/.test(text) ? "工资" : "其他收入";
     if (alipayCategory && ALIPAY_CATEGORY_MAP[alipayCategory]) return ALIPAY_CATEGORY_MAP[alipayCategory];
     for (var i = 0; i < EXPENSE_RULES.length; i++) {
       var rule = EXPENSE_RULES[i];
@@ -2362,7 +2382,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var iNote = colIndex(["订单标题", "商品说明", "商品", "交易对方", "备注"]);
     var iType = colIndex(["收/支", "收支"]);
     var iKind = colIndex(["交易类型"]);
-    var iPay = colIndex(["支付方式"]);
+    var iPay = colIndex(["收/付款方式", "付款方式", "支付方式"]);
     var iPeer = colIndex(["交易对方", "商户名称", "收款方"]);
     var skipped = 0, items = [], neutralItems = [];
     dataLines.forEach(function (line) {
@@ -2403,7 +2423,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         note: merchant.slice(0, 60),
         source: sourceType, originOrderId: originOrderId, raw: line, payHint: payText, defaultSelected: true
       };
-      var neutralLine = isNeutralBillLine(line) || /还款|還款|提现|提現|充值/.test(kindText);
+      var neutralLine = /不计收支|不計收支/.test(dirText) || isNeutralBillLine([kindText, noteText, peerText].join(" ")) || /还款|還款|提现|提現|充值|放款/.test(kindText);
       if (applyIncomeRuleToItem(item)) { items.push(item); return; }
       if (neutralLine) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); return; }
       items.push(item);
@@ -2500,8 +2520,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       if (t.userSelected === true || t.userSelected === false) t.selected = t.userSelected;
       else t.selected = t.dup ? false : (t.defaultSelected !== false);
     });
-    el.batchPreview.innerHTML = (dupCount ? '<p class="helper bad">偵測到 ' + dupCount + ' 筆疑似重複（同一天、同金額，但來自另一個來源，例如微信用建行卡付款又匯入了建行流水）→ 已自動取消勾選，確認不是同一筆再自己勾起來。</p>' : "") + '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){
-      var badges = (t.neutral ? ' <span class="badge">中性</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則</span>' : "") + (isBankSourceName(t.payHint) ? ' <span class="badge">' + esc(String(t.payHint).slice(0, 10)) + '</span>' : "") + (t.dup ? ' <span class="status-chip late">疑似重複</span>' : "");
+    var bankPaid = billCandidates.filter(function (t) { return isBankCardPay(t.payHint); }).length;
+    el.batchPreview.innerHTML = (dupCount ? '<p class="helper bad">偵測到 ' + dupCount + ' 筆疑似重複（同一天、同金額，但來自另一個來源，例如微信／支付寶用建行卡付款，又匯入了建行流水）→ 已自動取消勾選，確認不是同一筆再自己勾起來。</p>' : "") + (bankPaid ? '<p class="helper">有 ' + bankPaid + ' 筆是「用銀行卡付款」（已標示卡片標籤）。若你同時要匯入銀行卡流水，可按「跳過銀行卡付款」避免重複計算。</p>' : "") + '<div class="table-wrap"><table class="table"><thead><tr><th>导入</th><th>日期</th><th>类型</th><th class="num">金额</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>' + billCandidates.map(function(t,i){
+      var payLabel = payKindLabel(t.payHint);
+      var badges = (t.neutral ? ' <span class="badge">中性</span>' : "") + (t.ruleName ? ' <span class="status-chip paid">規則</span>' : "") + (payLabel ? ' <span class="badge' + (isBankCardPay(t.payHint) ? ' bank' : "") + '">' + esc(payLabel) + '</span>' : "") + (t.dup ? ' <span class="status-chip late">疑似重複</span>' : "");
       var dupNote = t.dup ? '<br><span class="flow-source">與 ' + esc(sourceLabel(t.dup.source)) + " " + esc(t.dup.dt) + " " + money(t.dup.amount) + "（" + esc(t.dup.from) + "）同金額</span>" : "";
       return '<tr data-batch-index="' + i + '"' + (t.dup ? ' style="background:#fff7f6"' : "") + '><td><input type="checkbox" data-batch-selected' + (t.selected !== false ? " checked" : "") + '></td><td>' + esc(t.dt) + '</td><td>' + typeLabel(t.type) + badges + '</td><td class="num">' + money(t.amount) + '</td><td><select data-batch-category>' + optionsForAllCategories(ensureCategory(t.categoryName, t.type).id) + '</select></td><td>' + esc(t.note) + dupNote + '</td><td><button class="btn small danger" data-batch-remove type="button">删除</button></td></tr>';
     }).join("") + '</tbody></table></div>';
@@ -2523,6 +2545,15 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     renderBatchCandidates();
     el.batchStatus.textContent = n ? ("已勾選 " + n + " 筆轉入／收款，會列為收入（分類可在左邊改成工資、課時費等）。") : "沒有找到「轉入／收款」類型的中性紀錄。";
     showToast(n ? ("已勾選 " + n + " 筆收入") : "沒有可勾選的轉入紀錄");
+  });
+  var batchSkipBank = document.getElementById("batch-skip-bank");
+  if (batchSkipBank) batchSkipBank.addEventListener("click", function () {
+    if (!billCandidates.length) return showToast("請先解析帳單");
+    var n = 0;
+    billCandidates.forEach(function (t) { if (isBankCardPay(t.payHint)) { t.selected = false; t.userSelected = false; n++; } });
+    renderBatchCandidates();
+    el.batchStatus.textContent = n ? ("已取消勾選 " + n + " 筆「用銀行卡付款」的紀錄（避免和銀行卡流水重複）。之後用銀行卡流水匯入，這些消費一樣會有紀錄。") : "這批帳單沒有「用銀行卡付款」的紀錄。";
+    showToast(n ? ("已取消 " + n + " 筆銀行卡付款") : "沒有銀行卡付款紀錄");
   });
   var batchSelectTransfers = document.getElementById("batch-select-transfers");
   if (batchSelectTransfers) batchSelectTransfers.addEventListener("click", function(){
