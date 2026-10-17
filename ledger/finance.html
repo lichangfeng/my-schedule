@@ -69,6 +69,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 .badge.bank{background:#eef6ff;color:#1d4ed8;border:1px solid #cfe3ff}
 .warn-chip{display:inline-block;padding:2px 7px;border-radius:999px;background:#fff4e5;color:#b45309;font-size:.72rem;font-weight:800}
 #report-debt-card:hover{background:var(--surface-2)}@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}}@media(max-width:620px){.debt-summary{padding:12px;flex-direction:column;align-items:flex-start;gap:4px}body{padding:10px}.form-grid,.form-grid.three,.candidate-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary-grid{grid-template-columns:1fr 1fr}.month-bar{grid-template-columns:1fr 1fr}.month-bar .btn{width:100%}.table{min-width:600px}.card-head,.card-body{padding-left:12px;padding-right:12px}.hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.hero-actions .btn,.hero-actions .pill{width:100%}.mobile-nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;position:fixed;z-index:35;left:8px;right:8px;bottom:8px;padding:5px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:.66rem;font-weight:800;padding:8px 2px}.mobile-nav button.active{color:var(--primary)}body{padding-bottom:82px}}@media print{body{background:#fff;padding:0}.hero-actions,.tabs,.mobile-nav,.no-print{display:none!important}.card{box-shadow:none}.grid-2{display:block}.summary-grid{grid-template-columns:repeat(4,1fr)}}
+.summary-card.clickable{cursor:pointer;transition:.15s}
+.summary-card.clickable:hover{border-color:var(--primary);box-shadow:0 4px 14px rgba(15,118,110,.14)}
 
 </style>
 </head>
@@ -367,7 +369,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.10.0";
+  var APP_VERSION = "2.11.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -685,7 +687,13 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var month = ui.year + "-" + pad(ui.month);
     var totals = monthTotals(month);
     var rec = monthlyRecurringRows(month);
-    el.incomeExpense.innerHTML = '<div class="summary-grid"><div class="summary-card"><span>本月总收入</span><strong class="good">' + money(totals.income) + '</strong></div><div class="summary-card"><span>本月总支出</span><strong class="bad">' + money(totals.expense) + '</strong><small>' + (rec.total > 0 ? "手動/帳單 " + money(totals.manualExpense) + " + 定期 " + money(rec.total) : (totals.expense > 0 ? "全部來自手動/帳單合計" : "本月尚無支出")) + '</small></div><div class="summary-card"><span>本月结余</span><strong class="' + (totals.balance >= 0 ? "good" : "bad") + '">' + money(totals.balance) + '</strong><small>收入 − 支出（含定期支出）</small></div></div>' + (rec.total > 0 ? '<p class="helper">本月定期支出：' + rec.detail + '</p>' : "");
+    var incomeCount = state.transactions.filter(function (t) { return txKind(t) === "income" && String(t.dt || "").slice(0, 7) === month; }).length;
+    var expenseCount = state.transactions.filter(function (t) { return txKind(t) === "expense" && String(t.dt || "").slice(0, 7) === month; }).length;
+    el.incomeExpense.innerHTML = '<div class="summary-grid">' +
+      '<div class="summary-card clickable" data-drill-kind="income" data-drill-month="' + esc(month) + '" role="button" tabindex="0"><span>本月總收入</span><strong class="good">' + money(totals.income) + '</strong><small>' + incomeCount + ' 筆 · 點開看每一筆</small></div>' +
+      '<div class="summary-card clickable" data-drill-kind="expense" data-drill-month="' + esc(month) + '" role="button" tabindex="0"><span>本月總支出</span><strong class="bad">' + money(totals.expense) + '</strong><small>' + expenseCount + ' 筆 · ' + (rec.total > 0 ? '含定期支出 ' + money(rec.total) : '點開看每一筆') + '</small></div>' +
+      '<div class="summary-card"><span>本月結餘</span><strong class="' + (totals.balance >= 0 ? "good" : "bad") + '">' + money(totals.balance) + '</strong><small>收入 − 支出（含定期支出）</small></div>' +
+      '</div>' + (rec.total > 0 ? '<p class="helper">本月定期支出：' + rec.detail + '</p>' : "");
   }  function renderPie() {
     var month = ui.year + "-" + pad(ui.month);
     var rows = [];
@@ -1426,6 +1434,40 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     });
     return out.sort(function (a, b) { return String(a.month).localeCompare(String(b.month)); });
   }
+
+  function renderKindDrill(kind, month) {
+    var isIncome = kind === "income";
+    var rows = state.transactions.filter(function (t) { return txKind(t) === kind && String(t.dt || "").slice(0, 7) === month; })
+      .sort(function (a, b) { return String(a.dt).localeCompare(String(b.dt)); });
+    var total = rows.reduce(function (s, t) { return s + num(t.amount); }, 0);
+    var recRows = isIncome ? [] : recurringMonthRows(month);
+    var recSum = recRows.reduce(function (s, x) { return s + num(x.occ.amount); }, 0);
+    var byCat = {};
+    rows.forEach(function (t) {
+      var c = findCategory(t.categoryId);
+      var n = c ? c.name : "未分類";
+      byCat[n] = byCat[n] || { name: n, amount: 0, count: 0 };
+      byCat[n].amount += num(t.amount); byCat[n].count++;
+    });
+    var cats = Object.keys(byCat).map(function (k) { return byCat[k]; }).sort(function (a, b) { return b.amount - a.amount; });
+    var body = '<div class="summary-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">' +
+      '<div class="summary-card"><span>' + monthLabel(month) + (isIncome ? '總收入' : '總支出') + '</span><strong class="' + (isIncome ? "good" : "bad") + '">' + money(total + recSum) + '</strong><small>' + rows.length + ' 筆' + (recSum > 0 ? ' ＋ 定期支出 ' + money(recSum) : '') + '</small></div>' +
+      '<div class="summary-card"><span>分類數</span><strong>' + cats.length + ' 個</strong><small>' + cats.map(function (c) { return esc(c.name); }).slice(0, 5).join("、") + '</small></div>' +
+      '</div>';
+    body += '<h4>分類小計</h4><div class="table-wrap"><table class="table"><thead><tr><th>分類</th><th class="num">金額</th><th class="num">筆數</th></tr></thead><tbody>' +
+      cats.map(function (c) { return '<tr><td><strong>' + esc(c.name) + '</strong></td><td class="num">' + money(c.amount) + '</td><td class="num">' + c.count + '</td></tr>'; }).join("") +
+      (recSum > 0 ? '<tr><td><strong>定期支出</strong></td><td class="num">' + money(recSum) + '</td><td class="num">' + recRows.length + '</td></tr>' : "") +
+      '</tbody></table></div>';
+    body += '<h4>每一筆（' + rows.length + ' 筆，合計 ' + money(total) + '）</h4>';
+    body += rows.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>分類</th><th class="num">金額</th><th>來源／備註</th><th>操作</th></tr></thead><tbody>' +
+      rows.map(function (t) {
+        var c = findCategory(t.categoryId);
+        return '<tr><td>' + esc(t.dt) + '</td><td>' + esc(c ? c.name : "未分類") + '</td><td class="num ' + (isIncome ? "good" : "bad") + '">' + (isIncome ? "+" : "−") + money(t.amount) + '</td><td><span class="flow-source">' + esc(t.source || "") + '</span>' + (t.pay ? ' <span class="badge">' + esc(payChannelLabel(t.pay)) + '</span>' : "") + (t.note ? '<br>' + esc(t.note) : "") + '</td><td><button class="btn small danger" data-drill-del="' + esc(t.id) + '" type="button">刪除</button></td></tr>';
+      }).join("") + '</tbody></table></div>' : '<div class="empty">這個月沒有' + (isIncome ? "收入" : "支出") + '。</div>';
+    el.drillTitle.textContent = monthLabel(month) + " · 全部" + (isIncome ? "收入" : "支出");
+    el.drillBody.innerHTML = body;
+    el.drillModal.classList.remove("hidden");
+  }
   function renderCategoryDrill(categoryId, scope) {
     var cat = findCategory(categoryId);
     if (!cat) return;
@@ -1487,6 +1529,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       if (!node || !node.closest) return;
       var del = node.closest("[data-drill-del]");
       if (del) { deleteFlow(del.getAttribute("data-drill-del")); closeDrill(); return; }
+      var kindBtn = node.closest("[data-drill-kind]");
+      if (kindBtn) { renderKindDrill(kindBtn.getAttribute("data-drill-kind"), kindBtn.getAttribute("data-drill-month")); return; }
       var btn = node.closest("[data-drill-category]");
       if (!btn) return;
       var id = btn.getAttribute("data-drill-category");
