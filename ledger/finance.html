@@ -369,7 +369,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.13.0";
+  var APP_VERSION = "2.14.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -587,7 +587,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); migrateRentCashV32(brandNew); return brandNew; }
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); migrateRentCashV32(brandNew); migrateBalancesV33(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -614,9 +614,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       migrateIncomeV30(parsed);
       migratePlanNoTxV31(parsed);
       migrateRentCashV32(parsed);
+      migrateBalancesV33(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); migrateRentCashV32(fallback); return fallback; }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); migrateRentCashV32(fallback); migrateBalancesV33(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -1792,6 +1793,27 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       target.rentCashV32 = true;
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
     } catch (e) { target.rentCashError = String(e && e.message || e); }
+    return target;
+  }
+
+  /* 一次性：填入使用者提供的帳戶餘額（2026-10） */
+  function migrateBalancesV33(target) {
+    if (!target || target.balancesV33) return target;
+    try {
+      var y = 2026, m = 10;
+      var has = (target.snapshots || []).some(function (s) { return Number(s.year) === y && Number(s.month) === m; });
+      if (!has) {
+        var seeds = [{ name: "微信", balance: 2800 }, { name: "建设银行储蓄卡", balance: 3400 }];
+        seeds.forEach(function (x) {
+          var acc = ensureCategoryOn ? null : null;
+          var account = (target.accounts || []).filter(function (a) { return a.name === x.name; })[0];
+          if (!account) { account = { id: uid("acc"), name: x.name, type: x.name }; (target.accounts = target.accounts || []).push(account); }
+          (target.snapshots = target.snapshots || []).push({ id: uid("snap"), year: y, month: m, accountId: account.id, balance: x.balance, note: "使用者提供（2026-10-17）" });
+        });
+      }
+      target.balancesV33 = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    } catch (e) { target.balancesError = String(e && e.message || e); }
     return target;
   }
   /* ================= 資金往來分類與房租／押金整理 ================= */
