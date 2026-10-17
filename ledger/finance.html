@@ -369,7 +369,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.12.0";
+  var APP_VERSION = "2.13.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -587,7 +587,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); return brandNew; }
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); migrateRentCashV32(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -613,9 +613,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       migrateIncomeV29(parsed);
       migrateIncomeV30(parsed);
       migratePlanNoTxV31(parsed);
+      migrateRentCashV32(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); return fallback; }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); migrateRentCashV32(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -1774,6 +1775,25 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     } catch (e) { target.planNoTxError = String(e && e.message || e); }
     return target;
   }
+
+  /* 一次性遷移：房租統計（每月 1,200）與現金季繳（3,600，11/2/5/8 月）分開 */
+  function migrateRentCashV32(target) {
+    if (!target || target.rentCashV32) return target;
+    try {
+      var rent = (target.recurring || []).filter(function (r) { return r.name === "房租"; })[0];
+      if (rent) { rent.statsOnly = true; rent.note = "統計用：每月認列 1,200（季繳 3,600 分攤）"; }
+      var cash = (target.recurring || []).filter(function (r) { return r.name === "房租（季繳 3,600）"; })[0];
+      if (!cash) {
+        cash = buildRecurringItem({ name: "房租（季繳 3,600）", amount: 3600, perMonth: 3600, cycleMonths: 3, startDate: "2026-11-01", periods: 8, categoryName: "房租", includeInStats: false, note: "每 3 個月繳一次：11、2、5、8 月繳下 3 個月" });
+        cash.statsOnly = false;
+        cash.includeInStats = false;
+        (target.recurring = target.recurring || []).push(cash);
+      }
+      target.rentCashV32 = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    } catch (e) { target.rentCashError = String(e && e.message || e); }
+    return target;
+  }
   /* ================= 資金往來分類與房租／押金整理 ================= */
   function isTransferKind(kind) { return kind === "transfer-in" || kind === "transfer-out"; }
   function transferLabel(kind) { return kind === "transfer-in" ? "轉入" : kind === "transfer-out" ? "轉出" : ""; }
@@ -2045,6 +2065,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function recurringOccurrencesAll() {
     var out = [];
     recurringList().forEach(function (item) {
+      if (item.statsOnly) return;
       (item.occurrences || []).forEach(function (occ) { out.push({ item: item, occ: occ }); });
     });
     return out.sort(function (a, b) { return String(a.occ.date).localeCompare(String(b.occ.date)); });
@@ -2112,7 +2133,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       recurringList().map(function (item) {
         var occ = (item.occurrences || []).filter(function (o) { return !o.paid; })[0] || null;
         var paidCount = (item.occurrences || []).filter(function (o) { return o.paid; }).length;
-        return '<tr><td><strong>' + esc(item.name) + '</strong>' + (item.perMonth > 0 ? '<br><span class="flow-source">每月 ' + money(item.perMonth) + '</span>' : '') + '</td>' +
+        var kindTag = item.statsOnly ? ' <span class="badge">只計統計</span>' : (item.includeInStats === false ? ' <span class="badge">只提醒</span>' : "");
+        return '<tr><td><strong>' + esc(item.name) + '</strong>' + kindTag + (item.perMonth > 0 ? '<br><span class="flow-source">每月 ' + money(item.perMonth) + '</span>' : '') + '</td>' +
           '<td class="num">' + money(item.amount) + '</td><td>' + esc(cycleLabel(item.cycleMonths)) + '</td><td>' + esc(item.categoryName) + '</td>' +
           '<td>' + (occ ? esc(occ.date) + '<br><span class="flow-source">已繳 ' + paidCount + ' / ' + (item.occurrences || []).length + ' 期</span>' : '<span class="status-chip paid">全部已繳</span>') + '</td>' +
           '<td><label class="switch"><input type="checkbox" data-rec-include="' + esc(item.id) + '"' + (recurringIncluded(item) ? " checked" : "") + '><span>' + (recurringIncluded(item) ? "是" : "否") + '</span></label></td>' +
