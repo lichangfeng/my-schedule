@@ -361,7 +361,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.1.0";
+  var APP_VERSION = "2.2.0";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -2221,21 +2221,25 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   setupDebtPanel();  var NEUTRAL_KEYWORDS = ["还款","提现","充值","零钱通","理财通","存取","转账","红包","退款","小荷包","收益发放","借呗","花呗还款","美团金融还款","自动转入"];
   var EXPENSE_RULES = [
-    { category:"餐饮", keywords:["美团","饿了么","华莱士","肯德基","麦当劳","炒鸡","烧烤","咖啡","奶茶","茶饮","大米先生","粉店","超意兴","茶颜悦色"] },
+    { category:"餐饮", keywords:["美团","饿了么","华莱士","肯德基","麦当劳","炒鸡","烧烤","咖啡","奶茶","茶饮","大米先生","粉店","超意兴","茶颜悦色","鸡公煲","拌面","烤鸡","烤鸭","烤肉","凉拌","湘菜","川菜","火锅","麻辣烫","牛肉粉","码子粉","米粉","面条","饺子","包子","快餐","小吃","饭店","餐厅","餐飲","餐饮","美食","蜜雪","汉堡","炸鸡","大碗先生"] },
     { category:"交通", keywords:["地铁","公交","哈啰","滴滴","青桔","小遛","骑行","12306","打车","通行费"] },
     { category:"充值缴费", keywords:["话费","电费","水费","燃气费","宽带","移动","联通","电信","网上国网"] },
-    { category:"医疗", keywords:["药","药房","医院","诊所","体检","阿里健康","得百安"] },
-    { category:"娱乐", keywords:["游戏","电竞","网吧","电影","KTV","Steam","UU加速器","付费影视剧","HUK","街舞"] },
+    { category:"医疗", keywords:["药","药房","医院","诊所","体检","阿里健康","得百安","器械","快达康","医疗"] },
+    { category:"娱乐", keywords:["游戏","电竞","网吧","电影","KTV","Steam","UU加速器","付费影视剧","HUK","街舞","舞蹈室","舞蹈","舞室"] },
     { category:"家居", keywords:["家居家装","收纳袋","打包袋","扫把","压缩袋"] },
     { category:"服饰", keywords:["服饰装扮","裤子","鞋","内衣"] },
     { category:"数码电器", keywords:["小米","钢化膜","充电宝","大疆","手环","手机壳","充电线"] },
     { category:"订阅", keywords:["剪映","网易云音乐","QQ音乐","API服务","自动续费"] },
-    { category:"日用百货", keywords:["超市","便利店","拼多多","得物","抖音电商","抖音月付","7-ELEVEN","美宜佳","新佳宜"] },
+    { category:"日用百货", keywords:["超市","便利店","便利","松鼠便利","快乐惠","百貨","百货","生鲜","拼多多","得物","抖音电商","抖音月付","7-ELEVEN","美宜佳","新佳宜"] },
     { category:"其他", keywords:[] }
   ];
   var ALIPAY_CATEGORY_MAP = { "餐饮美食":"餐饮","交通出行":"交通","充值缴费":"充值缴费","医疗健康":"医疗","家居家装":"家居","服饰装扮":"服饰","数码电器":"数码电器","文化休闲":"娱乐","教育培训":"其他","生活服务":"日用百货" };
   var billCandidates = [];
   function guessCategoryName(text, type, alipayCategory) {
+    if (type !== "income") {
+      if (/骑行|單車|单车|共享|打车|出行|地铁|公交|哈啰|哈囉|青桔|小遛|松果/.test(text)) return "交通";
+      if (/超市|便利店|商场|商場|百货|百貨|生鲜|生鮮/.test(text)) return "日用百货";
+    }
     if (type === "income") return /利息|收益|红包|退款/.test(text) ? "其他收入" : "工资";
     if (alipayCategory && ALIPAY_CATEGORY_MAP[alipayCategory]) return ALIPAY_CATEGORY_MAP[alipayCategory];
     for (var i = 0; i < EXPENSE_RULES.length; i++) {
@@ -2300,40 +2304,72 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     }
     return { items: items, neutral: neutralItems, skipped: skipped };
   }  function parseBillRawText(rawText, sourceType) {
-    var lines = String(rawText || "").split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    var lines = String(rawText || "").split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
     var headerIndex = -1;
-    for (var i = 0; i < Math.min(40, lines.length); i++) { if (lines[i].indexOf("交易时间") >= 0 && (lines[i].indexOf("收/支") >= 0 || lines[i].indexOf("收支") >= 0)) { headerIndex = i; break; } }
+    for (var i = 0; i < Math.min(40, lines.length); i++) {
+      if (/交易时间|交易创建时间|订单时间|消费时间|交易日期/.test(lines[i]) && /收\/支|收支/.test(lines[i])) { headerIndex = i; break; }
+    }
+    var header = headerIndex >= 0 ? lines[headerIndex].split(/\t|,| {2,}/).map(function (s) { return s.trim().replace(/^"|"$/g, ""); }) : null;
     var dataLines = headerIndex >= 0 ? lines.slice(headerIndex + 1) : lines;
-    var headText = lines.length ? lines[0] : "";
-    if (/(类型|類型)/.test(headText) && /(金额|金額)/.test(headText) && /(备注|備註|日期|序号|序號)/.test(headText)) return parseGenericCsvBill(rawText, sourceType);
     if (sourceType === "ccb") return parseCcbRawText(dataLines);
+    var headText = lines.length ? lines[0] : "";
+    if (!header && /(类型|類型)/.test(headText) && /(金额|金額)/.test(headText) && /(备注|備註|日期|序号|序號)/.test(headText)) return parseGenericCsvBill(rawText, sourceType);
+    function colIndex(names) {
+      if (!header) return -1;
+      for (var a = 0; a < names.length; a++) for (var b = 0; b < header.length; b++) if (header[b].indexOf(names[a]) >= 0) return b;
+      return -1;
+    }
+    var iDate = colIndex(["交易创建时间", "交易时间", "订单时间", "消费时间", "交易日期"]);
+    var iAmount = colIndex(["实付金额", "订单金额", "金额"]);
+    var iNote = colIndex(["订单标题", "商品说明", "商品", "交易对方", "备注"]);
+    var iType = colIndex(["收/支", "收支"]);
+    var iKind = colIndex(["交易类型"]);
+    var iPay = colIndex(["支付方式"]);
+    var iPeer = colIndex(["交易对方", "商户名称", "收款方"]);
     var skipped = 0, items = [], neutralItems = [];
-    dataLines.forEach(function(line){
-      var neutralLine = isNeutralBillLine(line);
-      var cols = line.split(/\t|\s{2,}|,/).map(function(x){ return x.trim(); }).filter(function(x){ return x !== ""; });
-      var text = cols.length > 1 ? cols.join(" ") : line;
-      var rawAmount = findAmountInText(text);
+    dataLines.forEach(function (line) {
+      var cols = header ? line.split(/\t|,| {2,}/).map(function (s) { return s.trim().replace(/^"|"$/g, ""); }) : null;
+      if (cols && cols.length < 2) return;
+      var noteText = cols && iNote >= 0 && cols[iNote] ? cols[iNote] : "";
+      var peerText = cols && iPeer >= 0 && cols[iPeer] ? cols[iPeer] : "";
+      var dirText = cols && iType >= 0 && cols[iType] ? cols[iType] : "";
+      var kindText = cols && iKind >= 0 && cols[iKind] ? cols[iKind] : "";
+      var dateText = cols && iDate >= 0 && cols[iDate] ? cols[iDate] : line;
+      var dateMatch = String(dateText).match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+      if (!dateMatch) dateMatch = line.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+      if (!dateMatch) return;
+      var dt = dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]);
+      var rawAmount = (cols && iAmount >= 0 ? findAmountInText(cols[iAmount]) : "") || findAmountInText(line);
       if (!rawAmount) return;
-      var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g,"")));
+      var amount = Math.abs(num(rawAmount.replace(/[¥￥,+-]/g, "")));
       if (!amount) return;
-      var type = /收入|入账|收款|退款|工资/.test(line) || /^\+/.test(rawAmount) ? "income" : "expense";
-      if (/支出|付款|消费|扣款/.test(line)) type = "expense";
-      var dateMatch = text.match(/(20\d{2})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
-      var dt = dateMatch ? dateMatch[1] + "-" + pad(dateMatch[2]) + "-" + pad(dateMatch[3]) : todayText();
+      var text = cols ? cols.join(" ") : line;
+      var dir = dirText || text;
+      var type = /收入|入账|收款|退款|工资/.test(dir) || /^\+/.test(rawAmount) ? "income" : "expense";
+      if (/支出|付款|消费|扣款/.test(dir)) type = "expense";
       var alipayCategory = "";
       var mapped = text.match(/餐饮美食|交通出行|充值缴费|医疗健康|家居家装|服饰装扮|数码电器|文化休闲|教育培训|生活服务/);
       if (mapped) alipayCategory = mapped[0];
-      var merchant = text.replace(/[¥￥+\-\d.,:：\/]/g," ").replace(/支出|收入|交易时间|收\/支|金额|订单号|交易对方|商品说明|支付方式|当前状态|交易分类/g," ").replace(/\s+/g," ").trim();
-      if (!merchant) merchant = sourceType === "alipay" ? "支付宝交易" : sourceType === "wechat" ? "微信交易" : "美团交易";
-      var orderMatch = text.match(/\b\d{8,}\b/); var originOrderId = orderMatch ? orderMatch[0] : [dt, amount, merchant.slice(0,12), sourceType].join("|");
-      var item = { dt: dt, amount: amount, type: type, categoryName: guessCategoryName(text, type, alipayCategory), accountHint: sourceType === "alipay" ? "支付宝" : sourceType === "wechat" ? "微信" : "美团", note: merchant.slice(0,60), source: sourceType, originOrderId: originOrderId, raw: line };
+      var merchant = (noteText || text.replace(/[¥￥+\-\d.,:：\/]/g, " ").replace(/支出|收入|交易时间|收\/支|金额|订单号|交易对方|商品说明|支付方式|当前状态|交易分类/g, " ").replace(/\s+/g, " ")).trim();
+      if (!merchant) merchant = sourceType === "alipay" ? "支付宝交易" : sourceType === "wechat" ? "微信交易" : sourceType === "meituan" ? "美团交易" : "交易";
+      merchant = merchant.replace(/\s*订单详情\s*$/, "").replace(/\s*免密扣款\s*$/, "").replace(/美团月付|美團月付|美团支付|微信支付|支付宝支付|支付方式|零钱|零錢|余额宝|餘額寶|云闪付/g, " ").replace(/\s+/g, " ").trim();
+      var orderMatch = text.match(/\b\d{8,}\b/);
+      var originOrderId = orderMatch ? orderMatch[0] : [dt, amount, merchant.slice(0, 12), sourceType].join("|");
+      var account = sourceType === "alipay" ? "支付宝" : sourceType === "wechat" ? "微信" : sourceType === "meituan" ? "美团" : sourceType;
+      var item = {
+        dt: dt, amount: amount, type: type,
+        categoryName: guessCategoryName([noteText, peerText, kindText].filter(Boolean).join(" ") || merchant, type, alipayCategory),
+        accountHint: account,
+        note: merchant.slice(0, 60),
+        source: sourceType, originOrderId: originOrderId, raw: line
+      };
+      var neutralLine = isNeutralBillLine(line) || /还款|還款|提现|提現|充值/.test(kindText);
       if (applyIncomeRuleToItem(item)) { items.push(item); return; }
       if (neutralLine) { item.neutral = true; skipped++; neutralItems.push(item); return; }
       items.push(item);
     });
     return { items: items, neutral: neutralItems, skipped: skipped };
-  }
-  function recomputeSummaries() {
+  }  function recomputeSummaries() {
     var map = {};
     state.transactions.forEach(function(t){
       if (!t.categoryId) return;
