@@ -2441,7 +2441,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         raw: lines[i], payHint: "", defaultSelected: isIncome
       };
       if (applyIncomeRuleToItem(item)) { items.push(item); continue; }
-      if (neutral) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); continue; }
+      if (neutral) { item.neutral = true; item.defaultSelected = true; skipped++; neutralItems.push(item); continue; }
       items.push(item);
     }
     return { items: items, neutral: neutralItems, skipped: skipped };
@@ -2509,7 +2509,18 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       };
       var neutralLine = /不计收支|不計收支/.test(dirText) || isNeutralBillLine([kindText, noteText, peerText].join(" ")) || /还款|還款|提现|提現|充值|放款/.test(kindText);
       if (applyIncomeRuleToItem(item)) { items.push(item); return; }
-      if (neutralLine) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); return; }
+      if (neutralLine) {
+        var payNote = [kindText, noteText, peerText].join(" ");
+        if (!/还款|還款|提现|提現|放款|借款|退款/.test(payNote) && /工资|工資|薪资|薪資|课时费|課時費|课时|學費|学费|课费|課費|劳务|勞務/.test(payNote)) {
+          item.type = "income";
+          item.categoryName = /工资|工資|薪资|薪資|劳务|勞務/.test(payNote) ? "工资" : "課費收入";
+          item.fromNeutralIncome = true;
+          items.push(item); return;
+        }
+        item.type = /收入|收款/.test(dir || "") || item.type === "income" ? "transfer-in" : "transfer-out";
+        item.categoryName = item.type === "transfer-in" ? TRANSFER_IN_NAME : TRANSFER_OUT_NAME;
+        item.neutral = true; item.defaultSelected = true; skipped++; neutralItems.push(item); return;
+      }
       items.push(item);
     });
     return { items: items, neutral: neutralItems, skipped: skipped };
@@ -2590,7 +2601,11 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var originOrderId = [dt, amount, note.slice(0,12), "ccb"].join("|");
       var item = { dt: dt, amount: amount, type: type, categoryName: guessCategoryName(line, type, ""), accountHint: "建设银行储蓄卡", note: note.slice(0,60), source: "ccb", originOrderId: originOrderId, raw: line, payHint: "建設銀行", defaultSelected: true };
       if (applyIncomeRuleToItem(item)) { items.push(item); return; }
-      if (neutralLine) { item.neutral = true; item.defaultSelected = false; skipped++; neutralItems.push(item); return; }
+      if (neutralLine) {
+        item.type = /收入|利息|存入|工资|收款|转入/.test(line) && !/还款|還款|消费|支出|扣款/.test(line) ? "transfer-in" : "transfer-out";
+        item.categoryName = item.type === "transfer-in" ? TRANSFER_IN_NAME : TRANSFER_OUT_NAME;
+        item.neutral = true; item.defaultSelected = true; skipped++; neutralItems.push(item); return;
+      }
       items.push(item);
     });
     return { items: items, neutral: neutralItems, skipped: skipped };
@@ -2613,7 +2628,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     }).join("") + '</tbody></table></div>';
     el.batchImport.disabled = !billCandidates.some(function(t){ return t.selected !== false; });
   } el.batchFile.addEventListener("change", function(){ var f = this.files && this.files[0]; if (!f) return; var name = f.name || ""; var reader = new FileReader(); reader.onload = function(){ el.batchText.value = reader.result || ""; if (/建设|建行|ccb/i.test(name)) el.batchSource.value = "ccb"; else if (/支付宝|alipay/i.test(name)) el.batchSource.value = "alipay"; else if (/微信|wechat/i.test(name)) el.batchSource.value = "wechat"; else if (/美团|meituan/i.test(name)) el.batchSource.value = "meituan"; el.batchStatus.textContent = "已读取文件：" + name + "，请按解析并预览。"; }; reader.readAsText(f); this.value = ""; });
-  el.batchParse.addEventListener("click", function(){ var res = parseBillRawText(el.batchText.value, el.batchSource.value); billCandidates = res.items.concat(res.neutral || []); el.batchStatus.textContent = "解析出 " + res.items.length + " 筆消費／收入，另有 " + ((res.neutral || []).length) + " 筆還款／轉帳等中性交易（預設不勾選）。疑似與其他來源重複的會自動取消勾選並標紅。" + (incomeRuleList().length ? " 已套用 " + incomeRuleList().length + " 條收入規則。" : ""); renderBatchCandidates(); });
+  el.batchParse.addEventListener("click", function(){ var res = parseBillRawText(el.batchText.value, el.batchSource.value); billCandidates = res.items.concat(res.neutral || []); el.batchStatus.textContent = "解析出 " + res.items.length + " 筆消費／收入；另有 " + ((res.neutral || []).length) + " 筆轉帳／還款等交易，也會匯入流水（型別為轉入／轉出，不計入收支統計）。疑似與其他來源重複的會自動取消勾選並標紅。" + (incomeRuleList().length ? " 已套用 " + incomeRuleList().length + " 條收入規則。" : ""); renderBatchCandidates(); });
   el.batchImport.addEventListener("click", function(){ if (!billCandidates.length) return; var chosen = billCandidates.filter(function(t){ return t.selected !== false; }); var imported = importTransactions(chosen); el.batchStatus.textContent = "已导入 " + imported + " 笔流水，并重新计算月度分类合计。"; billCandidates = []; el.batchPreview.innerHTML = ""; el.batchImport.disabled = true; showToast("账单导入完成"); });
   el.clipboardImport.addEventListener("click", function(){ if (!navigator.clipboard || !navigator.clipboard.readText) return showToast("此浏览器不支持读取剪贴板"); navigator.clipboard.readText().then(function(text){ var d = JSON.parse(text); var list = Array.isArray(d) ? d : d.transactions; if (!Array.isArray(list)) throw new Error("缺少 transactions"); var imported = importTransactions(list); showToast("已从剪贴板合并导入 " + imported + " 笔流水"); el.batchStatus.textContent = "已从剪贴板合并导入 " + imported + " 笔流水。"; }).catch(function(){ alert("剪贴板内容不是可用的账单流水 JSON"); }); });
   if (el.batchSelectIncome) el.batchSelectIncome.addEventListener("click", function(){
