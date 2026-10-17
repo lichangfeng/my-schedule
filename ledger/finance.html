@@ -113,6 +113,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       </div>
       <div class="card-body">
         <div class="summary-grid" id="report-summary"></div>
+        <div id="savings-goal" class="section"></div>
         <div class="actions">
           <button class="btn primary" id="save-account-balances" type="button">保存本月账户余额</button>
           <button class="btn" id="save-category-totals" type="button">保存本月分类合计</button>
@@ -369,7 +370,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.14.0";
+  var APP_VERSION = "2.15.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -537,7 +538,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     plannedIncomeList: document.getElementById("planned-income-list"), plannedIncomeForm: document.getElementById("planned-income-form"),
     planName: document.getElementById("plan-name"), planAmount: document.getElementById("plan-amount"), planDate: document.getElementById("plan-date"),
     planCategory: document.getElementById("plan-category"), planNote: document.getElementById("plan-note"), planCategoryList: document.getElementById("plan-category-list"),
-    creditSummary: document.getElementById("credit-summary"), dailyPay: document.getElementById("daily-pay"),
+    creditSummary: document.getElementById("credit-summary"), savingsGoal: document.getElementById("savings-goal"), dailyPay: document.getElementById("daily-pay"),
     drillModal: document.getElementById("drill-modal"), drillTitle: document.getElementById("drill-title"), drillBody: document.getElementById("drill-body"), drillClose: document.getElementById("drill-close"),
     annualIncomeCategories: document.getElementById("annual-income-categories"),
     reportSummary: document.getElementById("report-summary")
@@ -1037,7 +1038,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }  function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
     if (el.flowFilterMonth) el.flowFilterMonth.value = flowFilter.month;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); renderCreditSummary(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); renderCreditSummary(); renderSavingsGoal(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
   }
   function switchTab(tab) {
     ui.tab = tab;
@@ -1815,6 +1816,59 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
     } catch (e) { target.balancesError = String(e && e.message || e); }
     return target;
+  }
+
+  /* ================= 存款目標 ================= */
+  function seedSavingsGoal() { if (!state.savingsGoal) { state.savingsGoal = { name: "存款目標", amount: 20000, deadline: "2027-10-31" }; saveState(); } }
+  seedSavingsGoal();
+  function savingsGoalOf() {
+    var g = state.savingsGoal || {};
+    return { name: g.name || "存款目標", amount: num(g.amount) || 20000, deadline: g.deadline || "2027-10-31" };
+  }
+  function latestCash() {
+    var snaps = state.snapshots || [];
+    if (!snaps.length) return null;
+    var latest = snaps.map(function (s) { return Number(s.year) * 100 + Number(s.month); }).sort(function (a, b) { return b - a; })[0];
+    return snaps.filter(function (s) { return Number(s.year) * 100 + Number(s.month) === latest; }).reduce(function (t, s) { return t + num(s.balance); }, 0);
+  }
+  function monthsUntil(dateText) {
+    var d = new Date(String(dateText) + "T00:00:00");
+    if (isNaN(d.getTime())) return 0;
+    var now = new Date();
+    return Math.max(0, (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()));
+  }
+  function renderSavingsGoal() {
+    if (!el.savingsGoal) return;
+    var g = savingsGoalOf();
+    var cash = latestCash();
+    var have = cash === null ? 0 : cash;
+    var pct = g.amount > 0 ? Math.min(100, Math.round(have / g.amount * 1000) / 10) : 0;
+    var left = Math.max(0, g.amount - have);
+    var months = monthsUntil(g.deadline);
+    var perMonth = months > 0 ? left / months : left;
+    var days = Math.max(0, Math.ceil((new Date(g.deadline + "T00:00:00") - new Date()) / 86400000));
+    el.savingsGoal.innerHTML =
+      '<div class="summary-grid">' +
+        '<div class="summary-card clickable" data-goal-edit="1" role="button" tabindex="0"><span>' + esc(g.name) + '</span><strong class="' + (have >= g.amount ? "good" : "") + '">' + money(have) + ' / ' + money(g.amount) + '</strong><small>' + (cash === null ? "先填帳戶餘額快照" : "依最新餘額快照") + ' · 點此修改目標</small></div>' +
+        '<div class="summary-card"><span>還差</span><strong>' + money(left) + '</strong><small>已達 ' + pct + '%</small></div>' +
+        '<div class="summary-card"><span>距期限</span><strong>' + months + ' 個月</strong><small>' + esc(g.deadline) + '（剩 ' + days + ' 天）</small></div>' +
+        '<div class="summary-card"><span>每月需存</span><strong class="' + (perMonth > 0 ? "bad" : "good") + '">' + money(perMonth) + '</strong><small>' + (perMonth > 0 ? "到 " + esc(g.deadline) : "已達成 🎉") + '</small></div>' +
+      '</div>' +
+      '<div class="progress section"><i style="width:' + pct + '%;background:linear-gradient(90deg,var(--primary),var(--blue))"></i></div>';
+  }
+  function setupSavingsGoal() {
+    if (!el.savingsGoal) return;
+    el.savingsGoal.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest("[data-goal-edit]") : null;
+      if (!btn) return;
+      var g = savingsGoalOf();
+      var amount = prompt("存款目標金額", g.amount);
+      if (amount === null) return;
+      var deadline = prompt("期限（YYYY-MM-DD）", g.deadline);
+      if (deadline === null) return;
+      state.savingsGoal = { name: g.name, amount: num(amount) || g.amount, deadline: deadline || g.deadline };
+      saveState(); renderAll(); showToast("已更新存款目標");
+    });
   }
   /* ================= 資金往來分類與房租／押金整理 ================= */
   function isTransferKind(kind) { return kind === "transfer-in" || kind === "transfer-out"; }
