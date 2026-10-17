@@ -127,7 +127,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     </div>
     <div class="card section" id="class-salary-card">
       <div class="card-head"><div><h2>預計收入（上課記錄聯動）</h2><p>自動讀取「上課紀錄與薪資統計」的上課紀錄，薪水次月入帳；可一鍵認列成本月收入。</p></div>
-        <div class="actions" style="margin:0"><button class="btn small" id="class-salary-sync" type="button">重新讀取</button><button class="btn small primary" id="class-salary-book" type="button">標記為已收到（寫入流水）</button><button class="btn small" id="class-salary-unbook" type="button">取消已收到</button></div>
+        <div class="actions" style="margin:0"><button class="btn small" id="class-salary-sync" type="button">重新讀取</button><button class="btn small primary" id="class-salary-book" type="button">全部標記已收到</button><button class="btn small" id="class-salary-unbook" type="button">清除已收到</button></div>
       </div>
       <div class="card-body"><div id="class-salary-panel"></div><div id="class-salary-list" class="section"></div><p class="helper" id="class-salary-status"></p>
         <div id="planned-income-list" class="section"></div>
@@ -369,7 +369,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.11.0";
+  var APP_VERSION = "2.12.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -566,7 +566,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     DEFAULT_EXPENSE.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "expense" }); });
     DEFAULT_INCOME.forEach(function(name){ cats.push({ id: "cat-" + name, name: name, type: "income" }); });
     var accounts = DEFAULT_ACCOUNTS.map(function(name){ return { id: "acc-" + name, name: name, type: name }; });
-    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [], recurring: [], incomeRules: [], plannedIncome: [] };
+    return { version: 1, accounts: accounts, categories: cats, snapshots: [], summaries: [], transactions: [], amortizations: [], debts: [], recurring: [], incomeRules: [], plannedIncome: [], salaryReceived: {} };
   }
   function migrateLegacyState(target) {
     try {
@@ -587,7 +587,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function loadState() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); return brandNew; }
+      if (!parsed || typeof parsed !== "object") { var brandNew = defaultState(); seedDefaultDebts(brandNew); seedDefaultRecurring(brandNew); migrateRentAndDeposit(brandNew); migrateRepairBillsV28(brandNew); migrateBundledBills(brandNew); migrateIncomeV29(brandNew); migrateIncomeV30(brandNew); migratePlanNoTxV31(brandNew); return brandNew; }
       var base = defaultState();
       parsed.accounts = Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : base.accounts;
       parsed.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : base.categories;
@@ -604,6 +604,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       parsed.incomeRules = Array.isArray(parsed.incomeRules) ? parsed.incomeRules : [];
       parsed.ui = parsed.ui && typeof parsed.ui === "object" ? parsed.ui : {};
       parsed.plannedIncome = Array.isArray(parsed.plannedIncome) ? parsed.plannedIncome : [];
+      parsed.salaryReceived = parsed.salaryReceived && typeof parsed.salaryReceived === "object" ? parsed.salaryReceived : {};
       seedDefaultDebts(parsed);
       seedDefaultRecurring(parsed);
       migrateRentAndDeposit(parsed);
@@ -611,9 +612,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       migrateBundledBills(parsed);
       migrateIncomeV29(parsed);
       migrateIncomeV30(parsed);
+      migratePlanNoTxV31(parsed);
       migrateLegacyState(parsed);
       return parsed;
-    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); return fallback; }
+    } catch (e) { var fallback = defaultState(); seedDefaultDebts(fallback); seedDefaultRecurring(fallback); migrateRentAndDeposit(fallback); migrateRepairBillsV28(fallback); migrateBundledBills(fallback); migrateIncomeV29(fallback); migrateIncomeV30(fallback); migratePlanNoTxV31(fallback); return fallback; }
   }
   function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function findAccount(id) { return state.accounts.filter(function(a){ return a.id === id; })[0] || null; }
@@ -930,11 +932,11 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var list = plannedIncomeList().slice().sort(function (a, b) { return String(a.expectDate || "").localeCompare(String(b.expectDate || "")); });
     if (el.planCategoryList) el.planCategoryList.innerHTML = state.categories.filter(function (c) { return c.type === "income"; }).map(function (c) { return '<option value="' + esc(c.name) + '"></option>'; }).join("");
     if (!list.length) {
-      el.plannedIncomeList.innerHTML = '<div class="empty">還沒有預計收入。展開下方「新增預計收入」可以記「某某預計轉帳」「預計課時費」；這些<b>不會</b>寫進流水與統計，只有按「標記為已收到」才會產生真實收入。</div>';
+      el.plannedIncomeList.innerHTML = '<div class="empty">還沒有預計收入。展開下方「新增預計收入」可以記「某某預計轉帳」「預計課時費」；這些<b>不會</b>寫進流水與統計；按「標記為已收到」只改狀態並自動計算未收到金額。</div>';
       return;
     }
     var pending = list.filter(function (p) { return !p.received; });
-    el.plannedIncomeList.innerHTML = '<div class="subcard"><h3>預計收入（未收到 ' + pending.length + ' 筆，合計 ' + money(pending.reduce(function (s, p) { return s + num(p.amount); }, 0)) + '）</h3><p class="helper">預計收入只做提醒與規劃，<b>不會</b>出現在「流水備查」與收入統計；按「標記為已收到」才會寫入真實流水。</p><div class="table-wrap"><table class="table"><thead><tr><th>名稱</th><th class="num">金額</th><th>預計入帳日</th><th>分類</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+    el.plannedIncomeList.innerHTML = '<div class="subcard"><h3>預計收入（未收到 ' + pending.length + ' 筆，合計 ' + money(pending.reduce(function (s, p) { return s + num(p.amount); }, 0)) + '）</h3><p class="helper">預計收入只做提醒與規劃，<b>不會</b>出現在「流水備查」與收入統計；按「標記為已收到」只會更新狀態並計算未收到金額。</p><div class="table-wrap"><table class="table"><thead><tr><th>名稱</th><th class="num">金額</th><th>預計入帳日</th><th>分類</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
       list.map(function (p) {
         return '<tr><td><strong>' + esc(p.name) + '</strong>' + (p.note ? '<br><span class="flow-source">' + esc(p.note) + '</span>' : '') + '</td>' +
           '<td class="num good">' + money(p.amount) + '</td><td>' + esc(p.expectDate || "—") + '</td><td>' + esc(p.categoryName || "其他收入") + '</td>' +
@@ -945,21 +947,14 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   function receivePlannedIncome(id) {
     var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0];
     if (!p) return { ok: false, msg: "找不到這筆預計收入" };
-    var cat = ensureCategory(p.categoryName || "其他收入", "income");
-    var dt = p.expectDate || todayText();
-    var tx = { id: uid("tx"), dt: dt, amount: Math.round(num(p.amount) * 100) / 100, type: "income", categoryId: cat.id, accountId: "", note: p.note ? p.name + "（" + p.note + "）" : p.name, source: "預計收入", originOrderId: "plan|" + p.id, createdAt: new Date().toISOString() };
-    state.transactions.push(tx);
-    addToSummary(String(dt).slice(0, 7), cat.id, tx.amount);
-    p.received = true; p.txId = tx.id; p.receivedAt = todayText();
+    p.received = true; p.receivedAt = todayText();
     saveState(); renderAll();
-    return { ok: true, tx: tx };
+    return { ok: true, name: p.name, amount: p.amount };
   }
   function unreceivePlannedIncome(id) {
     var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0];
     if (!p || !p.received) return false;
-    var tx = state.transactions.filter(function (t) { return t.id === p.txId || t.originOrderId === ("plan|" + p.id); })[0];
-    if (tx) { adjustSummaryForTransaction(tx, -1); state.transactions = state.transactions.filter(function (t) { return t.id !== tx.id; }); }
-    p.received = false; p.txId = ""; p.receivedAt = "";
+    p.received = false; p.receivedAt = "";
     saveState(); renderAll();
     return true;
   }
@@ -994,7 +989,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         var p = plannedIncomeList().filter(function (x) { return x.id === id; })[0];
         if (p && p.received) { if (unreceivePlannedIncome(id)) showToast("已取消「已收到」，流水與收入已扣回"); return; }
         var res = receivePlannedIncome(id);
-        showToast(res.ok ? ("已寫入真實收入：" + res.tx.note + " " + money(res.tx.amount)) : res.msg);
+        showToast(res.ok ? ("已標記為已收到：" + res.name + " " + money(res.amount) + "（只追蹤，不計入收入）") : res.msg);
         return;
       }
       var del = node.closest("[data-plan-del]");
@@ -1250,7 +1245,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       var day = row.payDay > 0 ? row.payDay : 15;
       row.payDate = dateWithClamp(yy, mm, day);
       row.key = "class|" + row.institution + "|" + result.sourceMonth;
-      row.booked = state.transactions.some(function (t) { return t.originOrderId === row.key; });
+      row.received = !!((state.salaryReceived || {})[row.key]);
+      row.booked = row.received;
     });
     return result;
   }
@@ -1265,7 +1261,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     el.classSalaryPanel.innerHTML =
       '<div class="summary-grid">' +
         '<div class="summary-card"><span>' + monthLabel(month) + '預計入帳</span><strong class="good">' + money(salary.total) + '</strong><small>課堂來源 ' + monthLabel(salary.sourceMonth) + ' · ' + decimal(salary.classes) + ' 堂' + (salary.missing ? '（' + decimal(salary.missing) + ' 堂未設薪資）' : '') + '</small></div>' +
-        '<div class="summary-card"><span>已認列本月收入</span><strong>' + money(bookedTotal) + '</strong><small>' + (salary.total > 0 ? (bookedTotal >= salary.total ? "已全部認列" : "還有 " + money(salary.total - bookedTotal) + " 未認列") : "本月無薪資紀錄") + '</small></div>' +
+        '<div class="summary-card"><span>已收到</span><strong class="good">' + money(bookedTotal) + '</strong><small>' + rows.filter(function (r) { return r.received; }).length + " / " + rows.length + ' 間 · 只追蹤</small></div>' +
+        '<div class="summary-card"><span>未收到</span><strong class="bad">' + money(Math.max(0, salary.total - bookedTotal)) + '</strong><small>不計入收入統計</small></div>' +
         '<div class="summary-card"><span>' + monthLabel(salary.sourceMonth) + '實際上課</span><strong>' + decimal(salary.classes) + ' 堂</strong><small>' + money(salary.total) + ' · 本月入帳</small></div>' +
         '<div class="summary-card"><span>' + monthLabel(shiftMonth(month, 1)) + '預計</span><strong>' + money(nextSalary.total) + '</strong><small>來源 ' + monthLabel(nextSalary.sourceMonth) + ' · ' + decimal(nextSalary.classes) + ' 堂</small></div>' +
       '</div>';
@@ -1275,48 +1272,51 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       return;
     }
     el.classSalaryList.innerHTML = rows.length
-      ? '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th class="num">堂數</th><th class="num">薪資</th><th>發薪日</th><th>狀態</th></tr></thead><tbody>' + rows.map(function (r) {
-          return '<tr><td><strong>' + esc(r.institution) + '</strong>' + (r.missing ? ' <span class="warn-chip">' + decimal(r.missing) + ' 堂未設薪資</span>' : '') + '</td><td class="num">' + decimal(r.classes) + '</td><td class="num good">' + money(r.pay) + '</td><td>' + esc(r.payDate) + (r.payDay ? '（每月 ' + r.payDay + ' 日）' : '') + '</td><td>' + (r.booked ? '<span class="status-chip paid">已認列</span>' : '<span class="status-chip wait">未認列</span>') + '</td></tr>';
+      ? '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th class="num">堂數</th><th class="num">薪資</th><th>發薪日</th><th>狀態</th><th>操作</th></tr></thead><tbody>' + rows.map(function (r) {
+          return '<tr><td><strong>' + esc(r.institution) + '</strong>' + (r.missing ? ' <span class="warn-chip">' + decimal(r.missing) + ' 堂未設薪資</span>' : '') + '</td><td class="num">' + decimal(r.classes) + '</td><td class="num good">' + money(r.pay) + '</td><td>' + esc(r.payDate) + (r.payDay ? '（每月 ' + r.payDay + ' 日）' : '') + '</td><td>' + (r.received ? '<span class="status-chip paid">已收到</span>' : '<span class="status-chip wait">未收到</span>') + '</td><td><button class="btn small' + (r.received ? "" : " primary") + '" data-class-received="' + esc(r.key) + '" type="button">' + (r.received ? "取消已收到" : "已收到") + '</button></td></tr>';
         }).join("") + '</tbody></table></div>'
       : '<div class="empty">' + monthLabel(salary.sourceMonth) + '沒有可計算的上課紀錄（只算「已完成／代課」的紀錄）。</div>';
     if (el.classSalaryStatus) {
       el.classSalaryStatus.textContent = rows.length
-        ? "這裡只是「預計」，不會出現在流水與統計；按「標記為已收到（寫入流水）」才會以「舞蹈薪資」建立真實收入（每間機構一筆、日期＝發薪日）並加進 " + monthLabel(month) + " 的收入；重複按不會重複計算。"
+        ? "這裡只做「上課記錄 ↔ 預計收入」追蹤：按某一列的「已收到」只會改狀態並自動算出未收到金額，<b>不會</b>寫入流水、也<b>不會</b>計入收入統計（收入以實際到帳的微信／支付寶／銀行流水為準）。"
         : "先在「上課紀錄與薪資統計」建立上課紀錄，這裡就會自動算出次月入帳金額。";
     }
   }
   function bookClassIncome(month) {
     var salary = classSalaryForMonth(month);
     if (!salary.available) return { ok: false, msg: "讀不到上課記錄資料" };
-    var pending = salary.rows.filter(function (r) { return r.pay > 0 && !r.booked; });
-    if (!pending.length) return { ok: false, msg: (salary.rows.length ? "本月薪資已經全部認列" : "上月沒有可認列的上課紀錄") };
-    var cat = ensureCategory("課時費", "income");
-    var created = 0, total = 0;
-    pending.forEach(function (row) {
-      var amount = Math.round(row.pay * 100) / 100;
-      state.transactions.push({ id: uid("tx"), dt: row.payDate, amount: amount, type: "income", categoryId: cat.id, accountId: "", note: "上課記錄 " + row.institution + " " + decimal(row.classes) + " 堂（課堂來源 " + salary.sourceMonth + "）", source: "上課記錄", originOrderId: row.key, createdAt: new Date().toISOString() });
-      addToSummary(row.payDate.slice(0, 7), cat.id, amount);
-      created++; total += amount;
-    });
+    var pending = salary.rows.filter(function (r) { return r.pay > 0 && !r.received; });
+    if (!pending.length) return { ok: false, msg: (salary.rows.length ? "本月預計收入已全部標記為已收到" : "上月沒有可計算的上課紀錄") };
+    state.salaryReceived = state.salaryReceived || {};
+    var total = 0;
+    pending.forEach(function (row) { state.salaryReceived[row.key] = { received: true, at: todayText(), amount: Math.round(row.pay * 100) / 100 }; total += row.pay; });
     saveState(); renderAll();
-    return { ok: true, created: created, total: total, salary: salary };
+    return { ok: true, created: pending.length, total: total, salary: salary };
   }
   function unbookClassIncome(month) {
     var salary = classSalaryForMonth(month);
-    var keys = {};
-    salary.rows.forEach(function (r) { keys[r.key] = true; });
-    var removed = 0;
-    state.transactions.slice().forEach(function (t) {
-      if (!t.originOrderId || !keys[t.originOrderId]) return;
-      adjustSummaryForTransaction(t, -1);
-      state.transactions = state.transactions.filter(function (x) { return x.id !== t.id; });
-      removed++;
-    });
-    if (removed) { saveState(); renderAll(); }
-    return removed;
+    var n = 0;
+    state.salaryReceived = state.salaryReceived || {};
+    salary.rows.forEach(function (r) { if (state.salaryReceived[r.key]) { delete state.salaryReceived[r.key]; n++; } });
+    if (n) { saveState(); renderAll(); }
+    return n;
+  }
+  function toggleClassReceived(key) {
+    state.salaryReceived = state.salaryReceived || {};
+    if (state.salaryReceived[key]) delete state.salaryReceived[key];
+    else state.salaryReceived[key] = { received: true, at: todayText() };
+    saveState(); renderAll();
+    return !!state.salaryReceived[key];
   }
   function setupClassSalaryPanel() {
     if (el.classSalarySync) el.classSalarySync.addEventListener("click", function () { renderAll(); showToast("已重新讀取上課記錄"); });
+    var salaryCardEl = document.getElementById("class-salary-card");
+    if (salaryCardEl) salaryCardEl.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("[data-class-received]") : null;
+      if (!b) return;
+      var on = toggleClassReceived(b.getAttribute("data-class-received"));
+      showToast(on ? "已標記為已收到（只追蹤，不計入收入）" : "已取消「已收到」");
+    });
     if (el.classSalaryBook) el.classSalaryBook.addEventListener("click", function () {
       var month = ui.year + "-" + pad(ui.month);
       var res = bookClassIncome(month);
@@ -1739,6 +1739,39 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       target.incomeV30 = true;
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
     } catch (e) { target.incomeV30Error = String(e && e.message || e); }
+    return target;
+  }
+
+  /* 一次性遷移：預計收入不再產生流水；舊的自動收入改成「已收到」標記 */
+  function migratePlanNoTxV31(target) {
+    if (!target || target.planNoTxV31) return target;
+    try {
+      target.salaryReceived = target.salaryReceived || {};
+      var removed = 0;
+      (target.transactions || []).slice().forEach(function (t) {
+        var isClass = t.source === "上課記錄";
+        var isPlan = String(t.originOrderId || "").indexOf("plan|") === 0;
+        if (!isClass && !isPlan) return;
+        if (isClass) target.salaryReceived[t.originOrderId] = { received: true, at: t.dt, amount: num(t.amount) };
+        if (isPlan) {
+          var pid = String(t.originOrderId).slice(5);
+          (target.plannedIncome || []).forEach(function (p) { if (p.id === pid) { p.received = true; p.receivedAt = t.dt; } });
+        }
+        var c = (target.categories || []).filter(function (x) { return x.id === t.categoryId; })[0];
+        if (c && !isTransferKind(c.type)) {
+          var p2 = String(t.dt).split("-");
+          var row = (target.summaries || []).filter(function (x) { return Number(x.year) === Number(p2[0]) && Number(x.month) === Number(p2[1]) && x.categoryId === t.categoryId; })[0];
+          if (row) row.amount = Math.max(0, Math.round((num(row.amount) - num(t.amount)) * 100) / 100);
+        }
+        removed++;
+      });
+      if (removed) {
+        target.transactions = (target.transactions || []).filter(function (t) { return t.source !== "上課記錄" && String(t.originOrderId || "").indexOf("plan|") !== 0; });
+        target.summaries = (target.summaries || []).filter(function (s) { return num(s.amount) > 0; });
+      }
+      target.planNoTxV31 = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(target)); } catch (e) {}
+    } catch (e) { target.planNoTxError = String(e && e.message || e); }
     return target;
   }
   /* ================= 資金往來分類與房租／押金整理 ================= */
