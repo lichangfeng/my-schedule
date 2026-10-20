@@ -114,6 +114,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       <div class="card-body">
         <div class="summary-grid" id="report-summary"></div>
         <div id="savings-goal" class="section"></div>
+        <div id="income-schedule" class="section"></div>
         <div class="actions">
           <button class="btn primary" id="save-account-balances" type="button">保存本月账户余额</button>
           <button class="btn" id="save-category-totals" type="button">保存本月分类合计</button>
@@ -370,7 +371,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.16.0";
+  var APP_VERSION = "2.17.0";
   var APP_BUILD = "10-17 13:57";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
@@ -538,7 +539,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     plannedIncomeList: document.getElementById("planned-income-list"), plannedIncomeForm: document.getElementById("planned-income-form"),
     planName: document.getElementById("plan-name"), planAmount: document.getElementById("plan-amount"), planDate: document.getElementById("plan-date"),
     planCategory: document.getElementById("plan-category"), planNote: document.getElementById("plan-note"), planCategoryList: document.getElementById("plan-category-list"),
-    creditSummary: document.getElementById("credit-summary"), savingsGoal: document.getElementById("savings-goal"), dailyPay: document.getElementById("daily-pay"),
+    creditSummary: document.getElementById("credit-summary"), savingsGoal: document.getElementById("savings-goal"), incomeSchedule: document.getElementById("income-schedule"), incomeSave: document.getElementById("income-save"), dailyPay: document.getElementById("daily-pay"),
     drillModal: document.getElementById("drill-modal"), drillTitle: document.getElementById("drill-title"), drillBody: document.getElementById("drill-body"), drillClose: document.getElementById("drill-close"),
     annualIncomeCategories: document.getElementById("annual-income-categories"),
     reportSummary: document.getElementById("report-summary")
@@ -1039,7 +1040,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }  function renderAll() {
     el.monthPicker.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year;
     if (el.flowFilterMonth) el.flowFilterMonth.value = flowFilter.month;
-    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); renderCreditSummary(); renderSavingsGoal(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
+    renderReportSummary(); renderAccountEditor(); renderIncomeExpense(); renderCategoryTotals(); renderPie(); renderAmortList(); renderAnnual(); renderCategories(); renderAccounts(); renderFlows(); renderDebts(); renderReportDebtCard(); renderRecurring(); renderIncomeRules(); renderDaily(); renderClassSalary(); renderPlannedIncome(); renderCreditSummary(); renderSavingsGoal(); renderIncomeSchedule(); refreshTxOptions(); renderFlowIncomeSummary(); renderFlowMonthAudit();
   }
   function switchTab(tab) {
     ui.tab = tab;
@@ -1819,7 +1820,57 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     return target;
   }
 
+
+  /* ================= 收入設定（機構課表與單價） ================= */
+  var SEED_INCOME_SCHEDULE = [
+    { institution: "AS", day: "週三", time: "19:00–20:30", rate: 150 },
+    { institution: "AS", day: "週日", time: "14:30–16:00", rate: 150 },
+    { institution: "西美", day: "週五", time: "19:10–20:40", rate: 130 },
+    { institution: "西美", day: "週日", time: "10:30–12:00", rate: 130 },
+    { institution: "META", day: "週二", time: "20:00–21:20", rate: 130 },
+    { institution: "i5 私教", day: "週四", time: "19:00–20:00", rate: 100 },
+    { institution: "i5 私教", day: "週日", time: "17:30–18:30", rate: 100 },
+    { institution: "洋湖實驗", day: "週二", time: "16:40–18:05", rate: 150 },
+    { institution: "跳動全城（吾悅）", day: "週日", time: "19:20–20:40", rate: 120 },
+    { institution: "跳個街舞", day: "週二", time: "14:00–15:10", rate: 100 },
+    { institution: "跳個街舞", day: "週三", time: "14:00–15:10", rate: 100 },
+    { institution: "跳動全城（凱德壹）", day: "週六", time: "19:30–20:50", rate: 120 },
+    { institution: "謝業", day: "週六", time: "10:00–12:00", rate: 200 }
+  ];
+  function incomeSchedule() { var sc = state.incomeSchedule; if (sc && Array.isArray(sc.rates)) return sc; var seed = (typeof SEED_INCOME_SCHEDULE !== "undefined" && Array.isArray(SEED_INCOME_SCHEDULE)) ? SEED_INCOME_SCHEDULE : []; return { rates: seed, family: 2000 }; }
+  function weeklyIncome() { return incomeSchedule().rates.reduce(function (s, x) { return s + num(x.rate); }, 0); }
+  function renderIncomeSchedule() {
+    if (!el.incomeSchedule) return;
+    var sc = incomeSchedule();
+    var weekly = sc.rates.reduce(function (s, x) { return s + num(x.rate); }, 0);
+    var monthly = Math.round(weekly * 52 / 12);
+    var byInst = {};
+    sc.rates.forEach(function (x) { byInst[x.institution] = (byInst[x.institution] || 0) + num(x.rate); });
+    el.incomeSchedule.innerHTML =
+      '<div class="summary-grid">' +
+        '<div class="summary-card"><span>每週課時費</span><strong class="good">' + money(weekly) + '</strong><small>' + sc.rates.length + ' 節/週</small></div>' +
+        '<div class="summary-card"><span>每月課時費估算</span><strong class="good">' + money(monthly) + '</strong><small>依 52 週 ÷ 12 平均</small></div>' +
+        '<div class="summary-card"><span>親人固定轉帳</span><strong>' + money(sc.family) + '</strong><small>其他收入</small></div>' +
+        '<div class="summary-card"><span>每月總收入估算</span><strong>' + money(monthly + num(sc.family)) + '</strong><small>課時費＋親人</small></div>' +
+      '</div>' +
+      '<details class="section"><summary class="card-head" style="padding:10px 0"><div><h3 style="margin:0;font-size:.95rem">課表明細（' + sc.rates.length + ' 節）</h3><p style="margin:4px 0 0;color:var(--muted);font-size:.82rem">可修改單價後按「儲存課表」</p></div><span class="pill">展開</span></summary>' +
+      '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th>星期</th><th>時間</th><th class="num">單價</th></tr></thead><tbody>' +
+      sc.rates.map(function (x, i) { return '<tr><td><strong>' + esc(x.institution) + '</strong></td><td>' + esc(x.day) + '</td><td>' + esc(x.time) + '</td><td class="num"><input type="number" min="0" step="10" data-income-rate="' + i + '" value="' + num(x.rate) + '"></td></tr>'; }).join("") +
+      '</tbody></table></div>' +
+      '<div class="actions"><label style="margin:0;display:flex;gap:6px;align-items:center">親人轉帳 <input id="income-family" type="number" min="0" step="100" value="' + num(sc.family) + '" style="width:120px"></label><button class="btn primary small" id="income-save" type="button">儲存課表</button></div></details>';
+    if (el.incomeSave) el.incomeSave.addEventListener("click", function () {
+      var rates = incomeSchedule().rates.map(function (x, i) {
+        var input = el.incomeSchedule.querySelector('[data-income-rate="' + i + '"]');
+        return { institution: x.institution, day: x.day, time: x.time, rate: input ? num(input.value) : num(x.rate) };
+      });
+      state.incomeSchedule = { rates: rates, family: num(document.getElementById("income-family").value) };
+      saveState(); renderAll(); showToast("課表已儲存");
+    });
+  }
   /* ================= 存款目標 ================= */
+
+  function seedIncomeSchedule() { if (!state.incomeSchedule || !Array.isArray(state.incomeSchedule.rates)) { state.incomeSchedule = { rates: SEED_INCOME_SCHEDULE, family: 2000 }; saveState(); } }
+  seedIncomeSchedule();
   function seedSavingsGoal() { if (!state.savingsGoal) { state.savingsGoal = { name: "存款目標", amount: 20000, deadline: "2027-10-31" }; saveState(); } }
   seedSavingsGoal();
   function savingsGoalOf() {
