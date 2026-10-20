@@ -371,8 +371,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.18.4";
-  var APP_BUILD = "10-21 01:41";
+  var APP_VERSION = "2.18.5";
+  var APP_BUILD = "10-21 01:43";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -1091,7 +1091,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=73", { updateViaCache: "none" }).catch(function(){});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=74", { updateViaCache: "none" }).catch(function(){});
   window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, creditSummary: creditSummary, payChannelLabel: payChannelLabel, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION + (APP_BUILD && APP_BUILD.indexOf("__") < 0 ? "（" + APP_BUILD + "）" : "");
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
@@ -1324,7 +1324,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       : '<div class="empty">' + (canRead ? monthLabel(salary.sourceMonth) + '沒有可計算的上課紀錄（只算「已完成／代課」的紀錄）。' : '讀不到上課紀錄，也沒有可用的固定課表。請先開啟「上課紀錄與薪資統計」，或到上方設定課表。') + '</div>';
     if (el.classSalaryStatus) {
       if (!canRead && rows.length) {
-        el.classSalaryStatus.innerHTML = "目前讀不到上課紀錄，以下先依你的固定課表估算；已標示「課表估算」的機構代表尚未取得該月實際上課紀錄。按「已收到」只做追蹤，<b>不會</b>寫入流水或收入統計。";
+        el.classSalaryStatus.innerHTML = "目前讀不到上課紀錄，以下先依固定課表估算；新機構要等上課紀錄標為「已完成／代課」才計入，<b>不需要</b>等款項到賬或按「已收到」。按「已收到」只做款項追蹤，不會寫入流水或收入統計。";
       } else if (salary.estimatedInstitutions || salary.pendingRecordInstitutions) {
         el.classSalaryStatus.innerHTML = (salary.estimatedInstitutions ? "有 " + salary.estimatedInstitutions + " 間機構尚未有該月實際上課紀錄，已先依固定課表估算並標示「課表估算」。" : "") + (salary.pendingRecordInstitutions ? "另有 " + salary.pendingRecordInstitutions + " 間新機構要等上課紀錄標為「已完成／代課」後才會計入；目前不列入薪資，也不需要等款項到賬或按「已收到」。" : "");
       } else {
