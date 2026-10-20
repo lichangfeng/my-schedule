@@ -587,7 +587,12 @@ function ensureFixedCourses(){
     {id:"fixed-jump-street-wed",day:2,start:840,end:910,title:"跳个街舞",color:"green"},
     {id:"fixed-jump-city-kaide-sat",day:5,start:1170,end:1250,title:"跳动全城（凯德壹）",color:"purple"}
   ];
+  function sameCourse(a,item){
+    return a.id!==item.id && (a.versions||[]).some(function(v){return v.day===item.day&&v.start===item.start&&v.end===item.end&&v.title===item.title;});
+  }
   fixed.forEach(function(item){
+    var duplicate=state.arrs.some(function(a){return sameCourse(a,item);});
+    if(duplicate){state.arrs=state.arrs.filter(function(a){return a.id!==item.id;});return;}
     if(arrById(item.id)) return;
     state.arrs.push({id:item.id,updatedAt:1760918400000,versions:[{from:"2026-10-19",to:null,day:item.day,start:item.start,end:item.end,title:item.title,color:item.color,note:"",deleted:false}]});
   });
