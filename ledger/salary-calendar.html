@@ -116,7 +116,8 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
       if (!data[field] || typeof data[field] !== "object") return;
       Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
     });
-    data.institutions = Array.isArray(data.institutions) && data.institutions.length ? data.institutions : DEFAULT_INSTITUTIONS.slice();
+    data.institutions = Array.isArray(data.institutions) ? data.institutions.map(function (name) { return rename[name] || name; }) : [];
+    DEFAULT_INSTITUTIONS.forEach(function (name) { if (data.institutions.indexOf(name) < 0) data.institutions.push(name); });
     data.rates = data.rates || {};
     Object.keys(DEFAULT_RATES).forEach(function (name) { if (data.rates[name] === undefined) data.rates[name] = DEFAULT_RATES[name]; });
     return data;
@@ -170,14 +171,36 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     });
     return Object.keys(rows).map(function (key) { return rows[key]; }).sort(function (a, b) { return a.day - b.day || a.start - b.start; });
   }
+  function mergeScheduleSources(remote, local) {
+    var merged = {};
+    function addSource(source) {
+      if (!source || !Array.isArray(source.arrs)) return;
+      source.arrs.forEach(function (series) {
+        if (!series || !Array.isArray(series.versions)) return;
+        var first = series.versions[0] || {};
+        var key = series.id ? "id:" + series.id : "raw:" + [first.day, first.start, first.end, first.title].join("|");
+        var currentTime = Number(series.updatedAt) || 0;
+        var existingTime = merged[key] ? Number(merged[key].updatedAt) || 0 : -1;
+        if (!merged[key] || currentTime >= existingTime) merged[key] = series;
+      });
+    }
+    addSource(remote);
+    addSource(local);
+    return { arrs: Object.keys(merged).map(function (key) { return merged[key]; }) };
+  }
   async function loadScheduleSource() {
+    var local = null, remote = null;
     try {
-      var local = JSON.parse(localStorage.getItem("myDailySchedule.v3") || "{}");
-      if (local && Array.isArray(local.arrs) && local.arrs.length) return local;
+      var stored = JSON.parse(localStorage.getItem("myDailySchedule.v3") || "{}");
+      if (stored && Array.isArray(stored.arrs) && stored.arrs.length) local = stored;
     } catch (error) {}
-    var response = await fetch("../schedule-data.json?regular=" + Date.now(), { cache: "no-store" });
-    if (!response.ok) throw new Error("schedule unavailable");
-    return response.json();
+    try {
+      var response = await fetch("../schedule-data.json?regular=" + Date.now(), { cache: "no-store" });
+      if (response.ok) remote = await response.json();
+    } catch (error) {}
+    if (remote && local) return mergeScheduleSources(remote, local);
+    if (remote || local) return remote || local;
+    throw new Error("schedule unavailable");
   }
   async function renderRegularSalary() {
     var host = document.getElementById("regular-table");
@@ -320,7 +343,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) { state = loadState(); render(); renderRegularSalary(); } if (event.key === "myDailySchedule.v3") renderRegularSalary(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { state = loadState(); render(); renderRegularSalary(); } });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=22", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=23", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();

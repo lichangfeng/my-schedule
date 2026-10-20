@@ -3,7 +3,7 @@
   "short_name": "上课纪录",
   "description": "记录各舞蹈机构课堂，按月统计并分别汇出指定机构的课堂纪录。",
   "lang": "zh-Hant",
-  "start_url": "./index.html?v=22",
+  "start_url": "./index.html?v=23",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

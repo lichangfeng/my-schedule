@@ -199,7 +199,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <h1>上课纪录与薪资统计</h1>
       <p>记录每次授课，按月整理各机构堂数，直接给财务核对。</p>
     </div>
-    <div class="hero-badge">资料自动保存 · v22</div>
+    <div class="hero-badge">资料自动保存 · v23</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
@@ -452,6 +452,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   function migrateInstitutionState(data) {
     var rename = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）" };
     data.records.forEach(function (record) { if (rename[record.institution]) record.institution = rename[record.institution]; });
+    data.institutions = Array.isArray(data.institutions) ? data.institutions.map(function (name) { return rename[name] || name; }) : [];
+    DEFAULT_INSTITUTIONS.forEach(function (name) { if (data.institutions.indexOf(name) < 0) data.institutions.push(name); });
     ["rates", "payDays"].forEach(function (field) {
       if (!data[field] || typeof data[field] !== "object") return;
       Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
@@ -996,7 +998,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=22", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=23", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";
