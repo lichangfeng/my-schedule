@@ -199,7 +199,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <h1>上课纪录与薪资统计</h1>
       <p>记录每次授课，按月整理各机构堂数，直接给财务核对。</p>
     </div>
-    <div class="hero-badge">资料自动保存 · v19</div>
+    <div class="hero-badge">资料自动保存 · v21</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
@@ -996,7 +996,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=19", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=21", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";
