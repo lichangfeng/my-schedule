@@ -371,8 +371,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.18.0";
-  var APP_BUILD = "10-20 23:34";
+  var APP_VERSION = "2.18.1";
+  var APP_BUILD = "10-20 23:40";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -1091,7 +1091,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=69", { updateViaCache: "none" }).catch(function(){});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=70", { updateViaCache: "none" }).catch(function(){});
   window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, creditSummary: creditSummary, payChannelLabel: payChannelLabel, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION + (APP_BUILD && APP_BUILD.indexOf("__") < 0 ? "（" + APP_BUILD + "）" : "");
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
@@ -1228,25 +1228,67 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var n = Number(raw);
     return Number.isFinite(n) ? n : null;
   }
+  function scheduleWeekdayIndex(dayText) {
+    var m = String(dayText || "").match(/[週周]([一二三四五六日天])/);
+    if (!m) return -1;
+    var name = m[1] === "天" ? "日" : m[1];
+    return ({ "日": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6 })[name];
+  }
+  function countWeekdayInMonth(monthText, weekday) {
+    if (weekday < 0) return 0;
+    var y = Number(String(monthText).slice(0, 4)), m = Number(String(monthText).slice(5, 7));
+    var days = new Date(y, m, 0).getDate(), count = 0;
+    for (var d = 1; d <= days; d++) if (new Date(y, m - 1, d).getDay() === weekday) count++;
+    return count;
+  }
   function classSalaryForMonth(incomeMonth) {
     var ledger = readClassLedger();
-    var result = { available: !!ledger, incomeMonth: incomeMonth, sourceMonth: shiftMonth(incomeMonth, -1), total: 0, classes: 0, missing: 0, rows: [] };
-    if (!ledger) return result;
+    var result = { available: !!ledger, incomeMonth: incomeMonth, sourceMonth: shiftMonth(incomeMonth, -1), total: 0, classes: 0, missing: 0, estimatedInstitutions: 0, rows: [] };
     var map = {};
-    ledger.records.filter(isPayableClassRecord).forEach(function (r) {
-      if (String(r.date || "").slice(0, 7) !== result.sourceMonth) return;
-      var count = Number(r.count) || 0;
-      var rate = classRecordRate(ledger, r);
-      var key = r.institution || "未填機構";
-      if (!map[key]) map[key] = { institution: key, classes: 0, pay: 0, missing: 0, payDay: num((ledger.payDays || {})[key]) || 0 };
-      map[key].classes += count;
-      result.classes += count;
-      if (rate === null) { map[key].missing += count; result.missing += count; }
-      else { var pay = rate * count; map[key].pay += pay; result.total += pay; }
+    var schedule = incomeSchedule();
+    var scheduleRates = schedule && Array.isArray(schedule.rates) ? schedule.rates : [];
+    scheduleRates.forEach(function (x) {
+      var key = x.institution || "未填機構";
+      if (!map[key]) map[key] = { institution: key, classes: 0, pay: 0, missing: 0, actualClasses: 0, actualPay: 0, actualMissing: 0, estimatedClasses: 0, estimatedPay: 0, hasActual: false, estimated: false };
+      var occurrences = countWeekdayInMonth(result.sourceMonth, scheduleWeekdayIndex(x.day));
+      map[key].estimatedClasses += occurrences;
+      map[key].estimatedPay += occurrences * num(x.rate);
     });
-    result.rows = Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.pay - a.pay || String(a.institution).localeCompare(String(b.institution)); });
-    var yy = Number(String(incomeMonth).slice(0, 4)), mm = Number(String(incomeMonth).slice(5, 7)) - 1;
+    if (ledger) {
+      ledger.records.filter(isPayableClassRecord).forEach(function (r) {
+        if (String(r.date || "").slice(0, 7) !== result.sourceMonth) return;
+        var count = Number(r.count) || 0;
+        var rate = classRecordRate(ledger, r);
+        var key = r.institution || "未填機構";
+        if (!map[key]) map[key] = { institution: key, classes: 0, pay: 0, missing: 0, actualClasses: 0, actualPay: 0, actualMissing: 0, estimatedClasses: 0, estimatedPay: 0, hasActual: false, estimated: false };
+        map[key].hasActual = true;
+        map[key].actualClasses += count;
+        if (rate === null) map[key].actualMissing += count;
+        else map[key].actualPay += rate * count;
+      });
+    }
+    result.rows = Object.keys(map).map(function (k) {
+      var row = map[k];
+      if (row.hasActual) {
+        row.classes = row.actualClasses;
+        row.pay = row.actualPay;
+        row.missing = row.actualMissing;
+        row.estimated = false;
+      } else {
+        row.classes = row.estimatedClasses;
+        row.pay = row.estimatedPay;
+        row.missing = 0;
+        row.estimated = true;
+      }
+      row.payDay = num((ledger && ledger.payDays || {})[row.institution]) || 0;
+      return row;
+    }).sort(function (a, b) { return b.pay - a.pay || String(a.institution).localeCompare(String(b.institution)); });
     result.rows.forEach(function (row) {
+      result.classes += row.classes;
+      result.total += row.pay;
+      result.missing += row.missing;
+      if (row.estimated) result.estimatedInstitutions++;
+      var yy = Number(String(incomeMonth).slice(0, 4)), mm = Number(String(incomeMonth).slice(5, 7)) - 1;
       var day = row.payDay > 0 ? row.payDay : 15;
       row.payDate = dateWithClamp(yy, mm, day);
       row.key = "class|" + row.institution + "|" + result.sourceMonth;
@@ -1263,28 +1305,29 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var canRead = salary.available;
     var rows = salary.rows;
     var bookedTotal = rows.filter(function (r) { return r.booked; }).reduce(function (s, r) { return s + r.pay; }, 0);
+    var estimateNote = salary.estimatedInstitutions ? ' · 含 ' + salary.estimatedInstitutions + ' 間課表估算' : '';
+    var sourceClassesLabel = salary.estimatedInstitutions ? monthLabel(salary.sourceMonth) + '預計授課' : monthLabel(salary.sourceMonth) + '實際上課';
     el.classSalaryPanel.innerHTML =
       '<div class="summary-grid">' +
-        '<div class="summary-card"><span>' + monthLabel(month) + '預計入帳</span><strong class="good">' + money(salary.total) + '</strong><small>課堂來源 ' + monthLabel(salary.sourceMonth) + ' · ' + decimal(salary.classes) + ' 堂' + (salary.missing ? '（' + decimal(salary.missing) + ' 堂未設薪資）' : '') + '</small></div>' +
+        '<div class="summary-card"><span>' + monthLabel(month) + '預計入帳</span><strong class="good">' + money(salary.total) + '</strong><small>課堂來源 ' + monthLabel(salary.sourceMonth) + ' · ' + decimal(salary.classes) + ' 堂' + estimateNote + (salary.missing ? '（' + decimal(salary.missing) + ' 堂未設薪資）' : '') + '</small></div>' +
         '<div class="summary-card"><span>已收到</span><strong class="good">' + money(bookedTotal) + '</strong><small>' + rows.filter(function (r) { return r.received; }).length + " / " + rows.length + ' 間 · 只追蹤</small></div>' +
         '<div class="summary-card"><span>未收到</span><strong class="bad">' + money(Math.max(0, salary.total - bookedTotal)) + '</strong><small>不計入收入統計</small></div>' +
-        '<div class="summary-card"><span>' + monthLabel(salary.sourceMonth) + '實際上課</span><strong>' + decimal(salary.classes) + ' 堂</strong><small>' + money(salary.total) + ' · 本月入帳</small></div>' +
+        '<div class="summary-card"><span>' + sourceClassesLabel + '</span><strong>' + decimal(salary.classes) + ' 堂</strong><small>' + money(salary.total) + ' · 本月入帳</small></div>' +
         '<div class="summary-card"><span>' + monthLabel(shiftMonth(month, 1)) + '預計</span><strong>' + money(nextSalary.total) + '</strong><small>來源 ' + monthLabel(nextSalary.sourceMonth) + ' · ' + decimal(nextSalary.classes) + ' 堂</small></div>' +
       '</div>';
-    if (!canRead) {
-      el.classSalaryList.innerHTML = '<div class="empty">讀不到上課記錄資料。<br>請用<b>同一台裝置、同一個網址</b>先開啟「上課紀錄與薪資統計」建立紀錄（例：都在 lichangfeng.github.io/my-schedule/ledger/ 底下），資料才會共用。也可以改用下面的「新增預計收入」手動記錄。</div>';
-      if (el.classSalaryStatus) el.classSalaryStatus.textContent = "讀不到上課記錄資料（可能不同瀏覽器或不同網址）；可下滑到「新增預計收入」手動記錄。";
-      return;
-    }
     el.classSalaryList.innerHTML = rows.length
       ? '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th class="num">堂數</th><th class="num">薪資</th><th>發薪日</th><th>狀態</th><th>操作</th></tr></thead><tbody>' + rows.map(function (r) {
-          return '<tr><td><strong>' + esc(r.institution) + '</strong>' + (r.missing ? ' <span class="warn-chip">' + decimal(r.missing) + ' 堂未設薪資</span>' : '') + '</td><td class="num">' + decimal(r.classes) + '</td><td class="num good">' + money(r.pay) + '</td><td>' + esc(r.payDate) + (r.payDay ? '（每月 ' + r.payDay + ' 日）' : '') + '</td><td>' + (r.received ? '<span class="status-chip paid">已收到</span>' : '<span class="status-chip wait">未收到</span>') + '</td><td><button class="btn small' + (r.received ? "" : " primary") + '" data-class-received="' + esc(r.key) + '" type="button">' + (r.received ? "取消已收到" : "已收到") + '</button></td></tr>';
+          return '<tr><td><strong>' + esc(r.institution) + '</strong>' + (r.estimated ? ' <span class="badge">課表估算</span>' : '') + (r.missing ? ' <span class="warn-chip">' + decimal(r.missing) + ' 堂未設薪資</span>' : '') + '</td><td class="num">' + decimal(r.classes) + '</td><td class="num good">' + money(r.pay) + '</td><td>' + esc(r.payDate) + (r.payDay ? '（每月 ' + r.payDay + ' 日）' : '') + '</td><td>' + (r.received ? '<span class="status-chip paid">已收到</span>' : '<span class="status-chip wait">未收到</span>') + '</td><td><button class="btn small' + (r.received ? "" : " primary") + '" data-class-received="' + esc(r.key) + '" type="button">' + (r.received ? "取消已收到" : "已收到") + '</button></td></tr>';
         }).join("") + '</tbody></table></div>'
-      : '<div class="empty">' + monthLabel(salary.sourceMonth) + '沒有可計算的上課紀錄（只算「已完成／代課」的紀錄）。</div>';
+      : '<div class="empty">' + (canRead ? monthLabel(salary.sourceMonth) + '沒有可計算的上課紀錄（只算「已完成／代課」的紀錄）。' : '讀不到上課紀錄，也沒有可用的固定課表。請先開啟「上課紀錄與薪資統計」，或到上方設定課表。') + '</div>';
     if (el.classSalaryStatus) {
-      el.classSalaryStatus.textContent = rows.length
-        ? "這裡只做「上課記錄 ↔ 預計收入」追蹤：按某一列的「已收到」只會改狀態並自動算出未收到金額，<b>不會</b>寫入流水、也<b>不會</b>計入收入統計（收入以實際到帳的微信／支付寶／銀行流水為準）。"
-        : "先在「上課紀錄與薪資統計」建立上課紀錄，這裡就會自動算出次月入帳金額。";
+      if (!canRead && rows.length) {
+        el.classSalaryStatus.innerHTML = "目前讀不到上課紀錄，以下先依你的固定課表估算；已標示「課表估算」的機構代表尚未取得該月實際上課紀錄。按「已收到」只做追蹤，<b>不會</b>寫入流水或收入統計。";
+      } else if (salary.estimatedInstitutions) {
+        el.classSalaryStatus.innerHTML = "有 " + salary.estimatedInstitutions + " 間機構尚未有該月實際上課紀錄，已先依固定課表估算並標示「課表估算」；其餘機構使用上課紀錄計算。";
+      } else {
+        el.classSalaryStatus.innerHTML = "這裡只做「上課記錄 ↔ 預計收入」追蹤：按某一列的「已收到」只會改狀態並自動算出未收到金額，<b>不會</b>寫入流水、也<b>不會</b>計入收入統計（收入以實際到帳的微信／支付寶／銀行流水為準）。";
+      }
     }
   }
   function bookClassIncome(month) {
