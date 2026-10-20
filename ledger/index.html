@@ -199,7 +199,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <h1>上课纪录与薪资统计</h1>
       <p>记录每次授课，按月整理各机构堂数，直接给财务核对。</p>
     </div>
-    <div class="hero-badge">资料自动保存 · v18</div>
+    <div class="hero-badge">资料自动保存 · v19</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
@@ -354,7 +354,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "谢业"];
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业"];
+  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120 };
   var COURSE_BY_INSTITUTION = {
     "AS": ["AS"],
     "西美": ["西美"],
@@ -362,6 +363,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     "i5": ["i5"],
     "洋湖实验": ["洋湖实验"],
     "跳动全城（吾悦）": ["跳动全城（吾悦）"],
+    "跳个街舞": ["跳个街舞"],
+    "跳动全城（凯德壹）": ["跳动全城（凯德壹）"],
     "谢业": ["谢业"]
   };
   var STATUS_LABELS = {
@@ -427,7 +430,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     showToast.timer = setTimeout(function () { el.toast.classList.remove("show"); }, 2200);
   }
   function loadState() {
-    var fallback = { version: 1, records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: {}, payDays: {} };
+    var fallback = { version: 1, records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: {} };
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return fallback;
@@ -437,6 +440,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       parsed.records = parsed.records.filter(function (record) { return record && record.date && record.institution; });
       parsed.institutions = Array.isArray(parsed.institutions) ? parsed.institutions : DEFAULT_INSTITUTIONS.slice();
       parsed.rates = parsed.rates && typeof parsed.rates === "object" ? parsed.rates : {};
+      Object.keys(DEFAULT_RATES).forEach(function (name) { if (parsed.rates[name] === undefined) parsed.rates[name] = DEFAULT_RATES[name]; });
       parsed.payDays = parsed.payDays && typeof parsed.payDays === "object" ? parsed.payDays : {};
       migrateInstitutionState(parsed);
       return parsed;
@@ -992,7 +996,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=18", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=19", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";

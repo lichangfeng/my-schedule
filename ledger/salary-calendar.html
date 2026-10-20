@@ -223,7 +223,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) render(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=18", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=19", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();
