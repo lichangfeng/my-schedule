@@ -78,7 +78,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   </section>
   <section class="card payroll-card regular-card">
     <div class="payroll-head">
-      <div><h2>常规课理论薪资</h2><span>按每周固定课程与机构课时费一一对应，不读取实际上课记录</span></div>
+      <div><h2>常规课理论薪资</h2><span>只显示你机构列表中的固定课程，并按机构课时费一一对应；不读取实际上课记录</span></div>
       <div class="regular-actions"><button id="copy-regular" class="btn" type="button">复制清单</button><button id="export-regular" class="btn primary" type="button">导出 CSV</button></div>
     </div>
     <div id="regular-table"></div>
@@ -87,6 +87,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
 (function () {
   "use strict";
   var STORAGE_KEY = "danceClassLedger.v1";
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业"];
   var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120 };
   var state = loadState();
   var el = {
@@ -115,11 +116,14 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
       if (!data[field] || typeof data[field] !== "object") return;
       Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
     });
+    data.institutions = Array.isArray(data.institutions) && data.institutions.length ? data.institutions : DEFAULT_INSTITUTIONS.slice();
     data.rates = data.rates || {};
     Object.keys(DEFAULT_RATES).forEach(function (name) { if (data.rates[name] === undefined) data.rates[name] = DEFAULT_RATES[name]; });
     return data;
   }
-  function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? migrateInstitutionState(parsed) : { records: [], rates: Object.assign({}, DEFAULT_RATES), payDays: {} }; } catch (error) { return { records: [], rates: Object.assign({}, DEFAULT_RATES), payDays: {} }; } }
+  function emptyState() { return { records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: {} }; }
+  function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? migrateInstitutionState(parsed) : emptyState(); } catch (error) { return emptyState(); } }
+  function configuredInstitutions() { var names = Array.isArray(state.institutions) ? state.institutions : DEFAULT_INSTITUTIONS; return names.filter(function (name, index) { return name && names.indexOf(name) === index; }); }
   function isPayable(record) { return record.status === "completed" || record.status === "substitute"; }
   function effectiveRate(record) { var override = numberOrNull(record.rate); if (override !== null) return override; return numberOrNull((state.rates || {})[record.institution]); }
   function colorFor(institution) { var colors = ["#22d3ee", "#818cf8", "#f472b6", "#34d399", "#facc15", "#fb7185"]; var sum = 0; String(institution || "").split("").forEach(function (ch) { sum += ch.charCodeAt(0); }); return colors[sum % colors.length]; }
@@ -129,8 +133,13 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   var regularRows = [];
   function dayLabel(day) { return ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][Number(day)] || "未知"; }
   function clockText(minutes) { var h = Math.floor(Number(minutes) / 60) % 24, m = Number(minutes) % 60; return pad(h) + ":" + pad(m); }
-  function institutionForTitle(title) {
+  function institutionForTitle(title, institutions) {
     var text = String(title || "");
+    var configured = (institutions || configuredInstitutions()).slice().sort(function (a, b) { return String(b).length - String(a).length; });
+    for (var index = 0; index < configured.length; index += 1) {
+      var name = String(configured[index]);
+      if (text === name || text.indexOf(name) === 0) return name;
+    }
     if (/^HUK东/i.test(text)) return "HUK 世茂店";
     if (/^HUK西/i.test(text)) return "HUK 河西店";
     if (/^OD/i.test(text)) return "O-DOG";
@@ -147,6 +156,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   }
   function fromTime(value) { return value ? new Date(value + "T00:00:00").getTime() : -Infinity; }
   function scheduleEvents(data) {
+    var institutions = configuredInstitutions();
     var rows = {};
     (data.arrs || []).forEach(function (series) {
       var versions = (series.versions || []).filter(function (v) { return v.to === null && !v.deleted && v.from; });
@@ -154,7 +164,9 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
       versions.sort(function (a, b) { return fromTime(b.from) - fromTime(a.from); });
       var v = versions[0];
       var key = [v.day, v.start, v.end, v.title].join("|");
-      if (!rows[key]) rows[key] = { day: v.day, start: v.start, end: v.end, title: v.title, note: v.note || "", institution: institutionForTitle(v.title) };
+      var institution = institutionForTitle(v.title, institutions);
+      if (institutions.indexOf(institution) < 0) return;
+      if (!rows[key]) rows[key] = { day: v.day, start: v.start, end: v.end, title: v.title, note: v.note || "", institution: institution };
     });
     return Object.keys(rows).map(function (key) { return rows[key]; }).sort(function (a, b) { return a.day - b.day || a.start - b.start; });
   }
@@ -305,10 +317,10 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   el.payCalendar.addEventListener("click", function (event) { var cell = event.target.closest("[data-pay-date]"); if (cell) selectPayDate(cell.dataset.payDate); });
   el.payMonth.addEventListener("change", renderPayCalendar);
   document.getElementById("payroll-current").addEventListener("click", function () { el.payMonth.value = monthText(); renderPayCalendar(); });
-  window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) render(); if (event.key === "myDailySchedule.v3") renderRegularSalary(); });
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
+  window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) { state = loadState(); render(); renderRegularSalary(); } if (event.key === "myDailySchedule.v3") renderRegularSalary(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { state = loadState(); render(); renderRegularSalary(); } });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=21", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=22", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();
