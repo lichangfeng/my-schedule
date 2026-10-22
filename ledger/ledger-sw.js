@@ -1,4 +1,4 @@
-const CACHE = "dance-class-ledger-v75";
+const CACHE = "dance-class-ledger-v76";
 const PAGE = "./index.html";
 const ASSETS = [PAGE, "./salary-calendar.html", "./finance.html", "./finance-legacy.html", "./finance.css", "./finance.js", "./finance-manifest.json", "./ledger-manifest.json", "./icon-192.png", "./icon-512.png"];
 
