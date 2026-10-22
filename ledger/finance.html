@@ -371,8 +371,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.18.5";
-  var APP_BUILD = "10-21 01:43";
+  var APP_VERSION = "2.19.0";
+  var APP_BUILD = "10-23 03:47";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -1091,7 +1091,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=74", { updateViaCache: "none" }).catch(function(){});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=75", { updateViaCache: "none" }).catch(function(){});
   window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, creditSummary: creditSummary, payChannelLabel: payChannelLabel, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION + (APP_BUILD && APP_BUILD.indexOf("__") < 0 ? "（" + APP_BUILD + "）" : "");
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
@@ -1900,6 +1900,15 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var instRows = instOrder.map(function (name) { return instMap[name]; });
     var recordRows = instRows.filter(function (x) { return x.recordOnly; });
     var recordNote = recordRows.length ? '；' + recordRows.map(function (x) { return x.institution; }).join('、') + ' 需有完成上課紀錄才計入' : '';
+    var packageLedger = readClassLedger();
+    var packageRows = incomePackages().map(function (pkg) {
+      var records = packageLedger ? packageLedger.records.filter(function (r) { return isPayableClassRecord(r) && String(r.institution || '') === String(pkg.institution || ''); }) : [];
+      var rawUsed = records.reduce(function (sum, r) { return sum + (Number(r.count) || 0); }, 0);
+      var used = Math.min(num(pkg.totalSessions), rawUsed);
+      var remaining = Math.max(0, num(pkg.totalSessions) - used);
+      return { pkg: pkg, rawUsed: rawUsed, used: used, remaining: remaining, earned: used * num(pkg.rate), totalPay: num(pkg.totalSessions) * num(pkg.rate), weeksLeft: num(pkg.sessionsPerWeek) > 0 ? Math.ceil(remaining / num(pkg.sessionsPerWeek)) : 0, readable: !!packageLedger };
+    });
+    var packageHtml = packageRows.length ? '<div class="subcard section"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px"><div><h3 style="margin:0">課包進度（' + packageRows.length + ' 個）</h3><p class="helper" style="margin:5px 0 0">只依上課紀錄的「已完成／代課」逐堂扣減；不用款項到賬，也不先計算還沒上的課。</p></div><span class="pill">依上課紀錄</span></div><div class="table-wrap"><table class="table"><thead><tr><th>課包</th><th class="num">單價</th><th class="num">總值</th><th class="num">已上／總堂數</th><th class="num">剩餘</th><th class="num">已賺薪資</th><th>預計完成</th></tr></thead><tbody>' + packageRows.map(function (x) { return '<tr><td><strong>' + esc(x.pkg.name) + '</strong><div class="helper" style="margin:3px 0 0">' + esc(x.pkg.note || '') + '</div></td><td class="num">' + money(x.pkg.rate) + '</td><td class="num">' + money(x.totalPay) + '</td><td class="num"><strong>' + decimal(x.used) + ' / ' + decimal(x.pkg.totalSessions) + '</strong></td><td class="num">' + decimal(x.remaining) + ' 堂</td><td class="num good">' + money(x.earned) + '</td><td>' + (x.remaining ? ('約 ' + decimal(x.weeksLeft) + ' 週（每週 ' + decimal(x.pkg.sessionsPerWeek) + ' 節）') : '已完成') + (x.readable ? '' : '<div class="helper">讀不到上課紀錄</div>') + '</td></tr>'; }).join('') + '</tbody></table></div></div>' : '';
     el.incomeSchedule.innerHTML =
       '<div class="summary-grid">' +
         '<div class="summary-card"><span>滿課每週課時費</span><strong class="good">' + money(weekly) + '</strong><small>' + sc.rates.length + ' 節/週' + (recordRows.length ? ' · 新機構依完成紀錄啟用' : '') + '</small></div>' +
@@ -1907,6 +1916,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         '<div class="summary-card"><span>親人固定轉帳</span><strong>' + money(sc.family) + '</strong><small>其他收入</small></div>' +
         '<div class="summary-card"><span>每月總收入估算</span><strong>' + money(monthly + num(sc.family)) + '</strong><small>課時費＋親人' + (recordRows.length ? ' · 新機構依完成紀錄啟用' : '') + '</small></div>' +
       '</div>' +
+      packageHtml +
       '<div class="subcard section"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px"><div><h3 style="margin:0">機構預計收入（' + instRows.length + ' 間）</h3><p class="helper" style="margin:5px 0 0">依目前課表與單價自動分組；每月按 52 週 ÷ 12 估算' + recordNote + '。</p></div><span class="pill">全部機構</span></div>' +
         '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th class="num">節/週</th><th class="num">每週</th><th class="num">每月估算</th><th class="num">佔課時收入</th></tr></thead><tbody>' +
         instRows.map(function (x) { return '<tr><td><strong>' + esc(x.institution) + '</strong>' + (x.recordOnly ? ' <span class="badge">依上課紀錄啟用</span>' : '') + '</td><td class="num">' + x.classes + '</td><td class="num">' + money(x.weekly) + '</td><td class="num good">' + money(x.weekly * 52 / 12) + '</td><td class="num">' + (weekly ? (x.weekly / weekly * 100).toFixed(1) : '0.0') + '%</td></tr>'; }).join('') +
@@ -1959,6 +1969,21 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (changed) { state.incomeSchedule = sc; saveState(); }
   }
   seedIncomeSchedule();
+  var SEED_INCOME_PACKAGES = [
+    { id: "pkg-new-private-30", name: "新私教", institution: "新私教", totalSessions: 30, sessionsPerWeek: 2, rate: 120, note: "一周兩節；依完成／代課紀錄逐堂扣減" }
+  ];
+  function incomePackages() { return Array.isArray(state.incomePackages) ? state.incomePackages : []; }
+  function seedIncomePackages() {
+    state.incomePackages = Array.isArray(state.incomePackages) ? state.incomePackages : [];
+    var changed = false;
+    SEED_INCOME_PACKAGES.forEach(function (seed) {
+      if (state.incomePackages.some(function (x) { return x.id === seed.id; })) return;
+      state.incomePackages.push({ id: seed.id, name: seed.name, institution: seed.institution, totalSessions: seed.totalSessions, sessionsPerWeek: seed.sessionsPerWeek, rate: seed.rate, note: seed.note });
+      changed = true;
+    });
+    if (changed) saveState();
+  }
+  seedIncomePackages();
   function seedSavingsGoal() { if (!state.savingsGoal) { state.savingsGoal = { name: "存款目標", amount: 20000, deadline: "2027-10-31" }; saveState(); } }
   seedSavingsGoal();
   function savingsGoalOf() {

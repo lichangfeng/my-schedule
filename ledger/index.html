@@ -354,8 +354,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业"];
-  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120 };
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "新私教"];
+  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "新私教": 120 };
   var COURSE_BY_INSTITUTION = {
     "AS": ["AS"],
     "西美": ["西美"],
@@ -365,7 +365,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     "跳动全城（吾悦）": ["跳动全城（吾悦）"],
     "跳个街舞": ["跳个街舞"],
     "跳动全城（凯德壹）": ["跳动全城（凯德壹）"],
-    "谢业": ["谢业"]
+    "谢业": ["谢业"],
+    "新私教": ["新私教"]
   };
   var STATUS_LABELS = {
     completed: "已完成", substitute: "代课", planned: "待授课",
