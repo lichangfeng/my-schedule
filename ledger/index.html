@@ -354,9 +354,9 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "新私教", "PY"];
-  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "新私教": 120, "PY": 80 };
-  var INSTITUTION_ALIASES = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）", "洋湖實驗": "洋湖实验" };
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "跳動私教", "PY"];
+  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "跳動私教": 120, "PY": 80 };
+  var INSTITUTION_ALIASES = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）", "洋湖實驗": "洋湖实验", "新私教": "跳動私教" };
   function canonicalInstitutionName(name) { var text = String(name || "").replace(/\s+/g, " ").trim(); return INSTITUTION_ALIASES[text] || text; }
   var COURSE_BY_INSTITUTION = {
     "AS": ["AS"],
@@ -368,7 +368,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     "跳个街舞": ["跳个街舞"],
     "跳动全城（凯德壹）": ["跳动全城（凯德壹）"],
     "谢业": ["谢业"],
-    "新私教": ["新私教"],
+    "跳動私教": ["跳動私教"],
     "PY": ["PY"]
   };
   var STATUS_LABELS = {

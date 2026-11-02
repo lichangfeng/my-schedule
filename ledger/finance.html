@@ -371,8 +371,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.19.2";
-  var APP_BUILD = "11-02 12:55";
+  var APP_VERSION = "2.19.3";
+  var APP_BUILD = "11-02 13:01";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -1091,7 +1091,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=77", { updateViaCache: "none" }).catch(function(){});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=78", { updateViaCache: "none" }).catch(function(){});
   window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, creditSummary: creditSummary, payChannelLabel: payChannelLabel, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION + (APP_BUILD && APP_BUILD.indexOf("__") < 0 ? "（" + APP_BUILD + "）" : "");
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
@@ -1888,8 +1888,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     { institution: "跳個街舞", day: "週三", time: "14:00–15:10", rate: 100 },
     { institution: "跳動全城（凱德壹）", day: "週六", time: "19:30–20:50", rate: 120, recordOnly: true },
     { institution: "謝業", day: "週六", time: "10:00–12:00", rate: 200, startMonth: "2026-10" },
-    { institution: "PY", day: "週六", time: "下午第1節（時間待定）", rate: 80, startMonth: "2026-11" },
-    { institution: "PY", day: "週六", time: "下午第2節（時間待定）", rate: 80, startMonth: "2026-11" }
+    { institution: "跳動私教", day: "週三", time: "17:00–18:00", rate: 120, startMonth: "2026-11" },
+    { institution: "跳動私教", day: "週五", time: "17:00–18:00", rate: 120, startMonth: "2026-11" },
+    { institution: "PY", day: "週六", time: "19:10–20:00", rate: 80, startMonth: "2026-11" },
+    { institution: "PY", day: "週六", time: "20:10–21:00", rate: 80, startMonth: "2026-11" }
   ];
   function incomeSchedule() { var sc = state.incomeSchedule; if (sc && Array.isArray(sc.rates)) return sc; var seed = (typeof SEED_INCOME_SCHEDULE !== "undefined" && Array.isArray(SEED_INCOME_SCHEDULE)) ? SEED_INCOME_SCHEDULE : []; return { rates: seed, family: 2000 }; }
   function weeklyIncome() { return incomeSchedule().rates.reduce(function (s, x) { return s + num(x.rate); }, 0); }
@@ -1913,7 +1915,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var startNote = startRows.length ? '；' + startRows.map(function (x) { return x.institution + ' ' + x.startMonth + ' 起'; }).join('、') : '';
     var packageLedger = readClassLedger();
     var packageRows = incomePackages().map(function (pkg) {
-      var records = packageLedger ? packageLedger.records.filter(function (r) { return isPayableClassRecord(r) && String(r.institution || '') === String(pkg.institution || ''); }) : [];
+      var packageInstitutions = Array.isArray(pkg.institutions) && pkg.institutions.length ? pkg.institutions : [pkg.institution];
+      var records = packageLedger ? packageLedger.records.filter(function (r) { return isPayableClassRecord(r) && packageInstitutions.indexOf(String(r.institution || '')) >= 0; }) : [];
       var rawUsed = records.reduce(function (sum, r) { return sum + (Number(r.count) || 0); }, 0);
       var used = Math.min(num(pkg.totalSessions), rawUsed);
       var remaining = Math.max(0, num(pkg.totalSessions) - used);
@@ -1957,6 +1960,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       state.incomeScheduleAttendanceV2183 = true;
       state.incomeScheduleStatusV2191 = true;
       state.incomeSchedulePyV2192 = true;
+      state.incomeScheduleJumpPrivateV2193 = true;
       saveState();
       return;
     }
@@ -1994,12 +1998,28 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       state.incomeSchedulePyV2192 = true;
       changed = true;
     }
+    if (!state.incomeScheduleJumpPrivateV2193) {
+      sc.rates.forEach(function (x) {
+        if (x.institution === 'PY' && /時間待定/.test(String(x.time || ''))) {
+          x.time = /1/.test(String(x.time || '')) ? '19:10–20:00' : '20:10–21:00';
+        }
+      });
+      var privateSeeds = SEED_INCOME_SCHEDULE.filter(function (x) { return x.institution === '跳動私教'; });
+      var privateSeen = {};
+      sc.rates.forEach(function (x) { privateSeen[String(x.institution) + '|' + String(x.day) + '|' + String(x.time)] = true; });
+      privateSeeds.forEach(function (x) {
+        var key = String(x.institution) + '|' + String(x.day) + '|' + String(x.time);
+        if (!privateSeen[key]) sc.rates.push({ institution: x.institution, day: x.day, time: x.time, rate: x.rate, startMonth: x.startMonth || '' });
+      });
+      state.incomeScheduleJumpPrivateV2193 = true;
+      changed = true;
+    }
     if (typeof sc.family !== 'number') { sc.family = 2000; changed = true; }
     if (changed) { state.incomeSchedule = sc; saveState(); }
   }
   seedIncomeSchedule();
   var SEED_INCOME_PACKAGES = [
-    { id: "pkg-new-private-30", name: "新私教", institution: "新私教", totalSessions: 30, sessionsPerWeek: 2, rate: 120, note: "一周兩節；依完成／代課紀錄逐堂扣減" }
+    { id: "pkg-new-private-30", name: "跳動私教", institution: "跳動私教", institutions: ["跳動私教", "新私教"], totalSessions: 30, sessionsPerWeek: 2, rate: 120, note: "週三、週五 17:00–18:00；依完成／代課紀錄逐堂扣減" }
   ];
   function incomePackages() { return Array.isArray(state.incomePackages) ? state.incomePackages : []; }
   function seedIncomePackages() {
@@ -2007,9 +2027,18 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var changed = false;
     SEED_INCOME_PACKAGES.forEach(function (seed) {
       if (state.incomePackages.some(function (x) { return x.id === seed.id; })) return;
-      state.incomePackages.push({ id: seed.id, name: seed.name, institution: seed.institution, totalSessions: seed.totalSessions, sessionsPerWeek: seed.sessionsPerWeek, rate: seed.rate, note: seed.note });
+      state.incomePackages.push({ id: seed.id, name: seed.name, institution: seed.institution, institutions: seed.institutions.slice(), totalSessions: seed.totalSessions, sessionsPerWeek: seed.sessionsPerWeek, rate: seed.rate, note: seed.note });
       changed = true;
     });
+    if (!state.privatePackageRenameV2193) {
+      var pkg = state.incomePackages.filter(function (x) { return x.id === 'pkg-new-private-30'; })[0];
+      if (pkg) {
+        pkg.name = '跳動私教'; pkg.institution = '跳動私教'; pkg.institutions = ['跳動私教', '新私教']; pkg.sessionsPerWeek = 2; pkg.rate = 120;
+        pkg.note = '週三、週五 17:00–18:00；依完成／代課紀錄逐堂扣減';
+      }
+      state.privatePackageRenameV2193 = true;
+      changed = true;
+    }
     if (changed) saveState();
   }
   seedIncomePackages();
