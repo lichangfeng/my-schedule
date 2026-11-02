@@ -1,4 +1,4 @@
-const CACHE = "daily-schedule-tech-v3";
+const CACHE = "daily-schedule-tech-v4";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./schedule-data.json"];
 
 self.addEventListener("install", event => {
