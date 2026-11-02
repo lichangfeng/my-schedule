@@ -371,8 +371,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = "2.20.1";
-  var APP_BUILD = "11-02 13:48";
+  var APP_VERSION = "2.20.2";
+  var APP_BUILD = "11-02 16:51";
   var STORAGE_KEY = "monthEndLedger.v1";
   var COLORS = ["#0f766e","#2563eb","#7c3aed","#db2777","#ea580c","#ca8a04","#0891b2","#16a34a","#9333ea","#dc2626"];
   var DEFAULT_EXPENSE = ["餐饮","交通","充值缴费","医疗","服饰","家居","数码电器","订阅","日用百货","娱乐","其他"];
@@ -1093,7 +1093,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   document.getElementById("import-flows-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); var list=Array.isArray(d)?d:d.transactions; if(!Array.isArray(list)) throw new Error("缺少 transactions"); var imported=importTransactions(list); showToast("已合并导入 "+imported+" 笔流水"); el.batchStatus.textContent="已合并导入 "+imported+" 笔流水。"; }catch(err){ alert("无法导入流水 JSON"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("import-json").addEventListener("change", function(){ var f=this.files && this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result); if(d && Array.isArray(d.transactions) && !Array.isArray(d.accounts)){ var imported=importTransactions(d.transactions); showToast("已合并导入 "+imported+" 笔流水"); } else { if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.categories)) throw new Error("格式錯誤"); if(!confirm("导入会覆盖目前数据，确定？"))return; state=d; saveState(); renderAll(); showToast("备份已导入"); } }catch(err){ alert("无法导入：JSON 格式不正确"); } }; r.readAsText(f); this.value=""; });
   document.getElementById("manual-update").addEventListener("click", function(){ if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); if (window.caches) caches.keys().then(function(keys){ keys.filter(function(k){return /ledger|finance|month/i.test(k);}).forEach(function(k){caches.delete(k);}); }); setTimeout(function(){ location.replace("?v="+Date.now()); }, 300); });
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=82", { updateViaCache: "none" }).catch(function(){});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=83", { updateViaCache: "none" }).catch(function(){});
   window.__monthEndLedgerDebug = { parseBillRawText: parseBillRawText, parseCcbRawText: parseCcbRawText, guessCategoryName: guessCategoryName, monthTotals: monthTotals, recurringMonthTotal: recurringMonthTotal, recurringMonthRows: recurringMonthRows, classSalaryForMonth: classSalaryForMonth, bookClassIncome: bookClassIncome, dailySummary: dailySummary, parseGenericCsvBill: parseGenericCsvBill, creditSummary: creditSummary, payChannelLabel: payChannelLabel, transferTotals: transferTotals, migrateRentAndDeposit: migrateRentAndDeposit, plannedIncomeList: plannedIncomeList, receivePlannedIncome: receivePlannedIncome, incomeRuleList: incomeRuleList, findIncomeRule: findIncomeRule, applyIncomeRulesToExisting: applyIncomeRulesToExisting, state: function () { return state; } };
   el.versionLabel.textContent = "v" + APP_VERSION + (APP_BUILD && APP_BUILD.indexOf("__") < 0 ? "（" + APP_BUILD + "）" : "");
   el.txDate.value = todayText(); if (el.dailyDate) el.dailyDate.value = todayText(); if (el.recStart) el.recStart.value = todayText(); if (el.planDate) el.planDate.value = todayText(); el.amortStart.value = ui.year + "-" + pad(ui.month); el.yearPicker.value = ui.year; el.monthPicker.value = ui.year + "-" + pad(ui.month);
@@ -1245,7 +1245,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   }
   function classSalaryForMonth(incomeMonth) {
     var ledger = readClassLedger();
-    var result = { available: !!ledger, incomeMonth: incomeMonth, sourceMonth: shiftMonth(incomeMonth, -1), total: 0, classes: 0, missing: 0, estimatedInstitutions: 0, pendingRecordInstitutions: 0, upcomingInstitutions: 0, inactiveInstitutions: 0, endedInstitutions: 0, rows: [] };
+    var result = { available: !!ledger, incomeMonth: incomeMonth, sourceMonth: shiftMonth(incomeMonth, -1), total: 0, classes: 0, missing: 0, estimatedInstitutions: 0, pendingRecordInstitutions: 0, upcomingInstitutions: 0, inactiveInstitutions: 0, endedInstitutions: 0, pausedInstitutions: 0, rows: [] };
     var completedInstitutions = {};
     if (ledger) ledger.records.filter(isPayableClassRecord).forEach(function (r) { completedInstitutions[r.institution || "未填機構"] = true; });
     var map = {};
@@ -1253,7 +1253,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var scheduleRates = schedule && Array.isArray(schedule.rates) ? schedule.rates : [];
     scheduleRates.forEach(function (x) {
       var key = x.institution || "未填機構";
-      if (!map[key]) map[key] = { institution: key, recordOnly: !!x.recordOnly, inactive: !!x.inactive, startMonth: x.startMonth || "", endMonth: x.endMonth || "", endTentative: !!x.endTentative, classes: 0, pay: 0, missing: 0, actualClasses: 0, actualPay: 0, actualMissing: 0, estimatedClasses: 0, estimatedPay: 0, hasActual: false, estimated: false, pendingRecord: false, notStarted: false, ended: false };
+      if (!map[key]) map[key] = { institution: key, recordOnly: !!x.recordOnly, inactive: !!x.inactive, startMonth: x.startMonth || "", endMonth: x.endMonth || "", endTentative: !!x.endTentative, pauseMonths: [], pauseReason: x.pauseReason || "", classes: 0, pay: 0, missing: 0, actualClasses: 0, actualPay: 0, actualMissing: 0, estimatedClasses: 0, estimatedPay: 0, hasActual: false, estimated: false, pendingRecord: false, notStarted: false, ended: false, paused: false };
       else {
         if (x.recordOnly) map[key].recordOnly = true;
         if (!x.inactive) map[key].inactive = false;
@@ -1261,10 +1261,13 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         if (x.endMonth && (!map[key].endMonth || x.endMonth > map[key].endMonth)) map[key].endMonth = x.endMonth;
         if (x.endTentative) map[key].endTentative = true;
       }
+      if (Array.isArray(x.pauseMonths)) x.pauseMonths.forEach(function(m){ if (map[key].pauseMonths.indexOf(m)<0) map[key].pauseMonths.push(m); });
+      if (x.pauseReason) map[key].pauseReason = x.pauseReason;
       if (x.inactive) return;
       var afterStart = !map[key].startMonth || result.sourceMonth >= map[key].startMonth;
       var beforeEnd = !map[key].endMonth || result.sourceMonth <= map[key].endMonth;
-      if (afterStart && beforeEnd && (!x.recordOnly || completedInstitutions[key])) {
+      var inPause = map[key].pauseMonths.indexOf(result.sourceMonth) >= 0;
+      if (afterStart && beforeEnd && !inPause && (!x.recordOnly || completedInstitutions[key])) {
         var occurrences = countWeekdayInMonth(result.sourceMonth, scheduleWeekdayIndex(x.day));
         map[key].estimatedClasses += occurrences;
         map[key].estimatedPay += occurrences * num(x.rate);
@@ -1276,7 +1279,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         var count = Number(r.count) || 0;
         var rate = classRecordRate(ledger, r);
         var key = r.institution || "未填機構";
-        if (!map[key]) map[key] = { institution: key, recordOnly: false, inactive: false, startMonth: "", endMonth: "", endTentative: false, classes: 0, pay: 0, missing: 0, actualClasses: 0, actualPay: 0, actualMissing: 0, estimatedClasses: 0, estimatedPay: 0, hasActual: false, estimated: false, pendingRecord: false, notStarted: false, ended: false };
+        if (!map[key]) map[key] = { institution: key, recordOnly: false, inactive: false, startMonth: "", endMonth: "", endTentative: false, pauseMonths: [], pauseReason: "", classes: 0, pay: 0, missing: 0, actualClasses: 0, actualPay: 0, actualMissing: 0, estimatedClasses: 0, estimatedPay: 0, hasActual: false, estimated: false, pendingRecord: false, notStarted: false, ended: false, paused: false };
         map[key].hasActual = true;
         map[key].actualClasses += count;
         if (rate === null) map[key].actualMissing += count;
@@ -1288,9 +1291,10 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       row.pendingRecord = !row.hasActual && row.recordOnly && !completedInstitutions[row.institution];
       row.notStarted = !row.hasActual && !row.pendingRecord && !!row.startMonth && result.sourceMonth < row.startMonth;
       row.ended = !row.hasActual && !!row.endMonth && result.sourceMonth > row.endMonth;
+      row.paused = !row.hasActual && row.pauseMonths.indexOf(result.sourceMonth) >= 0;
       if (row.hasActual) {
         row.classes = row.actualClasses; row.pay = row.actualPay; row.missing = row.actualMissing; row.estimated = false;
-      } else if (row.inactive || row.pendingRecord || row.notStarted || row.ended) {
+      } else if (row.inactive || row.pendingRecord || row.notStarted || row.ended || row.paused) {
         row.classes = 0; row.pay = 0; row.missing = 0; row.estimated = false;
       } else {
         row.classes = row.estimatedClasses; row.pay = row.estimatedPay; row.missing = 0; row.estimated = true;
@@ -1305,6 +1309,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       if (row.notStarted) result.upcomingInstitutions++;
       if (row.inactive && !row.hasActual) result.inactiveInstitutions++;
       if (row.ended && !row.hasActual) result.endedInstitutions++;
+      if (row.paused && !row.hasActual) result.pausedInstitutions++;
       var yy = Number(String(incomeMonth).slice(0, 4)), mm = Number(String(incomeMonth).slice(5, 7)) - 1;
       var day = row.payDay > 0 ? row.payDay : 15;
       row.payDate = dateWithClamp(yy, mm, day);
@@ -1327,6 +1332,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (salary.upcomingInstitutions) estimateNote += ' · ' + salary.upcomingInstitutions + ' 間 2026-10 起';
     if (salary.inactiveInstitutions) estimateNote += ' · ' + salary.inactiveInstitutions + ' 間目前不上';
     if (salary.endedInstitutions) estimateNote += ' · ' + salary.endedInstitutions + ' 間已結束';
+    if (salary.pausedInstitutions) estimateNote += ' · ' + salary.pausedInstitutions + ' 間寒假停課';
     var sourceClassesLabel = salary.estimatedInstitutions ? monthLabel(salary.sourceMonth) + '預計授課' : monthLabel(salary.sourceMonth) + '實際上課';
     el.classSalaryPanel.innerHTML =
       '<div class="summary-grid">' +
@@ -1338,14 +1344,14 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       '</div>';
     el.classSalaryList.innerHTML = rows.length
       ? '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th class="num">堂數</th><th class="num">薪資</th><th>發薪日</th><th>狀態</th><th>操作</th></tr></thead><tbody>' + rows.map(function (r) {
-          return '<tr><td><strong>' + esc(r.institution) + '</strong>' + (r.inactive ? ' <span class="badge">目前不上</span>' : '') + (r.ended ? ' <span class="badge">' + esc(r.endMonth) + ' 止</span>' : '') + (r.pendingRecord ? ' <span class="badge">待上課紀錄</span>' : '') + (r.notStarted ? ' <span class="badge">' + esc(r.startMonth) + ' 起</span>' : '') + (r.estimated ? ' <span class="badge">課表估算</span>' : '') + (r.missing ? ' <span class="warn-chip">' + decimal(r.missing) + ' 堂未設薪資</span>' : '') + '</td><td class="num">' + decimal(r.classes) + '</td><td class="num good">' + money(r.pay) + '</td><td>' + (r.inactive ? '目前不上' : (r.ended ? esc(r.endMonth) + ' 最後授課' : (r.pendingRecord ? '等待完成紀錄' : (r.notStarted ? esc(r.startMonth) + ' 起' : esc(r.payDate) + (r.payDay ? '（每月 ' + r.payDay + ' 日）' : ''))))) + '</td><td>' + (r.inactive ? '<span class="status-chip wait">不計入</span>' : (r.ended ? '<span class="status-chip wait">已結束</span>' : (r.pendingRecord ? '<span class="status-chip wait">尚未確認</span>' : (r.notStarted ? '<span class="status-chip wait">尚未開始</span>' : (r.received ? '<span class="status-chip paid">已收到</span>' : '<span class="status-chip wait">未收到</span>'))))) + '</td><td>' + (r.inactive || r.ended || r.pendingRecord || r.notStarted ? '<span class="helper">—</span>' : '<button class="btn small' + (r.received ? "" : " primary") + '" data-class-received="' + esc(r.key) + '" type="button">' + (r.received ? "取消已收到" : "已收到") + '</button>') + '</td></tr>';
+          return '<tr><td><strong>' + esc(r.institution) + '</strong>' + (r.inactive ? ' <span class="badge">目前不上</span>' : '') + (r.ended ? ' <span class="badge">' + esc(r.endMonth) + ' 止</span>' : '') + (r.paused ? ' <span class="badge">' + esc(r.pauseReason || '停課') + '</span>' : '') + (r.pendingRecord ? ' <span class="badge">待上課紀錄</span>' : '') + (r.notStarted ? ' <span class="badge">' + esc(r.startMonth) + ' 起</span>' : '') + (r.estimated ? ' <span class="badge">課表估算</span>' : '') + (r.missing ? ' <span class="warn-chip">' + decimal(r.missing) + ' 堂未設薪資</span>' : '') + '</td><td class="num">' + decimal(r.classes) + '</td><td class="num good">' + money(r.pay) + '</td><td>' + (r.inactive ? '目前不上' : (r.ended ? esc(r.endMonth) + ' 最後授課' : (r.paused ? '寒假停課' : (r.pendingRecord ? '等待完成紀錄' : (r.notStarted ? esc(r.startMonth) + ' 起' : esc(r.payDate) + (r.payDay ? '（每月 ' + r.payDay + ' 日）' : '')))))) + '</td><td>' + (r.inactive ? '<span class="status-chip wait">不計入</span>' : (r.ended ? '<span class="status-chip wait">已結束</span>' : (r.paused ? '<span class="status-chip wait">停課</span>' : (r.pendingRecord ? '<span class="status-chip wait">尚未確認</span>' : (r.notStarted ? '<span class="status-chip wait">尚未開始</span>' : (r.received ? '<span class="status-chip paid">已收到</span>' : '<span class="status-chip wait">未收到</span>')))))) + '</td><td>' + (r.inactive || r.ended || r.paused || r.pendingRecord || r.notStarted ? '<span class="helper">—</span>' : '<button class="btn small' + (r.received ? "" : " primary") + '" data-class-received="' + esc(r.key) + '" type="button">' + (r.received ? "取消已收到" : "已收到") + '</button>') + '</td></tr>';
         }).join("") + '</tbody></table></div>'
       : '<div class="empty">' + (canRead ? monthLabel(salary.sourceMonth) + '沒有可計算的上課紀錄（只算「已完成／代課」的紀錄）。' : '讀不到上課紀錄，也沒有可用的固定課表。請先開啟「上課紀錄與薪資統計」，或到上方設定課表。') + '</div>';
     if (el.classSalaryStatus) {
       if (!canRead && rows.length) {
         el.classSalaryStatus.innerHTML = "目前讀不到上課紀錄，以下先依固定課表估算；新機構要等上課紀錄標為「已完成／代課」才計入，<b>不需要</b>等款項到賬或按「已收到」。按「已收到」只做款項追蹤，不會寫入流水或收入統計。";
-      } else if (salary.estimatedInstitutions || salary.pendingRecordInstitutions || salary.upcomingInstitutions || salary.inactiveInstitutions || salary.endedInstitutions) {
-        el.classSalaryStatus.innerHTML = (salary.estimatedInstitutions ? "有 " + salary.estimatedInstitutions + " 間機構尚未有該月實際上課紀錄，已先依固定課表估算並標示「課表估算」。" : "") + (salary.pendingRecordInstitutions ? "另有 " + salary.pendingRecordInstitutions + " 間機構要等上課紀錄標為「已完成／代課」後才會計入；不需要等款項到賬或按「已收到」。" : "") + (salary.upcomingInstitutions ? "另有 " + salary.upcomingInstitutions + " 間機構從 2026 年 10 月才開始，之前的薪資不計。" : "") + (salary.inactiveInstitutions ? "另有 " + salary.inactiveInstitutions + " 間目前不上，已從收入預估排除。" : "") + (salary.endedInstitutions ? "另有 " + salary.endedInstitutions + " 間已到最後授課月，之後不再計入。" : "");
+      } else if (salary.estimatedInstitutions || salary.pendingRecordInstitutions || salary.upcomingInstitutions || salary.inactiveInstitutions || salary.endedInstitutions || salary.pausedInstitutions) {
+        el.classSalaryStatus.innerHTML = (salary.estimatedInstitutions ? "有 " + salary.estimatedInstitutions + " 間機構尚未有該月實際上課紀錄，已先依固定課表估算並標示「課表估算」。" : "") + (salary.pendingRecordInstitutions ? "另有 " + salary.pendingRecordInstitutions + " 間機構要等上課紀錄標為「已完成／代課」後才會計入；不需要等款項到賬或按「已收到」。" : "") + (salary.upcomingInstitutions ? "另有 " + salary.upcomingInstitutions + " 間機構從 2026 年 10 月才開始，之前的薪資不計。" : "") + (salary.inactiveInstitutions ? "另有 " + salary.inactiveInstitutions + " 間目前不上，已從收入預估排除。" : "") + (salary.endedInstitutions ? "另有 " + salary.endedInstitutions + " 間已到最後授課月，之後不再計入。" : "") + (salary.pausedInstitutions ? "另有 " + salary.pausedInstitutions + " 間寒假期間暫停，當月不計薪；若實際有上課，以完成紀錄為準。" : "");
       } else {
         el.classSalaryStatus.innerHTML = "這裡只做「上課記錄 ↔ 預計收入」追蹤：按某一列的「已收到」只會改狀態並自動算出未收到金額，<b>不會</b>寫入流水、也<b>不會</b>計入收入統計（收入以實際到帳的微信／支付寶／銀行流水為準）。";
       }
@@ -1979,8 +1985,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
   var SEED_INCOME_SCHEDULE = [
     { institution: "AS", day: "週三", time: "19:00–20:30", rate: 150 },
     { institution: "AS", day: "週日", time: "14:30–16:00", rate: 150 },
-    { institution: "西美", day: "週五", time: "19:10–20:40", rate: 130 },
-    { institution: "西美", day: "週日", time: "10:30–12:00", rate: 130 },
+    { institution: "西美", day: "週五", time: "19:10–20:40", rate: 130, pauseMonths: ["2027-01", "2027-02"], pauseReason: "寒假" },
+    { institution: "西美", day: "週日", time: "10:30–12:00", rate: 130, pauseMonths: ["2027-01", "2027-02"], pauseReason: "寒假" },
     { institution: "META", day: "週二", time: "20:00–21:20", rate: 130 },
     { institution: "i5 私教", day: "週四", time: "19:00–20:00", rate: 100 },
     { institution: "i5 私教", day: "週日", time: "17:30–18:30", rate: 100 },
@@ -2007,8 +2013,8 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var instOrder = [], instMap = {};
     activeRates.forEach(function (x) {
       var name = x.institution || "未填機構";
-      if (!instMap[name]) { instMap[name] = { institution: name, classes: 0, weekly: 0, recordOnly: !!x.recordOnly, startMonth: x.startMonth || "", endMonth: x.endMonth || "", endTentative: !!x.endTentative }; instOrder.push(name); }
-      else { if (x.recordOnly) instMap[name].recordOnly = true; if (x.startMonth && (!instMap[name].startMonth || x.startMonth < instMap[name].startMonth)) instMap[name].startMonth = x.startMonth; if (x.endMonth && (!instMap[name].endMonth || x.endMonth > instMap[name].endMonth)) instMap[name].endMonth = x.endMonth; if (x.endTentative) instMap[name].endTentative = true; }
+      if (!instMap[name]) { instMap[name] = { institution: name, classes: 0, weekly: 0, recordOnly: !!x.recordOnly, startMonth: x.startMonth || "", endMonth: x.endMonth || "", endTentative: !!x.endTentative, pauseMonths: Array.isArray(x.pauseMonths) ? x.pauseMonths.slice() : [], pauseReason: x.pauseReason || "" }; instOrder.push(name); }
+      else { if (x.recordOnly) instMap[name].recordOnly = true; if (x.startMonth && (!instMap[name].startMonth || x.startMonth < instMap[name].startMonth)) instMap[name].startMonth = x.startMonth; if (x.endMonth && (!instMap[name].endMonth || x.endMonth > instMap[name].endMonth)) instMap[name].endMonth = x.endMonth; if (x.endTentative) instMap[name].endTentative = true; if (Array.isArray(x.pauseMonths)) x.pauseMonths.forEach(function(m){ if (instMap[name].pauseMonths.indexOf(m)<0) instMap[name].pauseMonths.push(m); }); if (x.pauseReason) instMap[name].pauseReason = x.pauseReason; }
       instMap[name].classes += 1;
       instMap[name].weekly += num(x.rate);
     });
@@ -2018,7 +2024,9 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     var endRows = instRows.filter(function (x) { return x.endMonth; });
     var recordNote = recordRows.length ? '；' + recordRows.map(function (x) { return x.institution; }).join('、') + ' 需有完成上課紀錄才計入' : '';
     var startNote = startRows.length ? '；' + startRows.map(function (x) { return x.institution + ' ' + x.startMonth + ' 起'; }).join('、') : '';
+    var pauseRows = instRows.filter(function (x) { return x.pauseMonths && x.pauseMonths.length; });
     var endNote = endRows.length ? '；' + endRows.map(function (x) { return x.institution + ' 預計做到 ' + x.endMonth + (x.endTentative ? '（待確認）' : ''); }).join('、') : '';
+    var pauseNote = pauseRows.length ? '；' + pauseRows.map(function (x) { return x.institution + ' ' + x.pauseMonths.join('、') + ' ' + (x.pauseReason || '暫停'); }).join('、') : '';
     var packageLedger = readClassLedger();
     var packageRows = incomePackages().map(function (pkg) {
       var packageInstitutions = Array.isArray(pkg.institutions) && pkg.institutions.length ? pkg.institutions : [pkg.institution];
@@ -2037,9 +2045,9 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         '<div class="summary-card"><span>每月總收入估算</span><strong>' + money(monthly + num(sc.family)) + '</strong><small>課時費＋親人' + (recordRows.length ? ' · 新機構依完成紀錄啟用' : '') + '</small></div>' +
       '</div>' +
       packageHtml +
-      '<div class="subcard section"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px"><div><h3 style="margin:0">機構預計收入（' + instRows.length + ' 間）</h3><p class="helper" style="margin:5px 0 0">依目前課表與單價自動分組；每月按 52 週 ÷ 12 估算' + startNote + recordNote + endNote + '。</p></div><span class="pill">全部機構</span></div>' +
+      '<div class="subcard section"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px"><div><h3 style="margin:0">機構預計收入（' + instRows.length + ' 間）</h3><p class="helper" style="margin:5px 0 0">依目前課表與單價自動分組；每月按 52 週 ÷ 12 估算' + startNote + recordNote + endNote + pauseNote + '。</p></div><span class="pill">全部機構</span></div>' +
         '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th class="num">節/週</th><th class="num">每週</th><th class="num">每月估算</th><th class="num">佔課時收入</th></tr></thead><tbody>' +
-        instRows.map(function (x) { return '<tr><td><strong>' + esc(x.institution) + '</strong>' + (x.recordOnly ? ' <span class="badge">依上課紀錄啟用</span>' : (x.startMonth ? ' <span class="badge">' + esc(x.startMonth) + ' 起</span>' : '') + (x.endMonth ? ' <span class="badge">' + esc(x.endMonth) + ' 止</span>' : '')) + '</td><td class="num">' + x.classes + '</td><td class="num">' + money(x.weekly) + '</td><td class="num good">' + money(x.weekly * 52 / 12) + '</td><td class="num">' + (weekly ? (x.weekly / weekly * 100).toFixed(1) : '0.0') + '%</td></tr>'; }).join('') +
+        instRows.map(function (x) { return '<tr><td><strong>' + esc(x.institution) + '</strong>' + (x.recordOnly ? ' <span class="badge">依上課紀錄啟用</span>' : (x.startMonth ? ' <span class="badge">' + esc(x.startMonth) + ' 起</span>' : '') + (x.endMonth ? ' <span class="badge">' + esc(x.endMonth) + ' 止</span>' : '') + (x.pauseMonths && x.pauseMonths.length ? ' <span class="badge">' + esc(x.pauseReason || '暫停') + '</span>' : '')) + '</td><td class="num">' + x.classes + '</td><td class="num">' + money(x.weekly) + '</td><td class="num good">' + money(x.weekly * 52 / 12) + '</td><td class="num">' + (weekly ? (x.weekly / weekly * 100).toFixed(1) : '0.0') + '%</td></tr>'; }).join('') +
         '</tbody></table></div></div>' +
       '<details class="section"><summary class="card-head" style="padding:10px 0"><div><h3 style="margin:0;font-size:.95rem">課表明細（' + sc.rates.length + ' 節' + (inactiveCount ? '，含 ' + inactiveCount + ' 節目前不上' : '') + '）</h3><p style="margin:4px 0 0;color:var(--muted);font-size:.82rem">可修改單價後按「儲存課表」</p></div><span class="pill">展開</span></summary>' +
       '<div class="table-wrap"><table class="table"><thead><tr><th>機構</th><th>星期</th><th>時間</th><th class="num">單價</th></tr></thead><tbody>' +
@@ -2049,7 +2057,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
     if (el.incomeSave) el.incomeSave.addEventListener("click", function () {
       var rates = incomeSchedule().rates.map(function (x, i) {
         var input = el.incomeSchedule.querySelector('[data-income-rate="' + i + '"]');
-        return { institution: x.institution, day: x.day, time: x.time, rate: input ? num(input.value) : num(x.rate), recordOnly: !!x.recordOnly, inactive: !!x.inactive, startMonth: x.startMonth || "", endMonth: x.endMonth || "", endTentative: !!x.endTentative };
+        return { institution: x.institution, day: x.day, time: x.time, rate: input ? num(input.value) : num(x.rate), recordOnly: !!x.recordOnly, inactive: !!x.inactive, startMonth: x.startMonth || "", endMonth: x.endMonth || "", endTentative: !!x.endTentative, pauseMonths: Array.isArray(x.pauseMonths) ? x.pauseMonths.slice() : [], pauseReason: x.pauseReason || "" };
       });
       state.incomeSchedule = { rates: rates, family: num(document.getElementById("income-family").value) };
       saveState(); renderAll(); showToast("課表已儲存");
@@ -2069,6 +2077,7 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
       state.incomeScheduleJumpPrivateV2193 = true;
       state.incomeScheduleKaideInactiveV2194 = true;
       state.incomeScheduleYanghuEndV2195 = true;
+      state.incomeScheduleXimeiWinterV2202 = true;
       saveState();
       return;
     }
@@ -2134,6 +2143,13 @@ input[type=checkbox]{width:auto;min-width:18px;height:18px;accent-color:var(--pr
         if (x.institution === '洋湖實驗') { x.endMonth = '2027-01'; x.endTentative = true; }
       });
       state.incomeScheduleYanghuEndV2195 = true;
+      changed = true;
+    }
+    if (!state.incomeScheduleXimeiWinterV2202) {
+      sc.rates.forEach(function (x) {
+        if (x.institution === '西美') { x.pauseMonths = ['2027-01', '2027-02']; x.pauseReason = '寒假'; }
+      });
+      state.incomeScheduleXimeiWinterV2202 = true;
       changed = true;
     }
     if (typeof sc.family !== 'number') { sc.family = 2000; changed = true; }
