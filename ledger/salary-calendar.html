@@ -87,8 +87,10 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
 (function () {
   "use strict";
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "新私教"];
-  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "新私教": 120 };
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "新私教", "PY"];
+  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "新私教": 120, "PY": 80 };
+  var INSTITUTION_ALIASES = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）", "洋湖實驗": "洋湖实验" };
+  function canonicalInstitutionName(name) { var text = String(name || "").replace(/\s+/g, " ").trim(); return INSTITUTION_ALIASES[text] || text; }
   var state = loadState();
   var el = {
     month: document.getElementById("calendar-month"),
@@ -110,17 +112,23 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   function decimal(value) { var n = Math.round(Number(value || 0) * 100) / 100; return String(n).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1"); }
   function esc(value) { return String(value === null || typeof value === "undefined" ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
   function migrateInstitutionState(data) {
-    var rename = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）" };
-    (data.records || []).forEach(function (record) { if (rename[record.institution]) record.institution = rename[record.institution]; });
+    (data.records || []).forEach(function (record) { record.institution = canonicalInstitutionName(record.institution); });
     ["rates", "payDays"].forEach(function (field) {
       if (!data[field] || typeof data[field] !== "object") return;
-      Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
+      Object.keys(data[field]).forEach(function (name) {
+        var canonical = canonicalInstitutionName(name);
+        if (canonical !== name) {
+          if (data[field][canonical] === undefined || data[field][canonical] === null || data[field][canonical] === "") data[field][canonical] = data[field][name];
+          delete data[field][name];
+        }
+      });
     });
-    var existingInstitutions = Array.isArray(data.institutions) ? data.institutions.map(function (name) { return rename[name] || name; }) : [];
+    var existingInstitutions = Array.isArray(data.institutions) ? data.institutions.map(canonicalInstitutionName) : [];
     data.institutions = DEFAULT_INSTITUTIONS.slice();
     existingInstitutions.forEach(function (name) { if (name && data.institutions.indexOf(name) < 0) data.institutions.push(name); });
     data.rates = data.rates || {};
     Object.keys(DEFAULT_RATES).forEach(function (name) { if (data.rates[name] === undefined) data.rates[name] = DEFAULT_RATES[name]; });
+    if (data.rates.PY === undefined || data.rates.PY === null || data.rates.PY === "") data.rates.PY = 80;
     return data;
   }
   function emptyState() { return { records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: {} }; }
@@ -136,12 +144,13 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   function dayLabel(day) { return ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][Number(day)] || "未知"; }
   function clockText(minutes) { var h = Math.floor(Number(minutes) / 60) % 24, m = Number(minutes) % 60; return pad(h) + ":" + pad(m); }
   function institutionForTitle(title, institutions) {
-    var text = String(title || "");
+    var text = String(title || "").replace(/\s+/g, " ").trim();
     var configured = (institutions || configuredInstitutions()).slice().sort(function (a, b) { return String(b).length - String(a).length; });
     for (var index = 0; index < configured.length; index += 1) {
       var name = String(configured[index]);
       if (text === name || text.indexOf(name) === 0) return name;
     }
+    if (/^洋湖(?:实验|實驗)/.test(text)) return "洋湖实验";
     if (/^HUK东/i.test(text)) return "HUK 世茂店";
     if (/^HUK西/i.test(text)) return "HUK 河西店";
     if (/^OD/i.test(text)) return "O-DOG";
@@ -373,7 +382,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) { state = loadState(); render(); renderRegularSalary(); } if (event.key === "myDailySchedule.v3") renderRegularSalary(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { state = loadState(); render(); renderRegularSalary(); } });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=25", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=26", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();

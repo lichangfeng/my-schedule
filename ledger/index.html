@@ -199,7 +199,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       <h1>上课纪录与薪资统计</h1>
       <p>记录每次授课，按月整理各机构堂数，直接给财务核对。</p>
     </div>
-    <div class="hero-badge">资料自动保存 · v25</div>
+    <div class="hero-badge">资料自动保存 · v26</div>
   </header>
 
   <nav class="mobile-nav no-print" aria-label="快速前往">
@@ -354,8 +354,10 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   "use strict";
 
   var STORAGE_KEY = "danceClassLedger.v1";
-  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "新私教"];
-  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "新私教": 120 };
+  var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "新私教", "PY"];
+  var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "新私教": 120, "PY": 80 };
+  var INSTITUTION_ALIASES = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）", "洋湖實驗": "洋湖实验" };
+  function canonicalInstitutionName(name) { var text = String(name || "").replace(/\s+/g, " ").trim(); return INSTITUTION_ALIASES[text] || text; }
   var COURSE_BY_INSTITUTION = {
     "AS": ["AS"],
     "西美": ["西美"],
@@ -366,7 +368,8 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     "跳个街舞": ["跳个街舞"],
     "跳动全城（凯德壹）": ["跳动全城（凯德壹）"],
     "谢业": ["谢业"],
-    "新私教": ["新私教"]
+    "新私教": ["新私教"],
+    "PY": ["PY"]
   };
   var STATUS_LABELS = {
     completed: "已完成", substitute: "代课", planned: "待授课",
@@ -451,15 +454,21 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     }
   }
   function migrateInstitutionState(data) {
-    var rename = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）" };
-    data.records.forEach(function (record) { if (rename[record.institution]) record.institution = rename[record.institution]; });
-    var existingInstitutions = Array.isArray(data.institutions) ? data.institutions.map(function (name) { return rename[name] || name; }) : [];
+    data.records.forEach(function (record) { record.institution = canonicalInstitutionName(record.institution); });
+    var existingInstitutions = Array.isArray(data.institutions) ? data.institutions.map(canonicalInstitutionName) : [];
     data.institutions = DEFAULT_INSTITUTIONS.slice();
     existingInstitutions.forEach(function (name) { if (name && data.institutions.indexOf(name) < 0) data.institutions.push(name); });
     ["rates", "payDays"].forEach(function (field) {
       if (!data[field] || typeof data[field] !== "object") return;
-      Object.keys(data[field]).forEach(function (name) { if (rename[name]) { data[field][rename[name]] = data[field][name]; delete data[field][name]; } });
+      Object.keys(data[field]).forEach(function (name) {
+        var canonical = canonicalInstitutionName(name);
+        if (canonical !== name) {
+          if (data[field][canonical] === undefined || data[field][canonical] === null || data[field][canonical] === "") data[field][canonical] = data[field][name];
+          delete data[field][name];
+        }
+      });
     });
+    if (data.rates && (data.rates.PY === undefined || data.rates.PY === null || data.rates.PY === "")) data.rates.PY = 80;
   }
   function saveState() {
     try {
@@ -747,7 +756,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     document.getElementById("save-record").textContent = "储存纪录";
   }
   function recordFromForm() {
-    var institution = el.institution.value.trim();
+    var institution = canonicalInstitutionName(el.institution.value);
     var enteredRate = numberOrNull(el.rate.value);
     var defaultRate = defaultInstitutionRate(institution);
     return {
@@ -762,6 +771,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       updatedAt: new Date().toISOString()
     };
   }  function addInstitution(name) {
+    name = canonicalInstitutionName(name);
     if (!name || DEFAULT_INSTITUTIONS.indexOf(name) >= 0 || (state.institutions || []).indexOf(name) >= 0) return;
     state.institutions = state.institutions || [];
     state.institutions.push(name);
@@ -1000,7 +1010,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=25", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=26", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";
