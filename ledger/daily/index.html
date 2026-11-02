@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="每日支出">
+  <meta name="description" content="快速記錄食材、飲水、外食與交通支出，自動計算每日節奏、本月預算與節省建議。">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="../icon-192.png">
+  <link rel="apple-touch-icon" href="../icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>每日支出 · 快速記帳</title>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="每日支出首頁">
+        <span class="brand-mark" aria-hidden="true">¥</span>
+        <span>
+          <strong>每日支出</strong>
+          <small id="todayLabel">今天</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <button class="icon-button install-button" id="installButton" type="button" hidden>安裝</button>
+        <button class="icon-button" id="settingsButton" type="button" aria-label="開啟設定" title="設定">⋯</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="dashboard-grid">
+        <section class="summary-card" aria-labelledby="summaryTitle">
+          <div class="summary-heading">
+            <div>
+              <p class="eyebrow" id="summaryTitle">今日已花</p>
+              <strong class="hero-number" id="todayTotal">¥0</strong>
+              <p class="summary-sub" id="todayMeta">還沒有支出，先記下第一筆</p>
+            </div>
+            <div class="pace-dial" id="paceDial" aria-label="本月預算使用進度">
+              <span id="pacePercent">0%</span>
+              <small>本月</small>
+            </div>
+          </div>
+
+          <div class="month-block">
+            <div class="month-line">
+              <span><b id="monthSpent">¥0</b> / <span id="monthBudget">¥1,650</span></span>
+              <button class="text-button on-dark" id="changeMonthButton" type="button" aria-label="切換查看月份"><span id="monthLabel">本月</span> ▾</button>
+            </div>
+            <div class="progress-track" aria-hidden="true"><span id="monthProgress"></span></div>
+            <div class="summary-foot">
+              <span id="budgetLeft">本月還可用 ¥1,650</span>
+              <span id="dailyPace">每日約 ¥53</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="entry-card" id="entryCard" aria-labelledby="entryTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow dark">快速記一筆</p>
+              <h1 id="entryTitle">花了多少？</h1>
+            </div>
+            <button class="text-button" id="cancelEditButton" type="button" hidden>取消編輯</button>
+          </div>
+
+          <form id="expenseForm" novalidate>
+            <label class="amount-field" for="amountInput">
+              <span>¥</span>
+              <input id="amountInput" type="number" inputmode="decimal" min="0.01" max="99999" step="0.01" placeholder="0.00" autocomplete="off" aria-describedby="amountError">
+            </label>
+            <p class="field-error" id="amountError" role="alert"></p>
+
+            <div class="quick-amounts" id="quickAmounts" aria-label="常用金額">
+              <button type="button" data-amount="3">3</button>
+              <button type="button" data-amount="5">5</button>
+              <button type="button" data-amount="10">10</button>
+              <button type="button" data-amount="20">20</button>
+              <button type="button" data-amount="30">30</button>
+              <button type="button" data-amount="50">50</button>
+            </div>
+
+            <fieldset class="category-fieldset">
+              <legend>花在哪裡？</legend>
+              <div class="category-grid" id="categoryGrid">
+                <button class="category-button" type="button" data-category="ingredients" aria-pressed="false">
+                  <span class="category-icon" aria-hidden="true">🥬</span>
+                  <span>食材</span>
+                </button>
+                <button class="category-button" type="button" data-category="water" aria-pressed="false">
+                  <span class="category-icon" aria-hidden="true">💧</span>
+                  <span>飲水</span>
+                </button>
+                <button class="category-button" type="button" data-category="food" aria-pressed="false">
+                  <span class="category-icon" aria-hidden="true">🍚</span>
+                  <span>吃的</span>
+                </button>
+                <button class="category-button" type="button" data-category="transport" aria-pressed="false">
+                  <span class="category-icon" aria-hidden="true">🚌</span>
+                  <span>交通</span>
+                </button>
+              </div>
+              <p class="field-error" id="categoryError" role="alert"></p>
+            </fieldset>
+
+            <div class="note-row">
+              <label for="noteInput">備註 <span>選填</span></label>
+              <input id="noteInput" type="text" maxlength="60" placeholder="例如：午餐、菜市場" autocomplete="off">
+            </div>
+            <div class="quick-notes" id="quickNotes" aria-label="常用備註"></div>
+
+            <div class="entry-details">
+              <label for="dateInput">日期<input id="dateInput" type="date" required></label>
+              <label for="payInput">付款方式
+                <select id="payInput">
+                  <option value="微信零錢">微信零錢</option>
+                  <option value="支付寶">支付寶</option>
+                  <option value="建設銀行儲蓄卡">建設銀行卡</option>
+                  <option value="現金">現金</option>
+                  <option value="美團月付">美團月付（信用）</option>
+                  <option value="花唄">花唄（信用）</option>
+                </select>
+              </label>
+            </div>
+
+            <button class="save-button" id="saveButton" type="submit">
+              <span id="saveButtonText">記下這筆支出</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <p class="storage-note">資料會寫入同一個「資金管理」記帳資料庫，不會另外建立一份。</p>
+          </form>
+        </section>
+
+        <section class="advice-card" aria-labelledby="adviceTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow dark">本月建議</p>
+              <h2 id="adviceTitle">照目前節奏，還能怎麼省？</h2>
+            </div>
+            <span class="advice-status" id="adviceStatus">平穩</span>
+          </div>
+          <p class="advice-lead" id="adviceLead">先記幾筆，我會依你的實際花費給出建議。</p>
+          <ul class="advice-list" id="adviceList"></ul>
+        </section>
+
+        <section class="panel trend-panel" aria-labelledby="trendTitle">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow dark">最近 7 天</p>
+              <h2 id="trendTitle">每日支出</h2>
+            </div>
+            <span class="panel-total" id="trendTotal">¥0</span>
+          </div>
+          <div class="trend-chart" id="trendChart" aria-label="最近七天支出長條圖"></div>
+        </section>
+
+        <section class="panel category-panel" aria-labelledby="categorySummaryTitle">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow dark">本月分類</p>
+              <h2 id="categorySummaryTitle">錢花去了哪裡</h2>
+            </div>
+            <span class="panel-total" id="categoryTotal">¥0</span>
+          </div>
+          <div class="category-summary-list" id="categorySummaryList"></div>
+        </section>
+      </div>
+
+      <section class="history-section" aria-labelledby="historyTitle">
+        <div class="section-heading history-heading">
+          <div>
+            <p class="eyebrow dark">明細</p>
+            <h2 id="historyTitle">本月生活支出</h2>
+          </div>
+          <button class="text-button" id="exportButton" type="button">匯出 CSV</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <span>與「資金管理」共用本機資料，只會在同一瀏覽器同步。</span>
+      <a href="../finance.html">開啟完整財務頁</a>
+    </footer>
+  </div>
+
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow dark">設定</p>
+          <h2 id="settingsTitle">生活費預算</h2>
+        </div>
+        <button class="icon-button" id="closeSettingsButton" type="button" aria-label="關閉設定">✕</button>
+      </div>
+
+      <form id="settingsForm">
+        <div class="settings-grid">
+          <label>標準月預算
+            <input id="monthlyBudgetInput" type="number" min="1" step="1" inputmode="decimal">
+          </label>
+          <label>警戒上限
+            <input id="safeBudgetInput" type="number" min="1" step="1" inputmode="decimal">
+          </label>
+          <label>食材＋吃的
+            <input id="foodCapInput" type="number" min="1" step="1" inputmode="decimal">
+          </label>
+          <label>飲水
+            <input id="waterCapInput" type="number" min="1" step="1" inputmode="decimal">
+          </label>
+          <label>交通
+            <input id="transportCapInput" type="number" min="1" step="1" inputmode="decimal">
+          </label>
+        </div>
+        <p class="settings-help">預設依你的生活費基準：標準 ¥1,650／月、警戒 ¥1,900／月；食材與吃的合計 ¥610、飲水 ¥91、交通 ¥602。</p>
+        <button class="save-button compact-save" type="submit">儲存設定</button>
+      </form>
+
+      <div class="settings-actions">
+        <button class="secondary-button" id="exportSettingsButton" type="button">匯出本月明細</button>
+        <button class="secondary-button" id="installHelpButton" type="button">如何安裝到主畫面</button>
+      </div>
+      <div class="install-help" id="installHelp" hidden>
+        <p><b>iPhone：</b>用 Safari 開啟此頁 → 點「分享」→「加入主畫面」。</p>
+        <p><b>Android／Chrome：</b>點右上角選單 →「安裝應用程式」或「加到主畫面」。</p>
+      </div>
+      <p class="data-caution">此頁使用瀏覽器本機儲存。更換手機、清除網站資料或換瀏覽器前，請先到完整財務頁匯出備份。</p>
+    </section>
+  </div>
+
+  <div class="month-modal-backdrop" id="monthModal" hidden>
+    <section class="month-modal" role="dialog" aria-modal="true" aria-labelledby="monthModalTitle">
+      <div class="modal-heading">
+        <h2 id="monthModalTitle">查看月份</h2>
+        <button class="icon-button" id="closeMonthButton" type="button" aria-label="關閉">✕</button>
+      </div>
+      <label class="month-input-label" for="monthInput">年月
+        <input id="monthInput" type="month">
+      </label>
+      <div class="month-actions">
+        <button class="secondary-button" id="previousMonthButton" type="button">上個月</button>
+        <button class="secondary-button" id="currentMonthButton" type="button">回到本月</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastText"></span>
+    <button id="undoButton" type="button" hidden>復原</button>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
