@@ -4,7 +4,7 @@
   var LEDGER_KEY = "monthEndLedger.v1";
   var SETTINGS_KEY = "dailySpend.settings.v1";
   var SOURCE_NAME = "每日快速記帳";
-  var CURRENT_VERSION = "1.0.0";
+  var CURRENT_VERSION = "1.1.0";
   var DEFAULT_CATEGORY_NAMES = ["餐饮", "交通", "充值缴费", "医疗", "服饰", "家居", "数码电器", "订阅", "日用百货", "娱乐", "其他"];
   var DEFAULT_ACCOUNT_NAMES = ["支付宝", "微信", "建设银行储蓄卡", "现金"];
   var DEFAULT_SETTINGS = {
@@ -55,6 +55,7 @@
   var selectedMonth = currentMonthKey();
   var selectedCategory = settings.lastCategory || "food";
   var editingId = "";
+  var selectedCalendarDate = todayString();
   var toastTimer = 0;
   var undoHandler = null;
   var deferredInstallPrompt = null;
@@ -221,7 +222,7 @@
     refs.monthProgress.classList.toggle("over", monthSpent > safeBudget);
     refs.budgetLeft.textContent = remaining >= 0 ? "本月還可用 " + money(remaining) : "已超出 " + money(Math.abs(remaining));
     refs.dailyPace.textContent = "每日基準 " + money(budget / dim);
-    refs.historyTitle.textContent = selectedMonth === currentMonth ? "本月生活支出" : monthDisplay(selectedMonth) + "生活支出";
+    refs.historyTitle.textContent = selectedMonth === currentMonth ? "本月支出月曆" : monthDisplay(selectedMonth) + "支出月曆";
     renderAdvice(monthRows, monthSpent, budget, safeBudget, elapsed, dim, todaySpent, adjustedDaily);
     renderTrend(monthRows);
     renderCategorySummary(monthRows, monthSpent, elapsed, dim);
@@ -345,33 +346,109 @@
   }
 
   function renderHistory(rows) {
-    var sorted = rows.slice().sort(function (a, b) {
-      var dateCompare = String(b.dt).localeCompare(String(a.dt));
-      if (dateCompare) return dateCompare;
+    var grouped = {};
+    rows.forEach(function (tx) {
+      if (!grouped[tx.dt]) grouped[tx.dt] = [];
+      grouped[tx.dt].push(tx);
+    });
+
+    var selectedDate = resolveCalendarDate(grouped);
+    selectedCalendarDate = selectedDate;
+    var selectedRows = (grouped[selectedDate] || []).slice().sort(function (a, b) {
       return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
-    if (!sorted.length) {
-      refs.historyList.innerHTML = '<div class="history-empty">' + esc(selectedMonth === currentMonthKey() ? "本月還沒有生活支出紀錄。從上方記下第一筆即可。" : monthDisplay(selectedMonth) + "沒有符合條件的支出。") + '</div>';
-      return;
+    var calendarMonth = String(selectedMonth).split("-");
+    var monthName = calendarMonth[0] + "年" + Number(calendarMonth[1]) + "月";
+    var monthTotal = sumRows(rows);
+    var monthCount = rows.length;
+    var dim = daysInMonth(selectedMonth);
+    var dailyPace = Math.max(1, num(settings.monthlyBudget) / dim);
+    var firstDay = new Date(Number(calendarMonth[0]), Number(calendarMonth[1]) - 1, 1).getDay();
+    var leading = (firstDay + 6) % 7;
+    var cells = [];
+    var i;
+
+    for (i = 0; i < leading; i += 1) cells.push('<span class="calendar-blank" aria-hidden="true"></span>');
+    for (i = 1; i <= dim; i += 1) {
+      var date = selectedMonth + "-" + pad(i);
+      var dayRows = grouped[date] || [];
+      var dayTotal = sumRows(dayRows);
+      var dayCount = dayRows.length;
+      var isToday = date === todayString();
+      var isSelected = date === selectedDate;
+      var classes = ["calendar-day"];
+      if (dayCount) classes.push("has-spending");
+      var level = calendarSpendLevel(dayTotal, dailyPace);
+      if (level) classes.push(level);
+      if (isToday) classes.push("is-today");
+      if (isSelected) classes.push("is-selected");
+      var aria = Number(calendarMonth[1]) + "月" + i + "日 " + weekdayFromText(date) + "，" + (dayCount ? "支出 " + money(dayTotal) + "，" + dayCount + " 笔" : "无支出");
+      cells.push('<button type="button" class="' + classes.join(" ") + '" data-calendar-date="' + date + '" aria-pressed="' + (isSelected ? "true" : "false") + '"' + (isToday ? ' aria-current="date"' : "") + ' aria-label="' + esc(aria) + '">' +
+        '<span class="calendar-day-number">' + i + '</span>' +
+        '<span class="calendar-day-amount' + (dayCount ? "" : " is-empty") + '">' + (dayCount ? esc(compactCalendarMoney(dayTotal)) : "—") + '</span>' +
+        '<span class="calendar-day-count">' + (dayCount ? dayCount + ' 笔' : "&nbsp;") + '</span>' +
+        '</button>');
     }
-    var grouped = {};
-    sorted.forEach(function (tx) { if (!grouped[tx.dt]) grouped[tx.dt] = []; grouped[tx.dt].push(tx); });
-    var dates = Object.keys(grouped).sort().reverse();
-    var shown = 0, truncated = false;
-    var html = dates.map(function (date) {
-      if (shown >= 100) { truncated = true; return ""; }
-      var dayRows = grouped[date].slice(0, Math.max(0, 100 - shown));
-      if (dayRows.length < grouped[date].length) truncated = true;
-      shown += dayRows.length;
-      var open = date === todayString() || date === dates[0];
-      return '<details class="day-group"' + (open ? " open" : "") + '>' +
-        '<summary><span class="day-heading"><strong>' + esc(shortDate(date)) + '</strong><span>' + esc(weekdayFromText(date)) + '</span></span><span class="day-total">' + money(sumRows(dayRows)) + '</span></summary>' +
-        '<div class="day-items">' + dayRows.map(renderExpenseItem).join("") + '</div></details>';
-    }).join("");
-    if (truncated) html += '<p class="storage-note">只顯示最近 100 筆；完整資料仍保存在資金管理頁。</p>';
-    refs.historyList.innerHTML = html;
+    while (cells.length % 7 !== 0) cells.push('<span class="calendar-blank" aria-hidden="true"></span>');
+
+    refs.historyList.innerHTML =
+      '<div class="calendar-shell">' +
+        '<div class="calendar-head">' +
+          '<button class="calendar-nav" type="button" data-calendar-shift="-1" aria-label="上个月">‹</button>' +
+          '<button class="calendar-title" type="button" data-calendar-open-month aria-label="选择月份"><strong>' + esc(monthName) + '</strong><small>' + money(monthTotal) + " · " + monthCount + ' 笔</small></button>' +
+          '<button class="calendar-nav" type="button" data-calendar-shift="1" aria-label="下个月">›</button>' +
+        '</div>' +
+        '<div class="calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
+        '<div class="calendar-grid">' + cells.join("") + '</div>' +
+        '<div class="calendar-legend"><span>颜色越深，代表当天花得越多</span><span class="legend-scale" aria-hidden="true"><i></i><i></i><i></i></span></div>' +
+      '</div>' +
+      renderCalendarDayPanel(selectedDate, selectedRows);
   }
 
+  function resolveCalendarDate(grouped) {
+    if (selectedCalendarDate && String(selectedCalendarDate).slice(0, 7) === selectedMonth) return selectedCalendarDate;
+    if (selectedMonth === currentMonthKey()) return todayString();
+    var dates = Object.keys(grouped).sort();
+    return dates.length ? dates[dates.length - 1] : selectedMonth + "-01";
+  }
+
+  function calendarSpendLevel(amount, dailyPace) {
+    if (!(amount > 0)) return "";
+    if (amount <= dailyPace * 0.8) return "spend-low";
+    if (amount <= dailyPace * 1.35) return "spend-mid";
+    return "spend-high";
+  }
+
+  function compactCalendarMoney(amount) {
+    var value = num(amount);
+    if (value >= 10000) return "¥" + (value / 10000).toFixed(1).replace(/\.0$/, "") + "万";
+    if (value >= 1000) return "¥" + (value / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return money(value);
+  }
+
+  function renderCalendarDayPanel(date, dayRows) {
+    var count = dayRows.length;
+    var total = sumRows(dayRows);
+    var rowsHtml = count
+      ? '<div class="day-items">' + dayRows.map(renderExpenseItem).join("") + '</div>'
+      : '<div class="calendar-day-empty"><span aria-hidden="true">☕</span><p>这天还没有支出</p><button class="calendar-add-button" type="button" data-calendar-add="' + date + '">补记这一天</button></div>';
+    return '<section class="calendar-day-panel" aria-live="polite">' +
+      '<div class="calendar-day-panel-head">' +
+        '<div class="calendar-day-title"><h3>' + esc(shortDate(date)) + ' <span>' + esc(weekdayFromText(date)) + '</span></h3><p>' + count + ' 笔支出</p></div>' +
+        '<div class="calendar-day-total"><strong>' + money(total) + '</strong>' + (count ? '<button class="calendar-add-button compact" type="button" data-calendar-add="' + date + '">＋ 补记</button>' : '') + '</div>' +
+      '</div>' + rowsHtml + '</section>';
+  }
+
+  function addExpenseForCalendarDate(date) {
+    if (!date) return;
+    selectedCalendarDate = date;
+    selectedMonth = date.slice(0, 7);
+    refs.dateInput.value = date;
+    renderAll();
+    refs.entryCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(function () { refs.amountInput.focus({ preventScroll: true }); }, 280);
+    showToast("已选择" + shortDate(date) + "，请输入金额");
+  }
   function shortDate(date) { var p = String(date).split("-"); return Number(p[1]) + "月" + Number(p[2]) + "日"; }
 
   function renderExpenseItem(tx) {
@@ -487,6 +564,7 @@
     settings.lastPay = form.pay;
     saveSettings();
     selectedMonth = form.date.slice(0, 7);
+    selectedCalendarDate = form.date;
     var wasEditing = Boolean(editingId);
     resetFormAfterSave(form.date);
     state = ledger;
@@ -553,6 +631,7 @@
     if (!def) return;
     editingId = id;
     selectedMonth = String(tx.dt).slice(0, 7);
+    selectedCalendarDate = String(tx.dt).slice(0, 10);
     refs.amountInput.value = num(tx.amount);
     refs.noteInput.value = tx.note || "";
     refs.dateInput.value = tx.dt;
@@ -662,6 +741,7 @@
   function applyMonth(month) {
     if (!/^\d{4}-\d{2}$/.test(month || "")) return;
     selectedMonth = month;
+    selectedCalendarDate = "";
     closeMonthModal();
     renderAll();
   }
@@ -716,9 +796,28 @@
       var edit = event.target.closest("[data-edit]");
       if (edit) { startEdit(edit.getAttribute("data-edit")); return; }
       var remove = event.target.closest("[data-delete]");
-      if (remove) deleteExpense(remove.getAttribute("data-delete"));
-    });
-    refs.exportButton.addEventListener("click", exportCsv);
+      if (remove) { deleteExpense(remove.getAttribute("data-delete")); return; }
+      var shift = event.target.closest("[data-calendar-shift]");
+      if (shift) {
+        selectedMonth = shiftMonth(selectedMonth, Number(shift.getAttribute("data-calendar-shift")) || 0);
+        selectedCalendarDate = "";
+        renderAll();
+        return;
+      }
+      var openMonth = event.target.closest("[data-calendar-open-month]");
+      if (openMonth) { openMonthModal(); return; }
+      var addDate = event.target.closest("[data-calendar-add]");
+      if (addDate) { addExpenseForCalendarDate(addDate.getAttribute("data-calendar-add")); return; }
+      var day = event.target.closest("[data-calendar-date]");
+      if (day) {
+        selectedCalendarDate = day.getAttribute("data-calendar-date");
+        renderHistory(groupTransactions(state, categoryMap, selectedMonth));
+        window.requestAnimationFrame(function () {
+          var panel = refs.historyList.querySelector(".calendar-day-panel");
+          if (panel) panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      }
+    });    refs.exportButton.addEventListener("click", exportCsv);
     refs.exportSettingsButton.addEventListener("click", exportCsv);
     refs.undoButton.addEventListener("click", function () {
       if (!undoHandler) return;
