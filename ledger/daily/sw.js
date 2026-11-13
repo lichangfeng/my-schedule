@@ -1,5 +1,5 @@
 "use strict";
-var CACHE = "daily-spend-v1.1.0";
+var CACHE = "daily-spend-v1.2.0";
 var ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.json", "../icon-192.png", "../icon-512.png"];
 
 self.addEventListener("install", function (event) {

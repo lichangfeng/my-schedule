@@ -4,25 +4,35 @@
   var LEDGER_KEY = "monthEndLedger.v1";
   var SETTINGS_KEY = "dailySpend.settings.v1";
   var SOURCE_NAME = "每日快速記帳";
-  var CURRENT_VERSION = "1.1.0";
+  var CURRENT_VERSION = "1.2.0";
   var DEFAULT_CATEGORY_NAMES = ["餐饮", "交通", "充值缴费", "医疗", "服饰", "家居", "数码电器", "订阅", "日用百货", "娱乐", "其他"];
   var DEFAULT_ACCOUNT_NAMES = ["支付宝", "微信", "建设银行储蓄卡", "现金"];
   var DEFAULT_SETTINGS = {
     monthlyBudget: 1650,
     safeBudget: 1900,
-    foodCap: 610,
-    waterCap: 91,
+    eatDrinkCap: 701,
+    shoppingCap: 200,
     transportCap: 602,
-    lastCategory: "food",
+    lastCategory: "takeout",
+    lastMajor: "eat",
     lastPay: "微信零錢"
   };
-  var CATEGORY_DEFS = [
-    { key: "ingredients", group: "food", name: "食材", id: "cat-食材", icon: "🥬", color: "#16835f", soft: "#e4f3ec", aliases: ["食材", "食品", "買菜", "买菜", "菜市場", "菜市场"], notes: ["菜市場", "超市", "水果", "糧油"] },
-    { key: "water", group: "water", name: "飲水", id: "cat-飲水", icon: "💧", color: "#1685b7", soft: "#e4f2f8", aliases: ["飲水", "饮水", "買水", "买水", "水"], notes: ["瓶裝水", "桶裝水", "飲料"] },
-    { key: "food", group: "food", name: "吃的", id: "cat-餐饮", icon: "🍚", color: "#d96a25", soft: "#fff0e6", aliases: ["餐飲", "餐饮", "吃的", "外食", "用餐"], notes: ["早餐", "午餐", "晚餐", "外賣", "零食"] },
-    { key: "transport", group: "transport", name: "交通", id: "cat-交通", icon: "🚌", color: "#7560b6", soft: "#efebfa", aliases: ["交通", "交通費", "交通费", "出行"], notes: ["公交", "地鐵", "共享單車", "打車"] }
+  var MAJOR_CATEGORIES = [
+    { key: "eat", name: "吃喝", icon: "🍚", color: "#d96a25" },
+    { key: "shopping", name: "購物", icon: "🛍️", color: "#b05b7a" },
+    { key: "transport", name: "交通", icon: "🚌", color: "#7560b6" }
   ];
-  var PAY_ACCOUNT_NAMES = {
+  var CATEGORY_DEFS = [
+    { key: "snack", group: "eat", name: "零食", id: "cat-零食", icon: "🍪", color: "#c47b22", soft: "#fff3df", aliases: ["零食", "小吃", "餅乾", "饼干"], notes: ["零食", "水果", "甜品"] },
+    { key: "drink", group: "eat", name: "飲料", id: "cat-飲料", icon: "🥤", color: "#1685b7", soft: "#e4f2f8", aliases: ["飲料", "饮料", "飲水", "饮水", "買水", "买水", "奶茶", "咖啡"], notes: ["瓶裝水", "奶茶", "咖啡", "飲料"] },
+    { key: "takeout", group: "eat", name: "外賣", id: "cat-餐饮", icon: "🍚", color: "#d96a25", soft: "#fff0e6", aliases: ["餐飲", "餐饮", "吃的", "外食", "用餐", "外賣", "外卖"], notes: ["早餐", "午餐", "晚餐", "外賣"] },
+    { key: "ingredients", group: "eat", name: "食材", id: "cat-食材", icon: "🥬", color: "#16835f", soft: "#e4f3ec", aliases: ["食材", "食品", "買菜", "买菜", "菜市場", "菜市场"], notes: ["菜市場", "超市", "水果", "糧油"] },
+    { key: "clothing", group: "shopping", name: "衣服", id: "cat-衣服", icon: "👕", color: "#b05b7a", soft: "#faeaf0", aliases: ["衣服", "服飾", "服饰", "衣著", "鞋"], notes: ["衣服", "鞋子", "包包"] },
+    { key: "daily", group: "shopping", name: "日用品", id: "cat-日用品", icon: "🧴", color: "#7a6b42", soft: "#f5f1e4", aliases: ["日用品", "日用百貨", "日用百货", "家居", "清潔", "清洁"], notes: ["紙巾", "清潔用品", "家居", "藥品"] },
+    { key: "digital", group: "shopping", name: "數碼", id: "cat-數碼用品", icon: "💻", color: "#5567a6", soft: "#eaeefa", aliases: ["數碼", "数码", "數碼電器", "数码电器", "電子", "电子"], notes: ["數碼配件", "電子產品", "充電線"] },
+    { key: "otherShopping", group: "shopping", name: "其他購物", id: "cat-其他購物", icon: "📦", color: "#8b6c95", soft: "#f1eaf4", aliases: ["其他購物", "购物", "網購", "网购"], notes: ["網購", "百貨", "禮物"] },
+    { key: "transport", group: "transport", name: "交通", id: "cat-交通", icon: "🚌", color: "#7560b6", soft: "#efebfa", aliases: ["交通", "交通費", "交通费", "出行"], notes: ["公交", "地鐵", "共享單車", "打車"] }
+  ];  var PAY_ACCOUNT_NAMES = {
     "微信零錢": "微信",
     "支付寶": "支付宝",
     "建設銀行儲蓄卡": "建设银行储蓄卡",
@@ -33,8 +43,8 @@
     paceDial: byId("paceDial"), pacePercent: byId("pacePercent"), monthSpent: byId("monthSpent"),
     monthBudget: byId("monthBudget"), monthLabel: byId("monthLabel"), monthProgress: byId("monthProgress"),
     budgetLeft: byId("budgetLeft"), dailyPace: byId("dailyPace"), expenseForm: byId("expenseForm"),
-    entryCard: byId("entryCard"), entryTitle: byId("entryTitle"), amountInput: byId("amountInput"),
-    amountError: byId("amountError"), categoryError: byId("categoryError"), categoryGrid: byId("categoryGrid"),
+    entryCard: byId("entryCard"), entryTitle: byId("entryTitle"), entryToggle: byId("entryToggle"), entryToggleLabel: byId("entryToggleLabel"), entryToggleIcon: byId("entryToggleIcon"), entryToggleMeta: byId("entryToggleMeta"), entryBody: byId("entryBody"), entryCollapseButton: byId("entryCollapseButton"), amountInput: byId("amountInput"),
+    amountError: byId("amountError"), categoryError: byId("categoryError"), categoryGrid: byId("categoryGrid"), subcategoryField: byId("subcategoryField"), subcategoryGrid: byId("subcategoryGrid"),
     noteInput: byId("noteInput"), quickNotes: byId("quickNotes"), dateInput: byId("dateInput"),
     payInput: byId("payInput"), saveButton: byId("saveButton"), saveButtonText: byId("saveButtonText"),
     cancelEditButton: byId("cancelEditButton"), adviceStatus: byId("adviceStatus"), adviceLead: byId("adviceLead"),
@@ -43,7 +53,7 @@
     historyList: byId("historyList"), historyTitle: byId("historyTitle"), exportButton: byId("exportButton"),
     settingsButton: byId("settingsButton"), settingsModal: byId("settingsModal"), closeSettingsButton: byId("closeSettingsButton"),
     settingsForm: byId("settingsForm"), monthlyBudgetInput: byId("monthlyBudgetInput"), safeBudgetInput: byId("safeBudgetInput"),
-    foodCapInput: byId("foodCapInput"), waterCapInput: byId("waterCapInput"), transportCapInput: byId("transportCapInput"),
+    eatDrinkCapInput: byId("eatDrinkCapInput"), shoppingCapInput: byId("shoppingCapInput"), transportCapInput: byId("transportCapInput"),
     exportSettingsButton: byId("exportSettingsButton"), installHelpButton: byId("installHelpButton"), installHelp: byId("installHelp"),
     installButton: byId("installButton"), changeMonthButton: byId("changeMonthButton"), monthModal: byId("monthModal"),
     closeMonthButton: byId("closeMonthButton"), monthInput: byId("monthInput"), previousMonthButton: byId("previousMonthButton"),
@@ -53,7 +63,8 @@
   var categoryMap = {};
   var settings = loadSettings();
   var selectedMonth = currentMonthKey();
-  var selectedCategory = settings.lastCategory || "food";
+  var selectedCategory = settings.lastCategory || "takeout";
+  var selectedMajor = settings.lastMajor || "eat";
   var editingId = "";
   var selectedCalendarDate = todayString();
   var toastTimer = 0;
@@ -66,6 +77,7 @@
     refs.dateInput.value = todayString();
     refs.todayLabel.textContent = formatLongDate(todayString());
     selectCategory(selectedCategory, false);
+    setEntryOpen(false, false);
     refs.payInput.value = settings.lastPay || "微信零錢";
     if (!refs.payInput.value) refs.payInput.value = "微信零錢";
     refreshData();
@@ -119,10 +131,21 @@
     try {
       var saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
       if (!saved || typeof saved !== "object") return Object.assign({}, DEFAULT_SETTINGS);
-      return Object.assign({}, DEFAULT_SETTINGS, saved);
+      var merged = Object.assign({}, DEFAULT_SETTINGS, saved);
+      if (!Number.isFinite(Number(saved.eatDrinkCap))) {
+        merged.eatDrinkCap = Math.max(1, num(saved.foodCap) + num(saved.waterCap));
+        if (!(merged.eatDrinkCap > 1)) merged.eatDrinkCap = DEFAULT_SETTINGS.eatDrinkCap;
+      }
+      if (!Number.isFinite(Number(saved.shoppingCap))) merged.shoppingCap = DEFAULT_SETTINGS.shoppingCap;
+      var savedDef = CATEGORY_DEFS.filter(function (def) { return def.key === merged.lastCategory; })[0];
+      if (!savedDef) {
+        merged.lastCategory = "takeout";
+        savedDef = CATEGORY_DEFS.filter(function (def) { return def.key === "takeout"; })[0];
+      }
+      merged.lastMajor = savedDef.group;
+      return merged;
     } catch (error) { return Object.assign({}, DEFAULT_SETTINGS); }
-  }
-  function saveSettings() {
+  }  function saveSettings() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
     catch (error) { showToast("設定暫時無法儲存，請檢查瀏覽器空間"); }
   }
@@ -204,6 +227,7 @@
     var adjustedDaily = remaining >= 0 ? remaining / remainingDays : 0;
 
     refs.todayTotal.textContent = money(todaySpent);
+    if (refs.entryToggleMeta) refs.entryToggleMeta.textContent = "今天 " + money(todaySpent) + " · " + todayRows.length + " 笔 · 点击展开";
     refs.todayMeta.textContent = todayRows.length
       ? todayRows.length + " 筆 · 今日建議控制在 " + money(adjustedDaily) + " 內"
       : "今天還沒有支出，先記下第一筆";
@@ -236,27 +260,28 @@
     var projection = rows.length ? spent / Math.max(1, elapsed) * dim : 0;
     var isCurrent = selectedMonth === currentMonthKey();
     var safe = true;
-    var foodSpent = sumGroup(rows, "food");
-    var waterSpent = sumGroup(rows, "water");
+    var eatSpent = sumGroup(rows, "eat");
+    var shoppingSpent = sumGroup(rows, "shopping");
     var transportSpent = sumGroup(rows, "transport");
-    var foodPace = proRata(settings.foodCap, elapsed, dim);
-    var waterPace = proRata(settings.waterCap, elapsed, dim);
+    var eatPace = proRata(settings.eatDrinkCap, elapsed, dim);
+    var shoppingPace = proRata(settings.shoppingCap, elapsed, dim);
     var transportPace = proRata(settings.transportCap, elapsed, dim);
     var biggest = [
-      { name: "食材＋吃的", amount: foodSpent, note: "優先檢查外賣、零食與重複買菜" },
-      { name: "交通", amount: transportSpent, note: "可合併辦事路線，短途優先公交或單車" },
-      { name: "飲水", amount: waterSpent, note: "可改帶水杯或箱購，減少臨時買水" }
+      { name: "吃喝", amount: eatSpent, note: "優先減少外賣、零食和臨時飲料" },
+      { name: "購物", amount: shoppingSpent, note: "先分清必需品，衣服和數碼用品延後購買" },
+      { name: "交通", amount: transportSpent, note: "可合併辦事路線，短途優先公交或單車" }
     ].sort(function (a, b) { return b.amount - a.amount; })[0];
 
     if (!rows.length) {
       refs.adviceStatus.textContent = "起步";
       refs.adviceStatus.className = "advice-status";
       refs.adviceLead.textContent = "先連續記 3 天，再把花費節奏和 " + money(settings.monthlyBudget) + " 月預算比較。";
-      suggestions.push("食材與吃的合計基準為 " + money(settings.foodCap) + "／月，平均每天約 " + money(num(settings.foodCap) / dim) + "。");
-      suggestions.push("交通基準為 " + money(settings.transportCap) + "／月；每週約 " + money(num(settings.transportCap) * 12 / 52) + " 比較接近你的實際路線。");
+      suggestions.push("吃喝基準為 " + money(settings.eatDrinkCap) + "／月，平均每天約 " + money(num(settings.eatDrinkCap) / dim) + "。");
+      suggestions.push("購物基準為 " + money(settings.shoppingCap) + "／月，衣服和數碼用品優先從這筆預算裡控制。");
       renderAdviceList(suggestions);
       return;
     }
+
     if (projection <= budget) {
       refs.adviceStatus.textContent = isCurrent ? "節奏平穩" : "預算內";
       refs.adviceStatus.className = "advice-status";
@@ -269,23 +294,25 @@
       refs.adviceStatus.textContent = "需要注意";
       refs.adviceStatus.className = "advice-status warn";
       refs.adviceLead.textContent = "照目前速度，月底約 " + money(projection) + "，會超出標準預算 " + money(projection - budget) + "，但仍在警戒線內。";
-      suggestions.push("接下來每天控制在 " + money(adjustedDaily) + " 內；若某天已超過，隔天先減 " + money(Math.max(5, todaySpent - adjustedDaily)) + "。");
+      suggestions.push("接下來每天控制在 " + money(adjustedDaily) + " 內；若某天已超過，隔天先補回相同金額。");
     } else {
       safe = false;
       refs.adviceStatus.textContent = "超出警戒";
       refs.adviceStatus.className = "advice-status alert";
       refs.adviceLead.textContent = "照目前速度，月底約 " + money(projection) + "，可能超過警戒上限 " + money(safeBudget) + "。";
-      suggestions.push("先暫停非必要外賣、零食與打車，目標把剩餘每天壓在 " + money(Math.max(0, adjustedDaily)) + " 左右。");
+      suggestions.push("先暫停非必要外賣、零食、飲料和購物，目標把剩餘每天壓在 " + money(Math.max(0, adjustedDaily)) + " 左右。");
     }
-    if (elapsed >= 5 && foodSpent > foodPace * 1.15) {
-      suggestions.push("食材＋吃的已花 " + money(foodSpent) + "，比同期基準多 " + money(foodSpent - foodPace) + "；先清冰箱，再用食材補足 2–3 餐。");
-    } else if (waterSpent > waterPace * 1.3 && waterSpent > 8) {
-      suggestions.push("飲水已花 " + money(waterSpent) + "；自備水杯或一次買 1.5L 大瓶，通常比每天買小瓶省。");
+
+    if (elapsed >= 5 && eatSpent > eatPace * 1.15) {
+      suggestions.push("吃喝已花 " + money(eatSpent) + "，比同期基準多 " + money(eatSpent - eatPace) + "；先清冰箱，並減少外賣和零食。");
+    } else if (shoppingSpent > shoppingPace * 1.15 && shoppingSpent > 20) {
+      suggestions.push("購物已花 " + money(shoppingSpent) + "，比同期基準多 " + money(shoppingSpent - shoppingPace) + "；衣服、數碼等非必需品先延後。");
     } else if (transportSpent > transportPace * 1.15 && transportSpent > 20) {
       suggestions.push("交通已花 " + money(transportSpent) + "；把同日事項合併路線，短途優先公交或共享單車。");
     } else if (biggest.amount > 0 && !suggestions.some(function (text) { return text.indexOf(biggest.name) >= 0; })) {
       suggestions.push("最大類別是" + biggest.name + " " + money(biggest.amount) + "；" + biggest.note + "。");
     }
+
     if (rows.length / Math.max(1, elapsed) >= 3.5) {
       suggestions.push("平均每天約 " + (rows.length / Math.max(1, elapsed)).toFixed(1) + " 筆小額支出，集中在一次採買或一次外出，較不容易漏記和重複花費。");
     } else if (isCurrent && todaySpent > adjustedDaily * 1.35 && todaySpent > 10) {
@@ -295,7 +322,6 @@
     }
     renderAdviceList(suggestions.slice(0, 3));
   }
-
   function proRata(cap, elapsed, dim) { return num(cap) * Math.min(dim, elapsed) / dim; }
   function sumGroup(rows, group) {
     return rows.reduce(function (total, tx) {
@@ -329,9 +355,9 @@
 
   function renderCategorySummary(rows, total, elapsed, dim) {
     var groups = [
-      { key: "food", name: "食材＋吃的", icon: "🍚", color: "#d96a25", amount: sumGroup(rows, "food"), cap: num(settings.foodCap), capLabel: "合計基準" },
-      { key: "water", name: "飲水", icon: "💧", color: "#1685b7", amount: sumGroup(rows, "water"), cap: num(settings.waterCap), capLabel: "月基準" },
-      { key: "transport", name: "交通", icon: "🚌", color: "#7560b6", amount: sumGroup(rows, "transport"), cap: num(settings.transportCap), capLabel: "月基準" }
+      { key: "eat", name: "吃喝", icon: "🍚", color: "#d96a25", amount: sumGroup(rows, "eat"), cap: num(settings.eatDrinkCap) },
+      { key: "shopping", name: "購物", icon: "🛍️", color: "#b05b7a", amount: sumGroup(rows, "shopping"), cap: num(settings.shoppingCap) },
+      { key: "transport", name: "交通", icon: "🚌", color: "#7560b6", amount: sumGroup(rows, "transport"), cap: num(settings.transportCap) }
     ];
     refs.categoryTotal.textContent = money(total);
     refs.categorySummaryList.innerHTML = groups.map(function (group) {
@@ -339,12 +365,11 @@
       var paceCap = proRata(group.cap, elapsed, dim);
       var paceText = group.amount > paceCap * 1.15 && elapsed >= 5 ? " · 偏快" : "";
       return '<div class="category-summary-row">' +
-        '<div class="category-name"><span>' + group.icon + '</span><span>' + esc(group.name) + '<small class="category-cap">' + esc(group.capLabel) + " " + money(group.cap) + paceText + '</small></span></div>' +
+        '<div class="category-name"><span>' + group.icon + '</span><span>' + esc(group.name) + '<small class="category-cap">月基準 ' + money(group.cap) + paceText + '</small></span></div>' +
         '<div class="category-bar-track"><div class="category-bar-fill" style="width:' + width.toFixed(1) + '%;--cat-color:' + group.color + '"></div></div>' +
         '<div class="category-amount">' + money(group.amount) + '</div></div>';
     }).join("");
   }
-
   function renderHistory(rows) {
     var grouped = {};
     rows.forEach(function (tx) {
@@ -445,7 +470,7 @@
     selectedMonth = date.slice(0, 7);
     refs.dateInput.value = date;
     renderAll();
-    refs.entryCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    setEntryOpen(true, true);
     window.setTimeout(function () { refs.amountInput.focus({ preventScroll: true }); }, 280);
     showToast("已选择" + shortDate(date) + "，请输入金额");
   }
@@ -479,17 +504,49 @@
     updateTodayLabel();
     if (previous && previous !== todayString() && !editingId) { selectedMonth = currentMonthKey(); renderAll(); }
   }
+  function setEntryOpen(open, shouldScroll) {
+    refs.entryBody.hidden = !open;
+    refs.entryCard.classList.toggle("collapsed", !open);
+    refs.entryToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    refs.entryToggleLabel.textContent = open ? "收起" : "展開";
+    refs.entryToggleIcon.textContent = open ? "−" : "＋";
+    if (open && shouldScroll) {
+      refs.entryCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function selectMajor(key) {
+    var major = MAJOR_CATEGORIES.filter(function (item) { return item.key === key; })[0] || MAJOR_CATEGORIES[0];
+    var currentDef = CATEGORY_DEFS.filter(function (item) { return item.key === selectedCategory; })[0];
+    var def = currentDef && currentDef.group === major.key
+      ? currentDef
+      : CATEGORY_DEFS.filter(function (item) { return item.group === major.key; })[0];
+    if (def) selectCategory(def.key, true);
+  }
+
+  function renderSubcategories() {
+    var major = MAJOR_CATEGORIES.filter(function (item) { return item.key === selectedMajor; })[0] || MAJOR_CATEGORIES[0];
+    var defs = CATEGORY_DEFS.filter(function (item) { return item.group === major.key; });
+    refs.subcategoryField.hidden = defs.length <= 1;
+    refs.subcategoryGrid.innerHTML = defs.map(function (def) {
+      return '<button class="subcategory-button" type="button" data-subcategory="' + esc(def.key) + '" aria-pressed="' + (def.key === selectedCategory ? "true" : "false") + '">' + esc(def.name) + '</button>';
+    }).join("");
+  }
+
   function selectCategory(key, rerenderNotes) {
     var def = CATEGORY_DEFS.filter(function (item) { return item.key === key; })[0] || CATEGORY_DEFS[2];
     selectedCategory = def.key;
-    Array.prototype.forEach.call(refs.categoryGrid.querySelectorAll("[data-category]"), function (button) {
-      button.setAttribute("aria-pressed", button.getAttribute("data-category") === def.key ? "true" : "false");
+    selectedMajor = def.group;
+    Array.prototype.forEach.call(refs.categoryGrid.querySelectorAll("[data-major]"), function (button) {
+      button.setAttribute("aria-pressed", button.getAttribute("data-major") === def.group ? "true" : "false");
     });
+    renderSubcategories();
     if (rerenderNotes !== false) renderQuickNotes(def);
     refs.categoryError.textContent = "";
     settings.lastCategory = def.key;
-  }
-  function renderQuickNotes(def) {
+    settings.lastMajor = def.group;
+    refs.entryTitle.textContent = editingId ? "編輯這筆支出" : "記一筆支出";
+  }  function renderQuickNotes(def) {
     refs.quickNotes.innerHTML = def.notes.map(function (note) {
       var active = refs.noteInput.value === note;
       return '<button type="button" data-note="' + esc(note) + '"' + (active ? ' class="active"' : "") + '>' + esc(note) + '</button>';
@@ -616,7 +673,7 @@
     refs.amountInput.value = "";
     refs.noteInput.value = "";
     refs.dateInput.value = date || todayString();
-    refs.entryTitle.textContent = "花了多少？";
+    refs.entryTitle.textContent = "記一筆支出";
     refs.saveButtonText.textContent = "記下這筆支出";
     refs.cancelEditButton.hidden = true;
     refs.amountError.textContent = "";
@@ -643,13 +700,13 @@
     refs.amountError.textContent = "";
     refs.categoryError.textContent = "";
     renderAll();
-    refs.entryCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    setEntryOpen(true, true);
     window.setTimeout(function () { refs.amountInput.focus({ preventScroll: true }); }, 280);
   }
 
   function cancelEdit() {
     editingId = "";
-    refs.entryTitle.textContent = "花了多少？";
+    refs.entryTitle.textContent = "記一筆支出";
     refs.saveButtonText.textContent = "記下這筆支出";
     refs.cancelEditButton.hidden = true;
     refs.amountInput.value = "";
@@ -728,8 +785,8 @@
   function openSettings() {
     refs.monthlyBudgetInput.value = settings.monthlyBudget;
     refs.safeBudgetInput.value = settings.safeBudget;
-    refs.foodCapInput.value = settings.foodCap;
-    refs.waterCapInput.value = settings.waterCap;
+    refs.eatDrinkCapInput.value = settings.eatDrinkCap;
+    refs.shoppingCapInput.value = settings.shoppingCap;
     refs.transportCapInput.value = settings.transportCap;
     refs.installHelp.hidden = true;
     refs.settingsModal.hidden = false;
@@ -749,17 +806,17 @@
     event.preventDefault();
     var monthly = round2(refs.monthlyBudgetInput.value);
     var safe = round2(refs.safeBudgetInput.value);
-    var food = round2(refs.foodCapInput.value);
-    var water = round2(refs.waterCapInput.value);
+    var eatDrink = round2(refs.eatDrinkCapInput.value);
+    var shopping = round2(refs.shoppingCapInput.value);
     var transport = round2(refs.transportCapInput.value);
-    if (!(monthly > 0) || !(safe > 0) || !(food > 0) || !(water > 0) || !(transport > 0)) {
+    if (!(monthly > 0) || !(safe > 0) || !(eatDrink > 0) || !(shopping > 0) || !(transport > 0)) {
       showToast("所有預算都需要大於 0");
       return;
     }
     settings.monthlyBudget = monthly;
     settings.safeBudget = Math.max(monthly, safe);
-    settings.foodCap = food;
-    settings.waterCap = water;
+    settings.eatDrinkCap = eatDrink;
+    settings.shoppingCap = shopping;
     settings.transportCap = transport;
     saveSettings();
     closeSettings();
@@ -768,9 +825,17 @@
   }
   function bindEvents() {
     refs.expenseForm.addEventListener("submit", function (event) { event.preventDefault(); saveExpense(); });
+    refs.entryToggle.addEventListener("click", function () {
+      setEntryOpen(refs.entryBody.hidden, false);
+    });
+    refs.entryCollapseButton.addEventListener("click", function () { setEntryOpen(false, false); });
     refs.categoryGrid.addEventListener("click", function (event) {
-      var button = event.target.closest("[data-category]");
-      if (button) selectCategory(button.getAttribute("data-category"), true);
+      var button = event.target.closest("[data-major]");
+      if (button) selectMajor(button.getAttribute("data-major"));
+    });
+    refs.subcategoryGrid.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-subcategory]");
+      if (button) selectCategory(button.getAttribute("data-subcategory"), true);
     });
     refs.quickNotes.addEventListener("click", function (event) {
       var button = event.target.closest("[data-note]");

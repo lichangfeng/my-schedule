@@ -58,82 +58,92 @@
           </div>
         </section>
 
-        <section class="entry-card" id="entryCard" aria-labelledby="entryTitle">
-          <div class="section-heading">
-            <div>
+        <section class="entry-card collapsed" id="entryCard" aria-labelledby="entryTitle">
+          <div class="entry-compact">
+            <div class="entry-compact-copy">
               <p class="eyebrow dark">快速記一筆</p>
-              <h1 id="entryTitle">花了多少？</h1>
+              <h1 id="entryTitle">記一筆支出</h1>
+              <p class="entry-toggle-meta" id="entryToggleMeta">今天 ¥0 · 點擊展開</p>
             </div>
-            <button class="text-button" id="cancelEditButton" type="button" hidden>取消編輯</button>
+            <button class="entry-toggle" id="entryToggle" type="button" aria-expanded="false" aria-controls="entryBody">
+              <span id="entryToggleLabel">展開</span>
+              <span id="entryToggleIcon" aria-hidden="true">＋</span>
+            </button>
           </div>
 
-          <form id="expenseForm" novalidate>
-            <label class="amount-field" for="amountInput">
-              <span>¥</span>
-              <input id="amountInput" type="number" inputmode="decimal" min="0.01" max="99999" step="0.01" placeholder="0.00" autocomplete="off" aria-describedby="amountError">
-            </label>
-            <p class="field-error" id="amountError" role="alert"></p>
-
-            <div class="quick-amounts" id="quickAmounts" aria-label="常用金額">
-              <button type="button" data-amount="3">3</button>
-              <button type="button" data-amount="5">5</button>
-              <button type="button" data-amount="10">10</button>
-              <button type="button" data-amount="20">20</button>
-              <button type="button" data-amount="30">30</button>
-              <button type="button" data-amount="50">50</button>
+          <div class="entry-body" id="entryBody" hidden>
+            <div class="entry-body-tools">
+              <button class="text-button" id="cancelEditButton" type="button" hidden>取消編輯</button>
+              <button class="text-button entry-collapse-button" id="entryCollapseButton" type="button">收起</button>
             </div>
-
-            <fieldset class="category-fieldset">
-              <legend>花在哪裡？</legend>
-              <div class="category-grid" id="categoryGrid">
-                <button class="category-button" type="button" data-category="ingredients" aria-pressed="false">
-                  <span class="category-icon" aria-hidden="true">🥬</span>
-                  <span>食材</span>
-                </button>
-                <button class="category-button" type="button" data-category="water" aria-pressed="false">
-                  <span class="category-icon" aria-hidden="true">💧</span>
-                  <span>飲水</span>
-                </button>
-                <button class="category-button" type="button" data-category="food" aria-pressed="false">
-                  <span class="category-icon" aria-hidden="true">🍚</span>
-                  <span>吃的</span>
-                </button>
-                <button class="category-button" type="button" data-category="transport" aria-pressed="false">
-                  <span class="category-icon" aria-hidden="true">🚌</span>
-                  <span>交通</span>
-                </button>
-              </div>
-              <p class="field-error" id="categoryError" role="alert"></p>
-            </fieldset>
-
-            <div class="note-row">
-              <label for="noteInput">備註 <span>選填</span></label>
-              <input id="noteInput" type="text" maxlength="60" placeholder="例如：午餐、菜市場" autocomplete="off">
-            </div>
-            <div class="quick-notes" id="quickNotes" aria-label="常用備註"></div>
-
-            <div class="entry-details">
-              <label for="dateInput">日期<input id="dateInput" type="date" required></label>
-              <label for="payInput">付款方式
-                <select id="payInput">
-                  <option value="微信零錢">微信零錢</option>
-                  <option value="支付寶">支付寶</option>
-                  <option value="建設銀行儲蓄卡">建設銀行卡</option>
-                  <option value="現金">現金</option>
-                  <option value="美團月付">美團月付（信用）</option>
-                  <option value="花唄">花唄（信用）</option>
-                </select>
+            <form id="expenseForm" novalidate>
+              <label class="amount-field" for="amountInput">
+                <span>¥</span>
+                <input id="amountInput" type="number" inputmode="decimal" min="0.01" max="99999" step="0.01" placeholder="0.00" autocomplete="off" aria-describedby="amountError">
               </label>
-            </div>
+              <p class="field-error" id="amountError" role="alert"></p>
 
-            <button class="save-button" id="saveButton" type="submit">
-              <span id="saveButtonText">記下這筆支出</span>
-              <span aria-hidden="true">→</span>
-            </button>
-            <p class="storage-note">資料會寫入同一個「資金管理」記帳資料庫，不會另外建立一份。</p>
-          </form>
+              <div class="quick-amounts" id="quickAmounts" aria-label="常用金額">
+                <button type="button" data-amount="3">3</button>
+                <button type="button" data-amount="5">5</button>
+                <button type="button" data-amount="10">10</button>
+                <button type="button" data-amount="20">20</button>
+                <button type="button" data-amount="30">30</button>
+                <button type="button" data-amount="50">50</button>
+              </div>
+
+              <fieldset class="category-fieldset">
+                <legend>支出大類</legend>
+                <div class="category-grid major-category-grid" id="categoryGrid">
+                  <button class="category-button" type="button" data-major="eat" aria-pressed="false">
+                    <span class="category-icon" aria-hidden="true">🍚</span>
+                    <span>吃喝</span>
+                  </button>
+                  <button class="category-button" type="button" data-major="shopping" aria-pressed="false">
+                    <span class="category-icon" aria-hidden="true">🛍️</span>
+                    <span>購物</span>
+                  </button>
+                  <button class="category-button" type="button" data-major="transport" aria-pressed="false">
+                    <span class="category-icon" aria-hidden="true">🚌</span>
+                    <span>交通</span>
+                  </button>
+                </div>
+
+                <div class="subcategory-field" id="subcategoryField">
+                  <div class="subcategory-label">細分類</div>
+                  <div class="subcategory-grid" id="subcategoryGrid"></div>
+                </div>
+                <p class="field-error" id="categoryError" role="alert"></p>
+              </fieldset>
+
+              <div class="note-row">
+                <label for="noteInput">備註 <span>選填</span></label>
+                <input id="noteInput" type="text" maxlength="60" placeholder="例如：外賣、菜市場、日用品" autocomplete="off">
+              </div>
+              <div class="quick-notes" id="quickNotes" aria-label="常用備註"></div>
+
+              <div class="entry-details">
+                <label for="dateInput">日期<input id="dateInput" type="date" required></label>
+                <label for="payInput">付款方式
+                  <select id="payInput">
+                    <option value="微信零錢">微信零錢</option>
+                    <option value="支付寶">支付寶</option>
+                    <option value="建設銀行儲蓄卡">建設銀行卡</option>
+                    <option value="現金">現金</option>
+                    <option value="美團月付">美團月付（信用）</option>
+                    <option value="花唄">花唄（信用）</option>
+                  </select>
+                </label>
+              </div>
+
+              <button class="save-button" id="saveButton" type="submit">
+                <span id="saveButtonText">記下這筆支出</span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <p class="storage-note">資料會寫入同一個「資金管理」記帳資料庫，不會另外建立一份。</p>
+            </form>
+          </div>
         </section>
-
         <section class="advice-card" aria-labelledby="adviceTitle">
           <div class="section-heading">
             <div>
@@ -146,6 +156,20 @@
           <ul class="advice-list" id="adviceList"></ul>
         </section>
 
+      </div>
+
+      <section class="history-section" aria-labelledby="historyTitle">
+        <div class="section-heading history-heading">
+          <div>
+            <p class="eyebrow dark">月曆明細</p>
+            <h2 id="historyTitle">本月支出月曆</h2>
+          </div>
+          <button class="text-button" id="exportButton" type="button">匯出 CSV</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <div class="insights-grid">
         <section class="panel trend-panel" aria-labelledby="trendTitle">
           <div class="section-heading compact">
             <div>
@@ -167,19 +191,7 @@
           </div>
           <div class="category-summary-list" id="categorySummaryList"></div>
         </section>
-      </div>
-
-      <section class="history-section" aria-labelledby="historyTitle">
-        <div class="section-heading history-heading">
-          <div>
-            <p class="eyebrow dark">月曆明細</p>
-            <h2 id="historyTitle">本月支出月曆</h2>
-          </div>
-          <button class="text-button" id="exportButton" type="button">匯出 CSV</button>
-        </div>
-        <div id="historyList" class="history-list"></div>
-      </section>
-    </main>
+      </div>    </main>
 
     <footer class="page-footer">
       <span>與「資金管理」共用本機資料，只會在同一瀏覽器同步。</span>
@@ -205,17 +217,17 @@
           <label>警戒上限
             <input id="safeBudgetInput" type="number" min="1" step="1" inputmode="decimal">
           </label>
-          <label>食材＋吃的
-            <input id="foodCapInput" type="number" min="1" step="1" inputmode="decimal">
+          <label>吃喝
+            <input id="eatDrinkCapInput" type="number" min="1" step="1" inputmode="decimal">
           </label>
-          <label>飲水
-            <input id="waterCapInput" type="number" min="1" step="1" inputmode="decimal">
+          <label>購物
+            <input id="shoppingCapInput" type="number" min="1" step="1" inputmode="decimal">
           </label>
           <label>交通
             <input id="transportCapInput" type="number" min="1" step="1" inputmode="decimal">
           </label>
         </div>
-        <p class="settings-help">預設依你的生活費基準：標準 ¥1,650／月、警戒 ¥1,900／月；食材與吃的合計 ¥610、飲水 ¥91、交通 ¥602。</p>
+        <p class="settings-help">預設依你的生活費基準：標準 ¥1,650／月、警戒 ¥1,900／月；吃喝 ¥701、購物 ¥200、交通 ¥602。</p>
         <button class="save-button compact-save" type="submit">儲存設定</button>
       </form>
 
