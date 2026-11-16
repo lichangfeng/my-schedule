@@ -303,19 +303,42 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   }
   var payGroups = {};
   function selectPayDate(dateText) {
-    if (!dateText) { el.payDetail.innerHTML = "<h3>发薪明细</h3><div class=\"detail-empty\">点选发薪日历中的日期，查看当天会收到的机构薪资。</div>"; return; }
+    if (!dateText) { el.payDetail.innerHTML = "<h3>发薪明细</h3><div class=\"detail-empty\">点选发薪日历中的日期，查看当天各机构的薪资合计。</div>"; return; }
     el.payCalendar.querySelectorAll(".day.selected").forEach(function (node) { node.classList.remove("selected"); });
     var cell = el.payCalendar.querySelector(".day[data-pay-date=\"" + dateText + "\"]"); if (cell) cell.classList.add("selected");
     var group = payGroups[dateText];
     if (!group) { el.payDetail.innerHTML = "<h3>" + dateText.replace(/-/g, "/") + " · 没有发薪纪录</h3>"; return; }
-    var rows = group.records.map(function (record) {
+    var byInstitution = {}, ordered = [];
+    group.records.forEach(function (record) {
+      var institution = record.institution || "未填机构";
+      if (!byInstitution[institution]) {
+        byInstitution[institution] = { institution: institution, classes: 0, pay: 0, missing: 0, months: {} };
+        ordered.push(byInstitution[institution]);
+      }
+      var item = byInstitution[institution];
+      var count = Number(record.count) || 0;
       var rate = effectiveRate(record);
-      return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(record.institution) + "</strong><span>" + decimal(record.count || 0) + " 堂 · 对应 " + String(record.date).slice(0, 7).replace("-", "/") + " 课程</span></div><div class=\"detail-pay" + (rate === null ? " unset" : "") + "\">" + (rate === null ? "未设薪资" : money(rate * (Number(record.count) || 0))) + "</div></div>";
+      item.classes += count;
+      if (record.date) item.months[String(record.date).slice(0, 7)] = true;
+      if (rate === null) item.missing += count;
+      else item.pay += rate * count;
+    });
+    var institutionOrder = {};
+    configuredInstitutions().forEach(function (name, index) { institutionOrder[name] = index; });
+    ordered.sort(function (a, b) {
+      var orderA = institutionOrder[a.institution] === undefined ? 999 : institutionOrder[a.institution];
+      var orderB = institutionOrder[b.institution] === undefined ? 999 : institutionOrder[b.institution];
+      return orderA - orderB || a.institution.localeCompare(b.institution, "zh-CN");
+    });
+    var rows = ordered.map(function (item) {
+      var months = Object.keys(item.months).sort().map(function (month) { return month.replace("-", "/"); }).join("、");
+      var note = decimal(item.classes) + " 堂" + (months ? " · 对应 " + months + " 课程" : "") + (item.missing ? " · 含未设薪资" : "");
+      var payText = item.missing && !item.pay ? "未设薪资" : money(item.pay);
+      return "<div class=\"detail-row\"><div class=\"detail-main\"><strong>" + esc(item.institution) + "</strong><span>" + note + "</span></div><div class=\"detail-pay" + (item.missing && !item.pay ? " unset" : "") + "\">" + payText + "</div></div>";
     }).join("");
     var totalText = group.missing && !group.total ? "部分未设薪资" : money(group.total);
-    el.payDetail.innerHTML = "<h3>" + dateText.replace(/-/g, "/") + " · " + totalText + "</h3>" + rows;
-  }
-  function renderPayCalendar() {
+    el.payDetail.innerHTML = "<h3>" + dateText.replace(/-/g, "/") + " · " + ordered.length + " 个机构 · " + totalText + "</h3>" + rows;
+  }  function renderPayCalendar() {
     var payMonth = el.payMonth.value || shiftMonthText(el.month.value || monthText(), 1);
     var sourceMonth = shiftMonthText(payMonth, -1);
     var records = monthRecords(sourceMonth);
@@ -397,7 +420,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) { state = loadState(); render(); renderRegularSalary(); } if (event.key === "myDailySchedule.v3") renderRegularSalary(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { state = loadState(); render(); renderRegularSalary(); } });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=26", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=27", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();
