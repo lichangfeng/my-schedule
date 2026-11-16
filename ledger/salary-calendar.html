@@ -89,6 +89,19 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   var STORAGE_KEY = "danceClassLedger.v1";
   var DEFAULT_INSTITUTIONS = ["AS", "西美", "META", "i5", "洋湖实验", "跳动全城（吾悦）", "跳个街舞", "跳动全城（凯德壹）", "谢业", "跳動私教", "PY"];
   var DEFAULT_RATES = { "跳个街舞": 100, "跳动全城（凯德壹）": 120, "跳動私教": 120, "PY": 80 };
+  var DEFAULT_PAY_DAYS = {
+    "META": 1,
+    "AS": 15,
+    "西美": 15,
+    "谢业": 15,
+    "i5": 10,
+    "跳动全城（吾悦）": 31,
+    "跳动全城（凯德壹）": 31,
+    "洋湖实验": 31,
+    "跳个街舞": 31,
+    "PY": 31,
+    "跳動私教": 31
+  };
   var INSTITUTION_ALIASES = { "长郡外国语实验": "跳动全城（吾悦）", "長郡外國語實驗": "跳动全城（吾悦）", "洋湖實驗": "洋湖实验", "新私教": "跳動私教" };
   function canonicalInstitutionName(name) { var text = String(name || "").replace(/\s+/g, " ").trim(); return INSTITUTION_ALIASES[text] || text; }
   var state = loadState();
@@ -129,9 +142,11 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     data.rates = data.rates || {};
     Object.keys(DEFAULT_RATES).forEach(function (name) { if (data.rates[name] === undefined) data.rates[name] = DEFAULT_RATES[name]; });
     if (data.rates.PY === undefined || data.rates.PY === null || data.rates.PY === "") data.rates.PY = 80;
+    data.payDays = data.payDays || {};
+    Object.keys(DEFAULT_PAY_DAYS).forEach(function (name) { data.payDays[name] = DEFAULT_PAY_DAYS[name]; });
     return data;
   }
-  function emptyState() { return { records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: {} }; }
+  function emptyState() { return { records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: Object.assign({}, DEFAULT_PAY_DAYS) }; }
   function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? migrateInstitutionState(parsed) : emptyState(); } catch (error) { return emptyState(); } }
   function configuredInstitutions() { var names = Array.isArray(state.institutions) ? state.institutions : DEFAULT_INSTITUTIONS; return names.filter(function (name, index) { return name && names.indexOf(name) === index; }); }
   function isPayable(record) { return record.status === "completed" || record.status === "substitute"; }
