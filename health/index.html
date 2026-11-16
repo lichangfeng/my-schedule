@@ -128,6 +128,30 @@
               <div class="macro-track"><i id="fatBar"></i></div>
             </div>
           </div>
+          <div class="nutrition-source" id="nutritionSource">
+            <span class="source-dot"></span>
+            <span id="nutritionSourceText">按饮食条目汇总</span>
+          </div>
+        </article>
+
+        <article class="sync-card">
+          <div class="sync-card-head">
+            <span class="sync-icon">AI</span>
+            <div>
+              <strong>豆包营养同步</strong>
+              <p id="syncHint">复制今天的饮食，再把豆包结果粘回来。</p>
+            </div>
+          </div>
+          <div class="sync-actions">
+            <button class="sync-button" id="copyDietButton" type="button">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M16 8V6.2A2.2 2.2 0 0 0 13.8 4H6.2A2.2 2.2 0 0 0 4 6.2v7.6A2.2 2.2 0 0 0 6.2 16H8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              复制给豆包
+            </button>
+            <button class="sync-button is-secondary" id="openNutritionImportButton" type="button">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" stroke-width="1.7"/></svg>
+              粘贴营养结果
+            </button>
+          </div>
         </article>
 
         <div class="meal-groups" id="mealGroups"></div>
@@ -275,7 +299,7 @@
         </div>
 
         <button class="danger-button" id="clearDataButton" type="button">清空全部记录</button>
-        <p class="app-version">轻养记录 · v1.0</p>
+        <p class="app-version">轻养记录 · v1.1</p>
       </section>
     </main>
 
@@ -361,6 +385,34 @@
           </div>
         </details>
         <button class="primary-button" type="submit">添加到饮食记录</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="nutritionModal" aria-hidden="true">
+    <button class="modal-backdrop" type="button" data-close-modal aria-label="关闭"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="nutritionModalTitle">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-heading">
+        <div><p class="eyebrow">自动识别</p><h2 id="nutritionModalTitle">粘贴豆包营养结果</h2></div>
+        <button class="close-button" type="button" data-close-modal aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="nutritionForm">
+        <p class="sheet-description">把豆包返回的内容整段粘贴进来。页面会自动寻找“热量、蛋白质、碳水、脂肪”，识别后也可以手动修正。</p>
+        <label class="field">
+          <span>营养结果</span>
+          <textarea id="nutritionTextInput" rows="8" maxlength="5000" placeholder="例如：&#10;总热量：2238 kcal&#10;蛋白质：139 g&#10;碳水：245 g&#10;脂肪：78 g"></textarea>
+        </label>
+        <p class="parse-status" id="nutritionParseStatus">等待粘贴内容</p>
+        <div class="nutrition-preview">
+          <label class="field"><span>热量</span><div class="input-with-unit"><input id="nutritionKcalInput" type="number" min="0" step="1" inputmode="decimal" placeholder="0"><em>kcal</em></div></label>
+          <label class="field"><span>蛋白质</span><div class="input-with-unit"><input id="nutritionProteinInput" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0"><em>g</em></div></label>
+          <label class="field"><span>碳水</span><div class="input-with-unit"><input id="nutritionCarbsInput" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0"><em>g</em></div></label>
+          <label class="field"><span>脂肪</span><div class="input-with-unit"><input id="nutritionFatInput" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0"><em>g</em></div></label>
+        </div>
+        <button class="primary-button" type="submit">保存并自动显示</button>
       </form>
     </div>
   </div>

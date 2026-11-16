@@ -50,7 +50,8 @@
         note: '初始体重',
         createdAt: now
       }],
-      meals: []
+      meals: [],
+      nutritionDays: []
     };
   }
 
@@ -65,7 +66,7 @@
       return normalizeData(JSON.parse(raw));
     } catch (error) {
       console.error('读取本地记录失败', error);
-      return createInitialData(true);
+      return createInitialData(false);
     }
   }
 
@@ -125,7 +126,30 @@
       };
     }).filter(Boolean) : [];
 
-    return { version: 1, settings: settings, weights: weights, meals: meals };
+    const nutritionDays = Array.isArray(source.nutritionDays) ? source.nutritionDays.map((item, index) => {
+      const date = item && isDateKey(item.date) ? item.date : '';
+      if (!date) return null;
+      return {
+        date: date,
+        kcal: nonNegativeNumber(item.kcal, 0),
+        protein: nonNegativeNumber(item.protein, 0),
+        carbs: nonNegativeNumber(item.carbs, 0),
+        fat: nonNegativeNumber(item.fat, 0),
+        stale: Boolean(item.stale),
+        sourceText: item.sourceText ? String(item.sourceText).slice(0, 1500) : '',
+        updatedAt: Number(item.updatedAt) || Date.now() + index
+      };
+    }).filter(Boolean) : [];
+
+    const uniqueNutritionDays = Array.from(new Map(nutritionDays.map((item) => [item.date, item])).values());
+
+    return {
+      version: 1,
+      settings: settings,
+      weights: weights,
+      meals: meals,
+      nutritionDays: uniqueNutritionDays
+    };
   }
 
   function bindEvents() {
@@ -164,6 +188,10 @@
 
     $('#weightForm').addEventListener('submit', handleWeightSubmit);
     $('#mealForm').addEventListener('submit', handleMealSubmit);
+    $('#nutritionForm').addEventListener('submit', handleNutritionSubmit);
+    $('#nutritionTextInput').addEventListener('input', handleNutritionTextInput);
+    $('#copyDietButton').addEventListener('click', copyDietForDoubao);
+    $('#openNutritionImportButton').addEventListener('click', openNutritionModal);
     $('#settingsForm').addEventListener('submit', handleSettingsSubmit);
 
     $('#quickUpdateButton').addEventListener('click', checkForUpdates);
@@ -216,7 +244,19 @@
     const settings = state.data.settings;
     const targets = getMacroTargets();
     const selectedMeals = getMealsForDate(state.selectedDate);
-    const totals = sumMeals(selectedMeals);
+    const importedNutrition = getNutritionDay(state.selectedDate);
+    const totals = importedNutrition || sumMeals(selectedMeals);
+    const nutritionSource = $('#nutritionSource');
+    const nutritionSourceText = $('#nutritionSourceText');
+    nutritionSource.classList.toggle('is-ai', Boolean(importedNutrition));
+    nutritionSource.classList.toggle('is-stale', Boolean(importedNutrition && importedNutrition.stale));
+    if (importedNutrition) {
+      nutritionSourceText.textContent = importedNutrition.stale
+        ? '饮食记录已变化，建议重新粘贴豆包结果'
+        : '豆包分析结果 · 已自动显示';
+    } else {
+      nutritionSourceText.textContent = '按饮食条目汇总';
+    }
 
     const greeting = getGreetingPrefix();
     $('#greetingText').textContent = greeting + ' · ' + formatLongDate(todayKey());
@@ -250,7 +290,24 @@
     setProgress('#carbsBar', totals.carbs, targets.carbs);
     setProgress('#fatBar', totals.fat, targets.fat);
 
+    renderNutritionSync(selectedMeals, importedNutrition);
     renderMealGroups(selectedMeals);
+  }
+
+  function renderNutritionSync(meals, importedNutrition) {
+    const copyButton = $('#copyDietButton');
+    const hint = $('#syncHint');
+    copyButton.disabled = meals.length === 0;
+
+    if (importedNutrition && importedNutrition.stale) {
+      hint.textContent = '饮食记录已有变化，请重新复制并粘贴新的分析结果。';
+    } else if (importedNutrition) {
+      hint.textContent = '已自动显示豆包分析：' + Math.round(importedNutrition.kcal) + ' kcal。';
+    } else if (meals.length) {
+      hint.textContent = '已整理 ' + meals.length + ' 项饮食，复制后让豆包估算。';
+    } else {
+      hint.textContent = '先添加至少一项饮食，才能复制给豆包。';
+    }
   }
 
   function renderLatestTrend(latest, previous) {
@@ -557,6 +614,7 @@
       createdAt: Date.now()
     });
 
+    markNutritionStale(date);
     saveData();
     state.selectedDate = date;
     closeModals();
@@ -578,9 +636,224 @@
     if (!entry) return;
     if (!window.confirm('确定删除这条饮食记录吗？')) return;
     state.data.meals = state.data.meals.filter((meal) => meal.id !== id);
+    markNutritionStale(entry.date);
     saveData();
     renderAll();
     showToast('已删除饮食记录');
+  }
+
+  function getNutritionDay(date) {
+    return (state.data.nutritionDays || []).find((entry) => entry.date === date) || null;
+  }
+
+  function markNutritionStale(date) {
+    const entry = getNutritionDay(date);
+    if (entry && !entry.stale) {
+      entry.stale = true;
+      entry.updatedAt = Date.now();
+    }
+  }
+
+  function buildDietText() {
+    const meals = getMealsForDate(state.selectedDate);
+    if (!meals.length) return '';
+
+    const lines = [
+      '请根据下面这份全天饮食，估算总营养，并严格只按以下格式返回四项，不要分餐、不要返回范围：',
+      '热量：___ kcal',
+      '蛋白质：___ g',
+      '碳水：___ g',
+      '脂肪：___ g',
+      '',
+      '日期：' + formatHistoryDate(state.selectedDate)
+    ];
+
+    MEAL_TYPES.forEach((type) => {
+      const entries = meals.filter((meal) => meal.type === type);
+      if (!entries.length) return;
+      lines.push('');
+      lines.push(type + '：');
+      entries.forEach((meal) => {
+        lines.push('- ' + meal.food.replace(/\s+/g, ' ').trim());
+      });
+    });
+
+    return lines.join('\n');
+  }
+
+  async function copyDietForDoubao() {
+    const text = buildDietText();
+    if (!text) {
+      showToast('这一天还没有饮食记录');
+      return;
+    }
+
+    try {
+      await copyTextToClipboard(text);
+      showToast('已复制，去豆包粘贴即可');
+    } catch (error) {
+      console.error('复制失败', error);
+      showToast('复制失败，请长按饮食记录手动复制');
+    }
+  }
+
+  async function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch (error) {
+        console.warn('剪贴板接口失败，改用兼容方式', error);
+      }
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    textarea.setAttribute('readonly', '');
+    document.body.appendChild(textarea);
+    textarea.select();
+    const success = document.execCommand('copy');
+    textarea.remove();
+    if (!success) throw new Error('浏览器未允许复制');
+  }
+
+  function openNutritionModal() {
+    const form = $('#nutritionForm');
+    form.reset();
+    const existing = getNutritionDay(state.selectedDate);
+
+    if (existing) {
+      $('#nutritionKcalInput').value = existing.kcal || '';
+      $('#nutritionProteinInput').value = existing.protein || '';
+      $('#nutritionCarbsInput').value = existing.carbs || '';
+      $('#nutritionFatInput').value = existing.fat || '';
+      setNutritionParseStatus('当前已有分析结果，重新粘贴会覆盖本日数据。', '');
+    } else {
+      setNutritionParseStatus('等待粘贴内容', '');
+    }
+
+    openModal('nutritionModal', '#nutritionTextInput');
+  }
+
+  function handleNutritionTextInput() {
+    const text = $('#nutritionTextInput').value.trim();
+    if (!text) {
+      setNutritionParseStatus('等待粘贴内容', '');
+      return;
+    }
+
+    const parsed = parseNutritionText(text);
+    let found = 0;
+
+    if (parsed.kcal !== null) {
+      $('#nutritionKcalInput').value = formatNutritionInput(parsed.kcal);
+      found += 1;
+    }
+    if (parsed.protein !== null) {
+      $('#nutritionProteinInput').value = formatNutritionInput(parsed.protein);
+      found += 1;
+    }
+    if (parsed.carbs !== null) {
+      $('#nutritionCarbsInput').value = formatNutritionInput(parsed.carbs);
+      found += 1;
+    }
+    if (parsed.fat !== null) {
+      $('#nutritionFatInput').value = formatNutritionInput(parsed.fat);
+      found += 1;
+    }
+
+    if (found) {
+      setNutritionParseStatus('已自动识别 ' + found + ' 项，可以在下方检查后保存。', 'is-success');
+    } else {
+      setNutritionParseStatus('没有识别到营养数值。请确认文字中包含热量、蛋白质、碳水和脂肪，也可以手动填写。', 'is-warning');
+    }
+  }
+
+  function parseNutritionText(rawText) {
+    const text = String(rawText || '').normalize('NFKC').replace(/\u00a0/g, ' ');
+    return {
+      kcal: extractNutritionValue(text, ['总热量', '总能量', '热量', '能量', '卡路里', 'calories', 'calorie', 'energy', 'kcal']),
+      protein: extractNutritionValue(text, ['蛋白质', '蛋白', 'protein']),
+      carbs: extractNutritionValue(text, ['碳水化合物', '碳水', 'carbohydrates', 'carbohydrate', 'carbs']),
+      fat: extractNutritionValue(text, ['脂肪', 'fat'])
+    };
+  }
+
+  function extractNutritionValue(text, labels) {
+    const labelPattern = labels.join('|');
+    const regex = new RegExp(
+      '(?:' + labelPattern + ')\\s*[：:＝=|]?\\s*(?:总量|总计|合计|全天|约为|约|为)?\\s*(?:[（(][^）)\\n]{0,20}[）)])?\\s*[：:＝=|]?\\s*(\\d{1,6}(?:[.,]\\d+)?)',
+      'gi'
+    );
+    const matches = Array.from(text.matchAll(regex));
+    if (!matches.length) return null;
+
+    const preferred = matches.filter((match) => {
+      const start = match.index || 0;
+      const lineStart = text.lastIndexOf('\n', start) + 1;
+      const nextBreak = text.indexOf('\n', start);
+      const lineEnd = nextBreak === -1 ? text.length : nextBreak;
+      const line = text.slice(lineStart, lineEnd);
+      const previousBreak = text.lastIndexOf('\n', lineStart - 2);
+      const previousLine = previousBreak === -1 ? text.slice(0, lineStart) : text.slice(previousBreak + 1, lineStart - 1);
+      return /总计|合计|全天|总量/.test(line) || /总计|合计|全天|总量/.test(previousLine);
+    });
+    const chosen = preferred.length ? preferred[preferred.length - 1] : matches[matches.length - 1];
+    const value = Number(chosen[1].replace(/,/g, ''));
+    return Number.isFinite(value) ? value : null;
+  }
+
+  function handleNutritionSubmit(event) {
+    event.preventDefault();
+    let kcal = nonNegativeNumber($('#nutritionKcalInput').value, 0);
+    const protein = nonNegativeNumber($('#nutritionProteinInput').value, 0);
+    const carbs = nonNegativeNumber($('#nutritionCarbsInput').value, 0);
+    const fat = nonNegativeNumber($('#nutritionFatInput').value, 0);
+
+    if (!kcal && !protein && !carbs && !fat) {
+      showToast('请至少识别或填写一项营养数据');
+      return;
+    }
+
+    if (!kcal && (protein || carbs || fat)) {
+      kcal = Math.round(protein * 4 + carbs * 4 + fat * 9);
+    }
+
+    const record = {
+      date: state.selectedDate,
+      kcal: Math.round(kcal * 10) / 10,
+      protein: Math.round(protein * 10) / 10,
+      carbs: Math.round(carbs * 10) / 10,
+      fat: Math.round(fat * 10) / 10,
+      stale: false,
+      sourceText: $('#nutritionTextInput').value.trim().slice(0, 1500),
+      updatedAt: Date.now()
+    };
+
+    const entries = state.data.nutritionDays || [];
+    const index = entries.findIndex((entry) => entry.date === record.date);
+    if (index >= 0) entries[index] = record;
+    else entries.push(record);
+    state.data.nutritionDays = entries;
+
+    saveData();
+    closeModals();
+    renderAll();
+    showToast('营养数据已自动显示');
+  }
+
+  function setNutritionParseStatus(message, className) {
+    const status = $('#nutritionParseStatus');
+    status.textContent = message;
+    status.classList.remove('is-success', 'is-warning');
+    if (className) status.classList.add(className);
+  }
+
+  function formatNutritionInput(value) {
+    return Number(value).toFixed(1).replace(/\.0$/, '');
   }
 
   function handleWeightHistoryClick(event) {
