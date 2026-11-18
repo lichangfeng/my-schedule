@@ -447,7 +447,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     showToast.timer = setTimeout(function () { el.toast.classList.remove("show"); }, 2200);
   }
   function loadState() {
-    var fallback = { version: 1, records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: Object.assign({}, DEFAULT_PAY_DAYS) };
+    var fallback = { version: 1, records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: Object.assign({}, DEFAULT_PAY_DAYS), payDayRulesV2206: true };
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return fallback;
@@ -459,7 +459,6 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
       parsed.rates = parsed.rates && typeof parsed.rates === "object" ? parsed.rates : {};
       Object.keys(DEFAULT_RATES).forEach(function (name) { if (parsed.rates[name] === undefined) parsed.rates[name] = DEFAULT_RATES[name]; });
       parsed.payDays = parsed.payDays && typeof parsed.payDays === "object" ? parsed.payDays : {};
-      Object.keys(DEFAULT_PAY_DAYS).forEach(function (name) { parsed.payDays[name] = DEFAULT_PAY_DAYS[name]; });
       migrateInstitutionState(parsed);
       return parsed;
     } catch (error) {
@@ -484,7 +483,10 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
     });
     if (data.rates && (data.rates.PY === undefined || data.rates.PY === null || data.rates.PY === "")) data.rates.PY = 80;
     data.payDays = data.payDays || {};
-    Object.keys(DEFAULT_PAY_DAYS).forEach(function (name) { data.payDays[name] = DEFAULT_PAY_DAYS[name]; });
+    if (!data.payDayRulesV2206) {
+      Object.keys(DEFAULT_PAY_DAYS).forEach(function (name) { data.payDays[name] = DEFAULT_PAY_DAYS[name]; });
+      data.payDayRulesV2206 = true;
+    }
   }
   function saveState() {
     try {
@@ -1026,7 +1028,7 @@ tbody tr:hover{background:rgba(34,211,238,.045)}
   render();
 
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register("./ledger-sw.js?v=27", { updateViaCache: "none" }).catch(function () {});
+    navigator.serviceWorker.register("./ledger-sw.js?v=28", { updateViaCache: "none" }).catch(function () {});
   }
   var ledgerUpdateButton = document.createElement("button");
   ledgerUpdateButton.id = "manual-update-button";

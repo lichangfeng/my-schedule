@@ -143,10 +143,13 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
     Object.keys(DEFAULT_RATES).forEach(function (name) { if (data.rates[name] === undefined) data.rates[name] = DEFAULT_RATES[name]; });
     if (data.rates.PY === undefined || data.rates.PY === null || data.rates.PY === "") data.rates.PY = 80;
     data.payDays = data.payDays || {};
-    Object.keys(DEFAULT_PAY_DAYS).forEach(function (name) { data.payDays[name] = DEFAULT_PAY_DAYS[name]; });
+    if (!data.payDayRulesV2206) {
+      Object.keys(DEFAULT_PAY_DAYS).forEach(function (name) { data.payDays[name] = DEFAULT_PAY_DAYS[name]; });
+      data.payDayRulesV2206 = true;
+    }
     return data;
   }
-  function emptyState() { return { records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: Object.assign({}, DEFAULT_PAY_DAYS) }; }
+  function emptyState() { return { records: [], institutions: DEFAULT_INSTITUTIONS.slice(), rates: Object.assign({}, DEFAULT_RATES), payDays: Object.assign({}, DEFAULT_PAY_DAYS), payDayRulesV2206: true }; }
   function loadState() { try { var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return parsed && Array.isArray(parsed.records) ? migrateInstitutionState(parsed) : emptyState(); } catch (error) { return emptyState(); } }
   function configuredInstitutions() { var names = Array.isArray(state.institutions) ? state.institutions : DEFAULT_INSTITUTIONS; return names.filter(function (name, index) { return name && names.indexOf(name) === index; }); }
   function isPayable(record) { return record.status === "completed" || record.status === "substitute"; }
@@ -420,7 +423,7 @@ input,select{width:100%;border:1px solid rgba(83,190,235,.28);border-radius:11px
   window.addEventListener("storage", function (event) { if (event.key === STORAGE_KEY) { state = loadState(); render(); renderRegularSalary(); } if (event.key === "myDailySchedule.v3") renderRegularSalary(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { state = loadState(); render(); renderRegularSalary(); } });
   var updateButton = document.createElement("button"); updateButton.className = "manual-update"; updateButton.type = "button"; updateButton.textContent = "🔄 更新"; updateButton.addEventListener("click", async function () { updateButton.disabled = true; updateButton.textContent = "更新中…"; try { if ("serviceWorker" in navigator) { var reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.unregister(); } if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.filter(function (key) { return key.indexOf("dance-class-ledger-") === 0; }).map(function (key) { return caches.delete(key); })); } } catch (error) {} var target = new URL(location.href); target.searchParams.set("manual-update", String(Date.now())); location.replace(target.toString()); }); document.body.appendChild(updateButton);
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=27", { updateViaCache: "none" }).catch(function () {});
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("./ledger-sw.js?v=28", { updateViaCache: "none" }).catch(function () {});
   el.month.value = monthText();
   el.payMonth.value = shiftMonthText(monthText(), 1);
   render();
